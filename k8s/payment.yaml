@@ -20,8 +20,12 @@ spec:
           ports:
             - containerPort: 8084
           env:
-            - name: ORACLE_PASSWORD
-              value: 852852
+            - name: SPRING_DATASOURCE_URL
+              value: 'jdbc:oracle:thin:@enterprise-oracle:1521/FREEPDB1'
+            - name: SPRING_DATASOURCE_USERNAME
+              value: 'payment_service'
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: '852852'
 ---
 apiVersion: v1
 kind: Service

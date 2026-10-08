@@ -21,7 +21,7 @@ spec:
             - containerPort: 5500
           env:
             - name: ORACLE_PASSWORD
-              value: 852852
+              value: '852852'
 ---
 apiVersion: v1
 kind: Service
