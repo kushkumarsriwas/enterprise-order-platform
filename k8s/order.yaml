@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enterprise-order
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enterprise-order
+  template:
+    metadata:
+      labels:
+        app: enterprise-order
+    spec:
+      containers:
+        - name: order
+          image: enterprise-order:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: 852852
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enterprise-order
+  namespace: enterprise-platform
+spec:
+  selector:
+    app: enterprise-order
+  ports:
+    - port: 8083
+      targetPort: 8083
