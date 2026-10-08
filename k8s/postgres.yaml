@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enterprise-postgres
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enterprise-postgres
+  template:
+    metadata:
+      labels:
+        app: enterprise-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: enterprise-secrets
+                  key: POSTGRES_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enterprise-postgres
+  namespace: enterprise-platform
+spec:
+  selector:
+    app: enterprise-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
