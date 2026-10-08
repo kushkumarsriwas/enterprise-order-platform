@@ -1,4 +1,4 @@
-name: Enterprise Order Platform CI
+﻿name: Enterprise Order Platform CI
 on:
   push:
     branches: [ main ]
@@ -8,6 +8,23 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
 
     steps:
       - name: Checkout
@@ -20,19 +37,51 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Create test databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -c "CREATE DATABASE product_inventory_service"
+          psql -h localhost -U postgres -c "CREATE DATABASE order_service"
+          psql -h localhost -U postgres -c "CREATE DATABASE enterprise_platform"
+          psql -h localhost -U postgres -c "CREATE DATABASE auth_service"
+          psql -h localhost -U postgres -c "CREATE DATABASE notification_service"
+
       - name: Test Product Inventory Service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/product_inventory_service
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: '6379'
         run: mvn -f services/product-inventory-service/pom.xml test
 
       - name: Test Order Service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/order_service
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn -f services/order-service/pom.xml test
 
       - name: Test Payment Service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/enterprise_platform
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn -f services/payment-service/pom.xml test
 
       - name: Test Auth Service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/auth_service
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn -f services/auth-service/pom.xml test
 
       - name: Test Notification Service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/notification_service
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn -f services/notification-service/pom.xml test
 
       - name: Test API Gateway
