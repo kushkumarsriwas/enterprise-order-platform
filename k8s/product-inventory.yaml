@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enterprise-product-inventory
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enterprise-product-inventory
+  template:
+    metadata:
+      labels:
+        app: enterprise-product-inventory
+    spec:
+      containers:
+        - name: product-inventory
+          image: enterprise-product-inventory:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: 852852
+            - name: SPRING_DATA_REDIS_HOST
+              value: enterprise-redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enterprise-product-inventory
+  namespace: enterprise-platform
+spec:
+  selector:
+    app: enterprise-product-inventory
+  ports:
+    - port: 8082
+      targetPort: 8082
