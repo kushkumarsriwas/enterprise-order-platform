@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enterprise-notification
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enterprise-notification
+  template:
+    metadata:
+      labels:
+        app: enterprise-notification
+    spec:
+      containers:
+        - name: notification
+          image: enterprise-notification:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: 852852
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enterprise-notification
+  namespace: enterprise-platform
+spec:
+  selector:
+    app: enterprise-notification
+  ports:
+    - port: 8085
+      targetPort: 8085
