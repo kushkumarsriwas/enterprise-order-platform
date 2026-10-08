@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
-
     private final ProductService productService;
 
     public ProductController(ProductService productService) {
@@ -49,6 +48,11 @@ public class ProductController {
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
         return ResponseEntity.ok(productService.update(id, product));
+    }
+
+    @PatchMapping("/{id}/reserve")
+    public ResponseEntity<Product> reserveStock(@PathVariable Long id, @RequestParam int quantity) {
+        return ResponseEntity.ok(productService.reserveStock(id, quantity));
     }
 
     @DeleteMapping("/{id}")

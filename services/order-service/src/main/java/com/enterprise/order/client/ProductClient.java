@@ -10,7 +10,7 @@ public class ProductClient {
     private final RestClient restClient;
 
     public ProductClient(RestClient.Builder builder) {
-        this.restClient = builder.baseUrl("http://localhost:8082").build();
+        this.restClient = builder.baseUrl("http://enterprise-product-inventory:8082").build();
     }
 
     public ProductSnapshot getProduct(Long productId) {
