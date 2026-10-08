@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enterprise-config
+  namespace: enterprise-platform
+data:
+  POSTGRES_HOST: enterprise-postgres
+  REDIS_HOST: enterprise-redis
+  ORACLE_HOST: enterprise-oracle
