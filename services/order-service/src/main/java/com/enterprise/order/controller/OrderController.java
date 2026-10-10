@@ -27,11 +27,20 @@ public class OrderController {
         return ResponseEntity.ok(toResponse(orderService.createOrder(request)));
     }
 
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders().stream().map(this::toResponse).toList());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(toResponse(orderService.getById(id)));
     }
 
+    @PatchMapping("/{id}/paid")
+    public ResponseEntity<OrderResponse> markPaid(@PathVariable Long id) {
+        return ResponseEntity.ok(toResponse(orderService.markPaid(id)));
+    }
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream()
                 .map(item -> new OrderItemResponse(
