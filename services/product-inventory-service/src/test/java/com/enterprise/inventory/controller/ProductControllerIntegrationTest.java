@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -13,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class ProductControllerIntegrationTest {
 
     @Autowired
@@ -21,8 +23,8 @@ class ProductControllerIntegrationTest {
     @Test
     void createProduct_shouldRejectInvalidPrice() throws Exception {
         String request = """
-{"sku":"TEST-INVALID-001","name":"Test Product","description":"Integration test","price":-10,"stockQuantity":10}
-""";
+                {"sku":"TEST-INVALID-001","name":"Test Product","description":"Integration test","price":-10,"stockQuantity":10}
+                """;
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -35,8 +37,8 @@ class ProductControllerIntegrationTest {
     @Test
     void createProduct_shouldRejectBlankName() throws Exception {
         String request = """
-{"sku":"TEST-INVALID-002","name":"","description":"Integration test","price":100,"stockQuantity":10}
-""";
+                {"sku":"TEST-INVALID-002","name":"","description":"Integration test","price":100,"stockQuantity":10}
+                """;
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
