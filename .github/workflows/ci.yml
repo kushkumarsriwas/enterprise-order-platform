@@ -1,13 +1,16 @@
-﻿name: Enterprise Order Platform CI
+﻿
+name: Enterprise Order Platform CI/CD
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:18
@@ -21,6 +24,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+
       redis:
         image: redis:7
         ports:
@@ -86,3 +90,18 @@ jobs:
 
       - name: Test API Gateway
         run: mvn -f gateway/pom.xml test
+
+  deploy-gateway:
+    name: Deploy Gateway to Render
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Render deployment
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_GATEWAY_DEPLOY_HOOK }}
+        run: |
+          test -n "$RENDER_DEPLOY_HOOK"
+          curl --fail --silent --show-error \
+            --request POST "$RENDER_DEPLOY_HOOK"
