@@ -54,6 +54,6 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         String token = jwtService.generateToken(user.getUsername(), user.getRole());
-        return new LoginResponse(token, user.getUsername(), user.getRole());
+        return new LoginResponse(token, user.getId(), user.getUsername(), user.getRole());
     }
 }
