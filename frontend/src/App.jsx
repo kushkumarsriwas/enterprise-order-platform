@@ -808,7 +808,7 @@ async function createOrder(product) {
 
 
 
-    setPage("Orders");
+    
 
     await loadOrders();
 
@@ -956,19 +956,7 @@ async function createOrder(product) {
 
         <div className="sidebar-bottom">
 
-          <div className="upgrade-card">
-
-            <div className="upgrade-orb">✦</div>
-
-            <strong>Built to scale.</strong>
-
-            <p>Your commerce operations, connected in one place.</p>
-
-            <div className="upgrade-progress"><span /></div>
-
-            <small>WORKSPACE OVERVIEW <b>LIVE</b></small>
-
-          </div>
+          
 
           <button className={`nav-item ${page === "Settings" ? "active" : ""}`}
 
@@ -1529,15 +1517,17 @@ async function createOrder(product) {
             <PageHeader eyebrow="WORKSPACE PREFERENCES" title="Settings" subtitle="Connection details and account preferences." />
 
             <div className="panel settings-card theme-settings-card">
-
-              <div className="settings-icon">☼</div><h3>Appearance</h3>
-
-              <p>Customize the dashboard appearance. Your preference is saved in this browser.</p>
-
-              <div className="settings-line"><span>Current theme</span><strong>{darkMode ? "Dark" : "Light"}</strong></div>
-
-              <button className="button button-secondary" onClick={() => setDarkMode(v => !v)}>{darkMode ? "Switch to light mode" : "Switch to dark mode"}</button>
-
+              <h3>Appearance</h3>
+              <div className="settings-line">
+                <span>Current theme</span>
+                <strong>{darkMode ? "Dark" : "Light"}</strong>
+              </div>
+              <button
+                className="button button-secondary"
+                onClick={() => setDarkMode(v => !v)}
+              >
+                {darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              </button>
             </div>
 
             <div className="settings-grid">
