@@ -575,6 +575,8 @@ function App() {
         });
 
         setNotice({ type: "success", text: "Product created." });
+        await request('/api/notifications',{method:'POST',body:JSON.stringify({userId:user?.id||user?.userId||1,type:'PRODUCT_CREATED',message:'Product created: '+payload.name})}).catch(()=>{});
+        await loadNotifications();
 
       }
 
@@ -810,7 +812,8 @@ async function createOrder(product) {
 
     
 
-    await loadOrders();
+    await request("/api/notifications",{method:"POST",body:JSON.stringify({userId:user?.id||user?.userId||1,type:"ORDER_PLACED",message:"Order placed for "+product.name})}).catch(()=>{});
+    await Promise.all([loadOrders(),loadNotifications()]);
 
   } catch (e) {
 
