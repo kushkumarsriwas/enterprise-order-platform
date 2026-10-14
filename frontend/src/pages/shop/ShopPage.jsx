@@ -31,6 +31,7 @@ export default function ShopPage({ user, route, navigate, cart, toast }) {
     [q.q, q.category, q.sort, q.stock, q.min, q.max, page]
   );
   const filtered = Boolean(q.q || q.category || q.stock || q.min || q.max);
+  const emptyMarketplace = !filtered && products.data?.totalElements === 0;
   const visibleCategories = (categories.data || []).filter((c) => c.productCount > 0 || String(c.id) === q.category);
   const storeCount = stores.data?.totalElements;
 
@@ -40,12 +41,12 @@ export default function ShopPage({ user, route, navigate, cart, toast }) {
         <div>
           <h1>{q.q ? `Results for "${q.q}"` : "Shop the marketplace"}</h1>
           <p className="muted">
-            {products.data && storeCount !== undefined
+            {products.data && storeCount !== undefined && !emptyMarketplace
               ? `${formatNumber(products.data.totalElements)} product${products.data.totalElements === 1 ? "" : "s"}${filtered ? " found" : ""} from ${formatNumber(storeCount)} store${storeCount === 1 ? "" : "s"} across the UAE`
               : "Products from independent stores across the UAE"}
           </p>
         </div>
-        <div className="toolbar">
+        <div className="toolbar" hidden={emptyMarketplace}>
           <select value={q.sort || "createdAt,desc"} onChange={(event) => go({ sort: event.target.value })} aria-label="Sort products">
             {SORTS.map(([value, text]) => (
               <option key={value} value={value}>
@@ -69,7 +70,7 @@ export default function ShopPage({ user, route, navigate, cart, toast }) {
         </div>
       )}
 
-      <div className="toolbar">
+      <div className="toolbar" hidden={emptyMarketplace}>
         <label className="check">
           <input type="checkbox" checked={q.stock === "1"} onChange={(event) => go({ stock: event.target.checked ? "1" : "" })} />
           In stock only
