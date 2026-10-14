@@ -7,7 +7,6 @@ import com.enterprise.payment.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,9 +41,8 @@ public class InternalPaymentController {
     }
 
     @PostMapping("/order/{orderId}/capture")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Mark cash on delivery as collected (admin)")
-    public PaymentResponse capture(@PathVariable Long orderId) {
-        return paymentService.capture(orderId);
+    @Operation(summary = "Mark cash on delivery as collected (the seller, when the order is delivered)")
+    public PaymentResponse capture(@PathVariable Long orderId, @AuthenticationPrincipal AuthenticatedUser user) {
+        return paymentService.capture(orderId, user);
     }
 }

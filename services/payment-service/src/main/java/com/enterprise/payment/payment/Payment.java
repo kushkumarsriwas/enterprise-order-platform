@@ -17,11 +17,13 @@ import java.time.Instant;
 
 /**
  * One payment attempt. Card numbers and CVVs are never stored (PCI-DSS): only a masked instrument.
+ * The platform keeps a commission ({@code platformFee}); the rest ({@code merchantNet}) belongs to the seller.
  */
 @Entity
 @Table(name = "payments", indexes = {
         @Index(name = "idx_payments_order", columnList = "order_id"),
-        @Index(name = "idx_payments_user_created", columnList = "user_id, created_at")
+        @Index(name = "idx_payments_user_created", columnList = "user_id, created_at"),
+        @Index(name = "idx_payments_merchant_created", columnList = "merchant_id, created_at")
 })
 public class Payment {
 
@@ -41,8 +43,18 @@ public class Payment {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    /** The seller (merchant user id) who receives the money. */
+    @Column(name = "merchant_id", nullable = false)
+    private Long merchantId;
+
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "platform_fee", nullable = false, precision = 14, scale = 2)
+    private BigDecimal platformFee;
+
+    @Column(name = "merchant_net", nullable = false, precision = 14, scale = 2)
+    private BigDecimal merchantNet;
 
     @Column(nullable = false, length = 3)
     private String currency;
@@ -80,14 +92,17 @@ public class Payment {
     protected Payment() {
     }
 
-    public Payment(String transactionRef, Long orderId, String orderNumber, Long userId, BigDecimal amount,
-                   String currency, PaymentMethod method, PaymentStatus status, String providerReference,
-                   String maskedInstrument, String failureReason) {
+    public Payment(String transactionRef, Long orderId, String orderNumber, Long userId, Long merchantId,
+                   BigDecimal amount, String currency, PaymentMethod method, PaymentStatus status,
+                   String providerReference, String maskedInstrument, String failureReason, BigDecimal platformFee) {
         this.transactionRef = transactionRef;
         this.orderId = orderId;
         this.orderNumber = orderNumber;
         this.userId = userId;
+        this.merchantId = merchantId;
         this.amount = amount;
+        this.platformFee = status == PaymentStatus.FAILED ? BigDecimal.ZERO : platformFee;
+        this.merchantNet = status == PaymentStatus.FAILED ? BigDecimal.ZERO : amount.subtract(platformFee);
         this.currency = currency;
         this.method = method;
         this.status = status;
@@ -136,8 +151,20 @@ public class Payment {
         return userId;
     }
 
+    public Long getMerchantId() {
+        return merchantId;
+    }
+
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public BigDecimal getPlatformFee() {
+        return platformFee;
+    }
+
+    public BigDecimal getMerchantNet() {
+        return merchantNet;
     }
 
     public String getCurrency() {

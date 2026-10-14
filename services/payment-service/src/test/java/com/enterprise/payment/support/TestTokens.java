@@ -30,7 +30,15 @@ public class TestTokens {
         return token(id, "customer" + id, "CUSTOMER");
     }
 
+    public static String merchant(long id) {
+        return token(id, "merchant" + id, "MERCHANT", "Store " + id);
+    }
+
     public static String token(long userId, String username, String role) {
+        return token(userId, username, role, null);
+    }
+
+    public static String token(long userId, String username, String role, String storeName) {
         return Jwts.builder()
                 .header().keyId("test-key").and()
                 .issuer("enterprise-auth")
@@ -38,6 +46,7 @@ public class TestTokens {
                 .claim("username", username)
                 .claim("email", username + "@example.com")
                 .claim("role", role)
+                .claim("storeName", storeName)
                 .issuedAt(new Date())
                 .expiration(Date.from(Instant.now().plusSeconds(3600)))
                 .signWith(KEYS.getPrivate(), Jwts.SIG.RS256)

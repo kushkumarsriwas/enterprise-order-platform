@@ -16,8 +16,9 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openApi() {
         return new OpenAPI()
-                .info(new Info().title("Payment Service API").version("1.0.0")
-                        .description("Payment processing with pluggable processors (Strategy + Factory patterns)"))
+                .info(new Info().title("Payment & Finance Service API").version("2.0.0")
+                        .description("Payments with pluggable processors (Strategy + Factory patterns), platform fees, "
+                                + "and seller finance: expenses, monthly budgets, profit & loss, PDF/Excel reports"))
                 .servers(List.of(new Server().url("/")))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))

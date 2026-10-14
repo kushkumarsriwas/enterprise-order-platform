@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public final class PaymentDtos {
 
@@ -16,6 +17,7 @@ public final class PaymentDtos {
             @NotNull Long orderId,
             @NotBlank @Size(max = 40) String orderNumber,
             @NotNull Long userId,
+            @NotNull Long merchantId,
             @NotNull @DecimalMin("0.01") BigDecimal amount,
             @NotBlank @Size(min = 3, max = 3) String currency,
             @NotNull PaymentMethod method,
@@ -29,17 +31,50 @@ public final class PaymentDtos {
     public record RefundRequest(@Size(max = 255) String reason) {
     }
 
+    /** What the customer (and the order service) sees. The platform commission is not exposed to customers. */
     public record PaymentResponse(Long id, String transactionRef, Long orderId, String orderNumber, Long userId,
-                                  BigDecimal amount, String currency, String method, String status,
+                                  Long merchantId, BigDecimal amount, String currency, String method, String status,
                                   String maskedInstrument, String failureReason, String refundReason,
                                   Instant createdAt, Instant updatedAt) {
 
         public static PaymentResponse from(Payment payment) {
             return new PaymentResponse(payment.getId(), payment.getTransactionRef(), payment.getOrderId(),
-                    payment.getOrderNumber(), payment.getUserId(), payment.getAmount(), payment.getCurrency(),
-                    payment.getMethod().name(), payment.getStatus().name(), payment.getMaskedInstrument(),
-                    payment.getFailureReason(), payment.getRefundReason(), payment.getCreatedAt(),
-                    payment.getUpdatedAt());
+                    payment.getOrderNumber(), payment.getUserId(), payment.getMerchantId(), payment.getAmount(),
+                    payment.getCurrency(), payment.getMethod().name(), payment.getStatus().name(),
+                    payment.getMaskedInstrument(), payment.getFailureReason(), payment.getRefundReason(),
+                    payment.getCreatedAt(), payment.getUpdatedAt());
         }
+    }
+
+    /** What the seller sees: the amount, the platform fee and what they actually earn. */
+    public record MerchantPaymentResponse(Long id, String transactionRef, Long orderId, String orderNumber,
+                                          Long customerId, BigDecimal amount, BigDecimal platformFee,
+                                          BigDecimal merchantNet, String currency, String method, String status,
+                                          String maskedInstrument, String failureReason, String refundReason,
+                                          Instant createdAt, Instant updatedAt) {
+
+        public static MerchantPaymentResponse from(Payment payment) {
+            return new MerchantPaymentResponse(payment.getId(), payment.getTransactionRef(), payment.getOrderId(),
+                    payment.getOrderNumber(), payment.getUserId(), payment.getAmount(), payment.getPlatformFee(),
+                    payment.getMerchantNet(), payment.getCurrency(), payment.getMethod().name(),
+                    payment.getStatus().name(), payment.getMaskedInstrument(), payment.getFailureReason(),
+                    payment.getRefundReason(), payment.getCreatedAt(), payment.getUpdatedAt());
+        }
+    }
+
+    public record MethodTotal(String method, long payments, BigDecimal amount) {
+    }
+
+    /** Seller earnings for a period: what was sold, collected, still to collect (cash on delivery) and the fees. */
+    public record PaymentSummary(String from, String to, String currency, long payments, BigDecimal grossSales,
+                                 BigDecimal collected, BigDecimal awaitingCollection, BigDecimal platformFees,
+                                 BigDecimal netEarnings, BigDecimal refunded, long refunds, long failedAttempts,
+                                 BigDecimal feeRatePercent, List<MethodTotal> byMethod) {
+    }
+
+    /** Admin view of the whole marketplace: payment volume and the platform's commission revenue. */
+    public record PlatformSummary(String currency, long payments, BigDecimal totalVolume, BigDecimal platformRevenue,
+                                  BigDecimal refunded, long failedAttempts, BigDecimal feeRatePercent,
+                                  List<MethodTotal> byMethod) {
     }
 }

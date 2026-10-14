@@ -2,10 +2,12 @@ package com.enterprise.payment.payment;
 
 import com.enterprise.payment.common.PageResponse;
 import com.enterprise.payment.payment.PaymentDtos.PaymentResponse;
+import com.enterprise.payment.payment.PaymentDtos.PlatformSummary;
 import com.enterprise.payment.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,11 +27,18 @@ public class PaymentController {
     }
 
     @GetMapping
-    @Operation(summary = "My payments (admins see all)")
+    @Operation(summary = "My payments (sellers: payments for their orders, admins: all)")
     public PageResponse<PaymentResponse> list(@RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "20") int size,
                                               @AuthenticationPrincipal AuthenticatedUser user) {
         return paymentService.list(user, page, size);
+    }
+
+    @GetMapping("/platform-summary")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Marketplace payment volume and platform commission revenue (admin)")
+    public PlatformSummary platformSummary() {
+        return paymentService.platformSummary();
     }
 
     @GetMapping("/{id}")
