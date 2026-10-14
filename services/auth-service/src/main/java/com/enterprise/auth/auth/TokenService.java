@@ -18,17 +18,24 @@ public class TokenService {
     private final SigningKeyService signingKeyService;
     private final String issuer;
     private final Duration expiration;
+    private final Duration adminExpiration;
 
     public TokenService(SigningKeyService signingKeyService,
                         @Value("${security.jwt.issuer:enterprise-auth}") String issuer,
-                        @Value("${security.jwt.expiration-ms:86400000}") long expirationMs) {
+                        @Value("${security.jwt.expiration-ms:86400000}") long expirationMs,
+                        @Value("${security.jwt.admin-expiration-ms:7200000}") long adminExpirationMs) {
         this.signingKeyService = signingKeyService;
         this.issuer = issuer;
         this.expiration = Duration.ofMillis(expirationMs);
+        this.adminExpiration = Duration.ofMillis(adminExpirationMs);
     }
 
-    /** storeName is added for sellers so other services can show the seller without calling back. */
+    /**
+     * storeName is added for sellers so other services can show the store without calling back.
+     * Admin tokens live shorter (2 hours by default): the most powerful token gets the smallest window.
+     */
     public IssuedToken issue(User user, String storeName) {
+        Duration lifetime = user.isAdmin() ? adminExpiration : expiration;
         Instant now = Instant.now();
         JwtBuilder builder = Jwts.builder()
                 .header().keyId(signingKeyService.activeKeyId()).and()
@@ -39,12 +46,12 @@ public class TokenService {
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(expiration)));
+                .expiration(Date.from(now.plus(lifetime)));
         if (storeName != null) {
             builder.claim("storeName", storeName);
         }
         String token = builder.signWith(signingKeyService.activePrivateKey(), Jwts.SIG.RS256).compact();
-        return new IssuedToken(token, expiration.toSeconds());
+        return new IssuedToken(token, lifetime.toSeconds());
     }
 
     public record IssuedToken(String value, long expiresInSeconds) {

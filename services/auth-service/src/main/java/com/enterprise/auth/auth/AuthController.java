@@ -1,10 +1,12 @@
 package com.enterprise.auth.auth;
 
+import com.enterprise.auth.audit.ClientInfo;
 import com.enterprise.auth.auth.AuthDtos.AuthResponse;
 import com.enterprise.auth.auth.AuthDtos.LoginRequest;
 import com.enterprise.auth.auth.AuthDtos.RegisterRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Marketplace authentication for customers and sellers. */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication")
@@ -32,8 +35,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Sign in with username or email")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    @Operation(summary = "Sign in with username or email (accountType CUSTOMER or SELLER)")
+    public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        return authService.login(request, ClientInfo.from(http));
     }
 }

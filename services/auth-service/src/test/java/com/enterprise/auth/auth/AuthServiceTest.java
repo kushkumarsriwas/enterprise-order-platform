@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.enterprise.auth.audit.ClientInfo;
+import com.enterprise.auth.audit.LoginAuditService;
 import com.enterprise.auth.auth.AuthDtos.AccountType;
 import com.enterprise.auth.auth.AuthDtos.LoginRequest;
 import com.enterprise.auth.auth.AuthDtos.RegisterRequest;
@@ -38,8 +40,12 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private TokenService tokenService;
+    @Mock
+    private LoginAuditService audit;
     @InjectMocks
     private AuthService authService;
+
+    private static final ClientInfo CLIENT = new ClientInfo("10.0.0.7", "JUnit");
 
     private static RegisterRequest customer(String username, String email) {
         return new RegisterRequest(AccountType.CUSTOMER, username, email, "Secret123", "Kush", null, null, null, null, null, null);
@@ -101,7 +107,7 @@ class AuthServiceTest {
         when(userRepository.findByUsernameIgnoreCase("kush")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "$2a$hash")).thenReturn(false);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "wrong", AccountType.CUSTOMER)))
+        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "wrong", AccountType.CUSTOMER), CLIENT))
                 .isInstanceOf(ApiException.class)
                 .hasMessage("Invalid username or password");
     }
@@ -112,7 +118,7 @@ class AuthServiceTest {
         when(userRepository.findByUsernameIgnoreCase("kush")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "Secret123", AccountType.SELLER)))
+        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "Secret123", AccountType.SELLER), CLIENT))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("customer sign-in");
     }
@@ -123,9 +129,43 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCase("sales@gulf.ae")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("sales@gulf.ae", "Secret123", AccountType.CUSTOMER)))
+        assertThatThrownBy(() -> authService.login(new LoginRequest("sales@gulf.ae", "Secret123", AccountType.CUSTOMER), CLIENT))
                 .isInstanceOf(ApiException.class)
                 .extracting(ex -> ((ApiException) ex).getStatus())
                 .isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void theAdminCannotSignInOnTheMarketplace() {
+        User admin = new User("admin", "admin@nexora.local", "$2a$hash", null, null, Role.ADMIN);
+        when(userRepository.findByUsernameIgnoreCase("admin")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("admin", "Secret123", AccountType.SELLER), CLIENT))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Invalid username or password");
+        verify(audit).record(any(), eq("admin"), eq(Role.SELLER), eq(false),
+                eq("Admin account used on the marketplace sign-in"), eq(CLIENT));
+        verify(tokenService, never()).issue(any(), any());
+    }
+
+    @Test
+    void theAdminConsoleOnlyAcceptsTheAdmin() {
+        User seller = new User("gulf", "sales@gulf.ae", "$2a$hash", null, null, Role.SELLER);
+        when(userRepository.findByUsernameIgnoreCase("gulf")).thenReturn(Optional.of(seller));
+        when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.adminLogin(new LoginRequest("gulf", "Secret123", null), CLIENT))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Invalid username or password");
+    }
+
+    @Test
+    void everyFailedAttemptIsAudited() {
+        when(userRepository.findByUsernameIgnoreCase("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("ghost", "whatever1", AccountType.CUSTOMER), CLIENT))
+                .isInstanceOf(ApiException.class);
+        verify(audit).record(isNull(), eq("ghost"), eq(Role.CUSTOMER), eq(false), eq("Unknown username"), eq(CLIENT));
     }
 }

@@ -43,8 +43,15 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    /** False while the account is suspended by the platform administrator. */
     @Column(nullable = false)
     private boolean enabled = true;
+
+    @Column(name = "suspension_reason", length = 255)
+    private String suspensionReason;
+
+    @Column(name = "status_changed_at")
+    private Instant statusChangedAt;
 
     @Embedded
     private Address address;
@@ -93,8 +100,24 @@ public class User {
         this.lastLoginAt = Instant.now();
     }
 
+    public void suspend(String reason) {
+        this.enabled = false;
+        this.suspensionReason = reason;
+        this.statusChangedAt = Instant.now();
+    }
+
+    public void reactivate() {
+        this.enabled = true;
+        this.suspensionReason = null;
+        this.statusChangedAt = Instant.now();
+    }
+
     public boolean isSeller() {
         return role == Role.SELLER;
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
     }
 
     public Long getId() {
@@ -127,6 +150,14 @@ public class User {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+
+    public Instant getStatusChangedAt() {
+        return statusChangedAt;
     }
 
     public Address getAddress() {
