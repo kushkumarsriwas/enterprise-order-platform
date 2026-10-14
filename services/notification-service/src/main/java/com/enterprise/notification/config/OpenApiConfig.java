@@ -16,8 +16,8 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openApi() {
         return new OpenAPI()
-                .info(new Info().title("Notification Service API").version("1.0.0")
-                        .description("In-app notifications with read/unread state"))
+                .info(new Info().title("Notification & Messaging Service API").version("2.0.0")
+                        .description("In-app notifications and customer-seller messaging"))
                 .servers(List.of(new Server().url("/")))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
