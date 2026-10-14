@@ -2,6 +2,7 @@ package com.enterprise.inventory.stock;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -50,6 +51,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
              where i.productId = :productId""")
     int addStock(Long productId, int quantity, Instant now);
 
-    @Query("select i from Inventory i join fetch i.product p where p.active = true and i.availableQuantity <= i.reorderLevel order by i.availableQuantity")
-    List<Inventory> findLowStock();
+    /** Scalar query on purpose: it does not load (and cache) the entity in the persistence context. */
+    @Query("select i.availableQuantity + i.reservedQuantity from Inventory i where i.productId = :productId")
+    Optional<Integer> unitsOnHand(Long productId);
+
+    @Query("""
+            select i from Inventory i join fetch i.product p
+            where p.merchantId = :merchantId and p.active = true and i.availableQuantity <= i.reorderLevel
+            order by i.availableQuantity""")
+    List<Inventory> findLowStock(Long merchantId);
+
+    @Query("select i from Inventory i join fetch i.product p where p.merchantId = :merchantId and p.active = true order by p.name")
+    List<Inventory> findByMerchant(Long merchantId);
 }

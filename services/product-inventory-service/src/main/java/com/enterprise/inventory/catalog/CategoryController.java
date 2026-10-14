@@ -27,15 +27,15 @@ public class CategoryController {
     }
 
     @GetMapping
-    @Operation(summary = "All categories with active product counts (public, cached)")
+    @Operation(summary = "All categories with the number of products on sale (public, cached)")
     public List<CategoryResponse> list() {
         return categoryService.findAll().items();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create a category (admin)")
+    @PreAuthorize("hasAnyRole('MERCHANT', 'ADMIN')")
+    @Operation(summary = "Create a category (merchant or admin)")
     public CategoryResponse create(@Valid @RequestBody CreateCategoryRequest request) {
         return categoryService.create(request);
     }

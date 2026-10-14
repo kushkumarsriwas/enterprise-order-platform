@@ -24,23 +24,33 @@ public final class CatalogDtos {
             @NotBlank @Size(max = 150) String name,
             @Size(max = 1000) String description,
             @NotNull @DecimalMin("0.01") @DecimalMax("1000000.00") @Digits(integer = 10, fraction = 2) BigDecimal price,
+            @NotNull @DecimalMin("0.00") @DecimalMax("1000000.00") @Digits(integer = 10, fraction = 2) BigDecimal costPrice,
             Long categoryId,
             @Size(max = 500) String imageUrl,
             @NotNull @Min(0) @Max(1000000) Integer initialStock,
-            @Min(0) @Max(100000) Integer reorderLevel) {
+            @Min(0) @Max(100000) Integer reorderLevel,
+            @Size(max = 100) String supplier,
+            Boolean listed) {
     }
 
     public record UpdateProductRequest(
             @NotBlank @Size(max = 150) String name,
             @Size(max = 1000) String description,
             @NotNull @DecimalMin("0.01") @DecimalMax("1000000.00") @Digits(integer = 10, fraction = 2) BigDecimal price,
+            @NotNull @DecimalMin("0.00") @DecimalMax("1000000.00") @Digits(integer = 10, fraction = 2) BigDecimal costPrice,
             Long categoryId,
             @Size(max = 500) String imageUrl,
-            Boolean active) {
+            @NotNull Boolean listed) {
     }
 
+    public record ListingRequest(@NotNull Boolean listed) {
+    }
+
+    /** What customers see. Never contains the merchant's cost price. */
     public record ProductResponse(
             Long id,
+            Long merchantId,
+            String merchantName,
             String sku,
             String name,
             String description,
@@ -49,12 +59,33 @@ public final class CatalogDtos {
             Long categoryId,
             String categoryName,
             String imageUrl,
+            int availableQuantity,
+            boolean inStock,
+            boolean lowStock,
+            Instant createdAt) {
+    }
+
+    /** What the owning merchant sees: costs, margins, stock value and listing state. */
+    public record MerchantProductResponse(
+            Long id,
+            String sku,
+            String name,
+            String description,
+            BigDecimal price,
+            BigDecimal costPrice,
+            BigDecimal marginPercent,
+            String currency,
+            Long categoryId,
+            String categoryName,
+            String imageUrl,
+            boolean listed,
             boolean active,
             int availableQuantity,
             int reservedQuantity,
             int reorderLevel,
-            boolean inStock,
             boolean lowStock,
+            BigDecimal stockValueAtCost,
+            BigDecimal stockValueAtPrice,
             Instant createdAt,
             Instant updatedAt) {
     }

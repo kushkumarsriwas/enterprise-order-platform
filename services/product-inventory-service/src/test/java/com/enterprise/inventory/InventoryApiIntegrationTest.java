@@ -2,7 +2,10 @@ package com.enterprise.inventory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,6 +37,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(TestTokens.class)
 class InventoryApiIntegrationTest {
 
+    private static final String MERCHANT = "Bearer " + TestTokens.merchant(100);
+    private static final String OTHER_MERCHANT = "Bearer " + TestTokens.merchant(200);
+
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -41,48 +47,80 @@ class InventoryApiIntegrationTest {
     @Autowired
     private InventoryRepository inventoryRepository;
 
-    private long createProduct(String sku, int stock) throws Exception {
-        String body = mockMvc.perform(post("/api/products")
-                        .header("Authorization", "Bearer " + TestTokens.admin())
+    private long createProduct(String token, String sku, int stock, boolean listed) throws Exception {
+        String body = mockMvc.perform(post("/api/merchant/products").header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"sku\":\"" + sku + "\",\"name\":\"Item " + sku + "\",\"price\":99.50,"
-                                + "\"initialStock\":" + stock + ",\"reorderLevel\":1}"))
+                        .content("{\"sku\":\"" + sku + "\",\"name\":\"Item " + sku + "\",\"price\":99.50,\"costPrice\":60,"
+                                + "\"initialStock\":" + stock + ",\"reorderLevel\":1,\"listed\":" + listed + "}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.id")).longValue();
     }
 
     @Test
-    void catalogueIsPublicButWritesNeedAdmin() throws Exception {
-        long id = createProduct("PUB-1", 5);
+    void onlyListedProductsReachTheMarketplace() throws Exception {
+        long listed = createProduct(MERCHANT, "PUB-1", 5, true);
+        long hidden = createProduct(MERCHANT, "PUB-2", 5, false);
 
-        mockMvc.perform(get("/api/products/" + id))
+        mockMvc.perform(get("/api/products/" + listed))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.availableQuantity").value(5))
-                .andExpect(jsonPath("$.currency").value("AED"));
-        mockMvc.perform(get("/api/products").param("search", "pub-1"))
+                .andExpect(jsonPath("$.merchantName").value("Store 100"))
+                .andExpect(jsonPath("$.costPrice").doesNotExist());
+        mockMvc.perform(get("/api/products/" + hidden)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/products").param("search", "pub-"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].sku").value("PUB-1"));
-        mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + TestTokens.customer(5))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"sku\":\"X-1\",\"name\":\"X\",\"price\":1,\"initialStock\":1}"))
-                .andExpect(status().isForbidden());
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        mockMvc.perform(patch("/api/merchant/products/" + hidden + "/listing").header("Authorization", MERCHANT)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"listed\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listed").value(true))
+                .andExpect(jsonPath("$.marginPercent").value(39.7));
+        mockMvc.perform(get("/api/products").param("search", "pub-"))
+                .andExpect(jsonPath("$.totalElements").value(2));
     }
 
     @Test
-    void duplicateSkuIsRejected() throws Exception {
-        createProduct("DUP-1", 1);
-        mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + TestTokens.admin())
+    void merchantsOnlySeeAndChangeTheirOwnInventory() throws Exception {
+        long id = createProduct(MERCHANT, "OWN-1", 3, true);
+
+        mockMvc.perform(get("/api/merchant/products/" + id).header("Authorization", OTHER_MERCHANT))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/merchant/inventory/" + id).header("Authorization", OTHER_MERCHANT)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"availableQuantity\":999}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/merchant/products").header("Authorization", "Bearer " + TestTokens.customer(5))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"sku\":\"dup-1\",\"name\":\"Again\",\"price\":5,\"initialStock\":1}"))
+                        .content("{\"sku\":\"X-1\",\"name\":\"X\",\"price\":1,\"costPrice\":1,\"initialStock\":1}"))
+                .andExpect(status().isForbidden());
+        // the same SKU is allowed for a different merchant
+        createProduct(OTHER_MERCHANT, "OWN-1", 1, true);
+        mockMvc.perform(post("/api/merchant/products").header("Authorization", MERCHANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sku\":\"own-1\",\"name\":\"Again\",\"price\":5,\"costPrice\":1,\"initialStock\":1}"))
                 .andExpect(status().isConflict());
     }
 
     @Test
+    void restockUpdatesWeightedAverageCostAndPurchases() throws Exception {
+        long id = createProduct(MERCHANT, "WAC-1", 10, false);   // 10 units at 60
+        mockMvc.perform(post("/api/merchant/inventory/" + id + "/restock").header("Authorization", MERCHANT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantity\":30,\"unitCost\":40,\"supplier\":\"Dragon Mart Trading\",\"reference\":\"PO-77\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableQuantity").value(40))
+                .andExpect(jsonPath("$.unitCost").value(45.0));   // (10*60 + 30*40) / 40
+        mockMvc.perform(get("/api/merchant/purchases").header("Authorization", MERCHANT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.reference == 'PO-77')].totalCost").value(1200.0));
+        mockMvc.perform(get("/api/merchant/inventory/summary").header("Authorization", MERCHANT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products").isNumber());
+    }
+
+    @Test
     void concurrentReservationsNeverOversell() throws Exception {
-        long id = createProduct("RACE-1", 5);
+        long id = createProduct(MERCHANT, "RACE-1", 5, true);
         ExecutorService pool = Executors.newFixedThreadPool(10);
         List<Callable<Boolean>> buyers = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -112,14 +150,19 @@ class InventoryApiIntegrationTest {
 
     @Test
     void reserveCommitAndReleaseThroughInternalApi() throws Exception {
-        long id = createProduct("FLOW-1", 4);
+        long id = createProduct(MERCHANT, "FLOW-1", 4, true);
         String customer = "Bearer " + TestTokens.customer(9);
 
+        mockMvc.perform(post("/internal/products/lookup").header("Authorization", customer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"productIds\":[" + id + "]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].merchantId").value(100));
         mockMvc.perform(post("/internal/inventory/reservations").header("Authorization", customer)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderRef\":\"ORD-FLOW\",\"items\":[{\"productId\":" + id + ",\"quantity\":3}]}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lines[0].unitPrice").value(99.5));
+                .andExpect(jsonPath("$.lines[0].unitPrice").value(99.5))
+                .andExpect(jsonPath("$.lines[0].unitCost").value(60.0));
         mockMvc.perform(post("/internal/inventory/reservations").header("Authorization", customer)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderRef\":\"ORD-FLOW-2\",\"items\":[{\"productId\":" + id + ",\"quantity\":2}]}"))
@@ -133,22 +176,40 @@ class InventoryApiIntegrationTest {
         var inventory = inventoryRepository.findById(id).orElseThrow();
         assertThat(inventory.getAvailableQuantity()).isEqualTo(4);
         assertThat(inventory.getReservedQuantity()).isZero();
-        mockMvc.perform(get("/api/inventory/" + id + "/movements").header("Authorization", "Bearer " + TestTokens.admin()))
+        mockMvc.perform(get("/api/merchant/inventory/movements").param("productId", String.valueOf(id))
+                        .header("Authorization", MERCHANT))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].type").value("RETURNED"));
     }
 
     @Test
-    void categoriesShowActiveProductCounts() throws Exception {
-        String body = mockMvc.perform(post("/api/categories").header("Authorization", "Bearer " + TestTokens.admin())
+    void inventoryReportDownloadsAsExcelAndPdf() throws Exception {
+        createProduct(MERCHANT, "REP-1", 7, true);
+        byte[] xlsx = mockMvc.perform(get("/api/merchant/reports/inventory/xlsx").header("Authorization", MERCHANT))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(new String(xlsx, 0, 2)).isEqualTo("PK");
+        byte[] pdf = mockMvc.perform(get("/api/merchant/reports/inventory/pdf").header("Authorization", MERCHANT))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(new String(pdf, 0, 5)).isEqualTo("%PDF-");
+        java.nio.file.Files.write(java.nio.file.Path.of("target", "inventory-report-sample.pdf"), pdf);
+        java.nio.file.Files.write(java.nio.file.Path.of("target", "inventory-report-sample.xlsx"), xlsx);
+    }
+
+    @Test
+    void categoriesShowListedProductCounts() throws Exception {
+        String body = mockMvc.perform(post("/api/categories").header("Authorization", MERCHANT)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Gadgets\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         int categoryId = JsonPath.read(body, "$.id");
-        mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + TestTokens.admin())
+        mockMvc.perform(post("/api/merchant/products").header("Authorization", MERCHANT)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"sku\":\"GAD-1\",\"name\":\"Gadget\",\"price\":10,\"initialStock\":3,\"categoryId\":"
-                                + categoryId + "}"))
+                        .content("{\"sku\":\"GAD-1\",\"name\":\"Gadget\",\"price\":10,\"costPrice\":4,\"initialStock\":3,"
+                                + "\"categoryId\":" + categoryId + "}"))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/categories"))

@@ -8,10 +8,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     boolean existsByNameIgnoreCase(String name);
 
-    /** Category list with the number of active products in each (LEFT JOIN + GROUP BY). */
+    /** Categories with the number of products currently on sale in each (LEFT JOIN + GROUP BY). */
     @Query("""
             select new com.enterprise.inventory.catalog.CatalogDtos$CategoryResponse(c.id, c.name, c.description, count(p.id))
-            from Category c left join Product p on p.category = c and p.active = true
+            from Category c left join Product p on p.category = c and p.active = true and p.listed = true
             group by c.id, c.name, c.description
             order by c.name""")
     List<CatalogDtos.CategoryResponse> findAllWithProductCount();

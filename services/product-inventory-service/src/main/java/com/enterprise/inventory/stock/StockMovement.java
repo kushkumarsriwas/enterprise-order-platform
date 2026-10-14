@@ -13,12 +13,18 @@ import java.time.Instant;
 
 /** Append-only audit trail of every stock change (who, what, why, when). */
 @Entity
-@Table(name = "stock_movements", indexes = @Index(name = "idx_movements_product_time", columnList = "product_id, created_at"))
+@Table(name = "stock_movements", indexes = {
+        @Index(name = "idx_movements_product_time", columnList = "product_id, created_at"),
+        @Index(name = "idx_movements_merchant_time", columnList = "merchant_id, created_at")
+})
 public class StockMovement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "merchant_id", nullable = false)
+    private Long merchantId;
 
     @Column(name = "product_id", nullable = false)
     private Long productId;
@@ -46,8 +52,9 @@ public class StockMovement {
     protected StockMovement() {
     }
 
-    public StockMovement(Long productId, MovementType type, int quantityChange, String reference, String note,
-                         String performedBy) {
+    public StockMovement(Long merchantId, Long productId, MovementType type, int quantityChange, String reference,
+                         String note, String performedBy) {
+        this.merchantId = merchantId;
         this.productId = productId;
         this.type = type;
         this.quantityChange = quantityChange;
@@ -59,6 +66,10 @@ public class StockMovement {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getMerchantId() {
+        return merchantId;
     }
 
     public Long getProductId() {

@@ -1,17 +1,13 @@
 package com.enterprise.inventory.catalog;
 
-import com.enterprise.inventory.catalog.CatalogDtos.CreateProductRequest;
 import com.enterprise.inventory.catalog.CatalogDtos.ProductResponse;
-import com.enterprise.inventory.catalog.CatalogDtos.UpdateProductRequest;
 import com.enterprise.inventory.common.ApiException;
 import com.enterprise.inventory.common.PageResponse;
 import com.enterprise.inventory.stock.Inventory;
 import com.enterprise.inventory.stock.InventoryRepository;
-import com.enterprise.inventory.stock.MovementType;
-import com.enterprise.inventory.stock.StockMovement;
-import com.enterprise.inventory.stock.StockMovementRepository;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +25,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/** The public marketplace: products of every merchant that are listed for sale. */
 @Service
 public class ProductService {
 
@@ -36,39 +33,41 @@ public class ProductService {
     private static final Set<String> SORTABLE = Set.of("name", "price", "createdAt");
 
     private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
     private final InventoryRepository inventoryRepository;
-    private final StockMovementRepository movementRepository;
-    private final ProductCache productCache;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
-                          InventoryRepository inventoryRepository, StockMovementRepository movementRepository,
-                          ProductCache productCache) {
+    public ProductService(ProductRepository productRepository, InventoryRepository inventoryRepository) {
         this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
         this.inventoryRepository = inventoryRepository;
-        this.movementRepository = movementRepository;
-        this.productCache = productCache;
     }
 
-    /** Paginated search: one query for the page of products + one batched query for their stock rows. */
+    /** One query for the page of products + one batched query for their stock rows (no N+1). */
     @Transactional(readOnly = true)
-    public PageResponse<ProductResponse> search(String search, Long categoryId, boolean inStockOnly,
-                                                boolean includeInactive, int page, int size, String sort) {
+    public PageResponse<ProductResponse> search(String search, Long categoryId, Long merchantId, BigDecimal minPrice,
+                                                BigDecimal maxPrice, boolean inStockOnly, int page, int size,
+                                                String sort) {
         Specification<Product> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            if (!includeInactive) {
-                predicates.add(cb.isTrue(root.get("active")));
-            }
+            predicates.add(cb.isTrue(root.get("active")));
+            predicates.add(cb.isTrue(root.get("listed")));
             if (search != null && !search.isBlank()) {
                 String like = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("name")), like),
                         cb.like(cb.lower(root.get("sku")), like),
+                        cb.like(cb.lower(root.get("merchantName")), like),
                         cb.like(cb.lower(root.get("description")), like)));
             }
             if (categoryId != null) {
                 predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (merchantId != null) {
+                predicates.add(cb.equal(root.get("merchantId"), merchantId));
+            }
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), minPrice));
+            }
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), maxPrice));
             }
             if (inStockOnly) {
                 Subquery<Long> stock = query.subquery(Long.class);
@@ -85,7 +84,7 @@ public class ProductService {
         Map<Long, Inventory> stock = inventoryRepository.findAllById(
                         result.getContent().stream().map(Product::getId).toList())
                 .stream().collect(Collectors.toMap(Inventory::getProductId, Function.identity()));
-        return PageResponse.from(result, product -> ProductMapper.toResponse(product, stock.get(product.getId())));
+        return PageResponse.from(result, product -> ProductMapper.toPublic(product, stock.get(product.getId())));
     }
 
     /** Cache-aside: the first call reads PostgreSQL, later calls are served from Redis until evicted. */
@@ -94,61 +93,12 @@ public class ProductService {
     public ProductResponse getById(Long id) {
         log.debug("Cache miss for product {} - loading from database", id);
         Product product = productRepository.findById(id)
+                .filter(Product::isPurchasable)
                 .orElseThrow(() -> ApiException.notFound("Product " + id + " not found"));
-        return ProductMapper.toResponse(product, inventoryRepository.findById(id).orElse(null));
+        return ProductMapper.toPublic(product, inventoryRepository.findById(id).orElse(null));
     }
 
-    @Transactional
-    public ProductResponse create(CreateProductRequest request, String actor) {
-        String sku = request.sku().trim().toUpperCase(Locale.ROOT);
-        if (productRepository.existsBySkuIgnoreCase(sku)) {
-            throw ApiException.conflict("A product with SKU " + sku + " already exists");
-        }
-        Product product = productRepository.save(new Product(sku, request.name().trim(), request.description(),
-                request.price(), findCategory(request.categoryId()), request.imageUrl()));
-        int reorderLevel = request.reorderLevel() == null ? 5 : request.reorderLevel();
-        Inventory inventory = inventoryRepository.save(new Inventory(product, request.initialStock(), reorderLevel));
-        movementRepository.save(new StockMovement(product.getId(), MovementType.INITIAL, request.initialStock(),
-                null, "Initial stock", actor));
-        productCache.evictCategories();
-        log.info("Product {} ({}) created by {}", product.getId(), sku, actor);
-        return ProductMapper.toResponse(product, inventory);
-    }
-
-    @Transactional
-    public ProductResponse update(Long id, UpdateProductRequest request, String actor) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("Product " + id + " not found"));
-        product.update(request.name().trim(), request.description(), request.price(),
-                findCategory(request.categoryId()), request.imageUrl(),
-                request.active() == null ? product.isActive() : request.active());
-        productRepository.flush();
-        productCache.evictProduct(id);
-        productCache.evictCategories();
-        log.info("Product {} updated by {}", id, actor);
-        return ProductMapper.toResponse(product, inventoryRepository.findById(id).orElse(null));
-    }
-
-    /** Soft delete: old orders still reference the product, so it is hidden instead of removed. */
-    @Transactional
-    public void deactivate(Long id, String actor) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound("Product " + id + " not found"));
-        product.deactivate();
-        productCache.evictProduct(id);
-        productCache.evictCategories();
-        log.info("Product {} deactivated by {}", id, actor);
-    }
-
-    private Category findCategory(Long categoryId) {
-        if (categoryId == null) {
-            return null;
-        }
-        return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> ApiException.badRequest("Category " + categoryId + " does not exist"));
-    }
-
-    private static Sort parseSort(String sort) {
+    static Sort parseSort(String sort) {
         if (sort == null || sort.isBlank()) {
             return Sort.by("name");
         }

@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
@@ -38,6 +39,8 @@ class InventoryServiceTest {
     @Mock
     private StockMovementRepository movementRepository;
     @Mock
+    private StockPurchaseRepository purchaseRepository;
+    @Mock
     private ProductRepository productRepository;
     @Mock
     private ProductCache productCache;
@@ -45,12 +48,15 @@ class InventoryServiceTest {
     private ApplicationEventPublisher events;
 
     private InventoryService service;
-    private final Product laptop = new Product("LAP-1", "Laptop", null, new BigDecimal("4999.00"), null, null);
+    private Product laptop;
 
     @BeforeEach
     void setUp() {
         service = new InventoryService(inventoryRepository, reservationRepository, movementRepository,
-                productRepository, productCache, events, Duration.ofMinutes(40));
+                purchaseRepository, productRepository, productCache, events, Duration.ofMinutes(40));
+        laptop = new Product(50L, "Gulf Gadgets", "LAP-1", "Laptop", null, new BigDecimal("4999.00"),
+                new BigDecimal("4000.00"), null, null, true);
+        ReflectionTestUtils.setField(laptop, "id", 7L);
     }
 
     @Test
@@ -69,6 +75,17 @@ class InventoryServiceTest {
     }
 
     @Test
+    void unlistedProductsCannotBeOrdered() {
+        laptop.setListed(false);
+        when(reservationRepository.findByOrderRefOrderByProductId("ORD-9")).thenReturn(List.of());
+        when(productRepository.findById(7L)).thenReturn(Optional.of(laptop));
+
+        assertThatThrownBy(() -> service.reserve(new ReserveRequest("ORD-9", List.of(new ReserveItem(7L, 1)))))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("not available for sale");
+    }
+
+    @Test
     void reserveIsIdempotentForTheSameOrder() {
         StockReservation existing = new StockReservation("ORD-2", 7L, 1, Instant.now().plusSeconds(600));
         when(reservationRepository.findByOrderRefOrderByProductId("ORD-2")).thenReturn(List.of(existing));
@@ -77,6 +94,7 @@ class InventoryServiceTest {
         var response = service.reserve(new ReserveRequest("ORD-2", List.of(new ReserveItem(7L, 1))));
 
         assertThat(response.lines()).hasSize(1);
+        assertThat(response.lines().get(0).unitCost()).isEqualByComparingTo("4000.00");
         verify(inventoryRepository, never()).reserve(any(), anyInt(), any());
     }
 
@@ -91,5 +109,12 @@ class InventoryServiceTest {
 
         verify(inventoryRepository).addStock(eq(7L), eq(2), any(Instant.class));
         assertThat(committed.getStatus()).isEqualTo(ReservationStatus.RELEASED);
+    }
+
+    @Test
+    void weightedAverageCostBlendsOldAndNewStock() {
+        // 10 units at 4000 + 30 units at 3600 -> (40000 + 108000) / 40 = 3700
+        laptop.receiveStockAtCost(10, 30, new BigDecimal("3600.00"));
+        assertThat(laptop.getCostPrice()).isEqualByComparingTo("3700.00");
     }
 }

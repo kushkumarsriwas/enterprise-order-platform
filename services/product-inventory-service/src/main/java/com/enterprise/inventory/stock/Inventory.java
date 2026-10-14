@@ -19,7 +19,7 @@ import java.time.Instant;
  * available = can be sold now, reserved = held for orders that are not paid yet.
  */
 @Entity
-@Table(name = "inventory")
+@Table(name = "stock_levels")
 public class Inventory {
 
     @Id
