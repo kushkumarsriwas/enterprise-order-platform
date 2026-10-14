@@ -51,6 +51,7 @@ public final class PdfReportWriter {
         boolean landscape = widest > A4_SHORT - 2 * MARGIN;
         Layout layout = new Layout(landscape ? A4_LONG : A4_SHORT, landscape ? A4_SHORT : A4_LONG);
         layout.heading(report.title(), report.subtitle());
+        layout.blocks(report.blocks());
         layout.metrics(report.summary());
         for (Report.Table table : report.tables()) {
             layout.table(table);
@@ -176,6 +177,62 @@ public final class PdfReportWriter {
                 y -= 14;
             }
             y -= 10;
+        }
+
+        /** Text blocks side by side (up to three per row); long lines wrap instead of being cut. */
+        void blocks(List<Report.Block> blocks) {
+            if (blocks == null || blocks.isEmpty()) {
+                return;
+            }
+            int perRow = Math.min(3, blocks.size());
+            float gap = 14;
+            float blockW = (contentW - gap * (perRow - 1)) / perRow;
+            for (int i = 0; i < blocks.size(); i += perRow) {
+                List<List<String>> wrapped = new ArrayList<>();
+                int tallest = 0;
+                for (int j = 0; j < perRow && i + j < blocks.size(); j++) {
+                    List<String> lines = new ArrayList<>();
+                    for (String line : blocks.get(i + j).lines()) {
+                        lines.addAll(wrap(line == null ? "" : line, blockW - 4));
+                    }
+                    wrapped.add(lines);
+                    tallest = Math.max(tallest, lines.size());
+                }
+                float height = 16 + tallest * 12f;
+                if (!fits(height + 8)) {
+                    newPage();
+                }
+                for (int j = 0; j < wrapped.size(); j++) {
+                    float x = MARGIN + j * (blockW + gap);
+                    text(fit(blocks.get(i + j).title().toUpperCase(Locale.ROOT), true, 8, blockW), true, 8, x, y - 9, 0.45f);
+                    float baseline = y - 23;
+                    for (String line : wrapped.get(j)) {
+                        text(line, false, 9.5f, x, baseline, 0.12f);
+                        baseline -= 12;
+                    }
+                }
+                y -= height + 10;
+            }
+        }
+
+        private List<String> wrap(String text, float maxWidth) {
+            List<String> lines = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
+            for (String word : text.split(" ")) {
+                String candidate = current.isEmpty() ? word : current + " " + word;
+                if (width(candidate, false, 9.5f) <= maxWidth) {
+                    current = new StringBuilder(candidate);
+                } else {
+                    if (!current.isEmpty()) {
+                        lines.add(current.toString());
+                    }
+                    current = new StringBuilder(fit(word, false, 9.5f, maxWidth));
+                }
+            }
+            if (!current.isEmpty() || lines.isEmpty()) {
+                lines.add(current.toString());
+            }
+            return lines;
         }
 
         void metrics(List<Report.Metric> metrics) {

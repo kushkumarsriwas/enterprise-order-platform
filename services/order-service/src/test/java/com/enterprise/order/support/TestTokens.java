@@ -30,8 +30,8 @@ public class TestTokens {
         return token(id, "customer" + id, "CUSTOMER");
     }
 
-    public static String merchant(long id) {
-        return token(id, "merchant" + id, "MERCHANT", "Store " + id);
+    public static String seller(long id) {
+        return token(id, "seller" + id, "SELLER", "Store " + id);
     }
 
     public static String token(long userId, String username, String role) {

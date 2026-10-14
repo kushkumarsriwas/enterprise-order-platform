@@ -37,9 +37,13 @@ public class OrderItem {
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
-    /** Merchant's weighted average cost at the time of sale - used for cost of goods sold and profit. */
+    /** Seller's weighted average cost at the time of sale - used for cost of goods sold and profit. */
     @Column(name = "unit_cost", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitCost;
+
+    /** Department at the time of sale (sales by category). */
+    @Column(name = "category_name", length = 80)
+    private String categoryName;
 
     @Column(nullable = false)
     private int quantity;
@@ -50,11 +54,12 @@ public class OrderItem {
     protected OrderItem() {
     }
 
-    public OrderItem(Long productId, String sku, String productName, BigDecimal unitPrice, BigDecimal unitCost,
-                     int quantity) {
+    public OrderItem(Long productId, String sku, String productName, String categoryName, BigDecimal unitPrice,
+                     BigDecimal unitCost, int quantity) {
         this.productId = productId;
         this.sku = sku;
         this.productName = productName;
+        this.categoryName = categoryName;
         this.unitPrice = unitPrice;
         this.unitCost = unitCost == null ? BigDecimal.ZERO : unitCost;
         this.quantity = quantity;
@@ -79,6 +84,10 @@ public class OrderItem {
 
     public String getProductName() {
         return productName;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
     }
 
     public BigDecimal getUnitPrice() {

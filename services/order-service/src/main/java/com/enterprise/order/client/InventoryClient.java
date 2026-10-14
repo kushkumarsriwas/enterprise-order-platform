@@ -64,6 +64,13 @@ public class InventoryClient {
                 .retrieve().toBodilessEntity());
     }
 
+    /** Keeps the product's average rating (shown in search results) in sync after a review changes. */
+    public void updateRating(Long productId, BigDecimal average, long count) {
+        RemoteCalls.call(NAME, () -> client.put().uri("/internal/products/{id}/rating", productId)
+                .body(java.util.Map.of("average", average, "count", count))
+                .retrieve().toBodilessEntity());
+    }
+
     private static void sleep(long millis) {
         try {
             Thread.sleep(millis);
@@ -83,12 +90,12 @@ public class InventoryClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Line(Long productId, Long merchantId, String merchantName, String sku, String name,
-                       BigDecimal unitPrice, BigDecimal unitCost, int quantity) {
+    public record Line(Long productId, Long sellerId, String sellerName, String sku, String name,
+                       String categoryName, BigDecimal unitPrice, BigDecimal unitCost, int quantity) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ProductInfo(Long productId, Long merchantId, String merchantName, String name, BigDecimal price,
+    public record ProductInfo(Long productId, Long sellerId, String sellerName, String name, BigDecimal price,
                               boolean purchasable, int availableQuantity) {
     }
 }
