@@ -23,7 +23,8 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(split(patterns));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Correlation-Id"));
-        config.setExposedHeaders(List.of("X-Correlation-Id", "Location"));
+        // Content-Disposition: the browser needs it to name downloaded PDF/Excel reports
+        config.setExposedHeaders(List.of("X-Correlation-Id", "Location", "Content-Disposition"));
         config.setAllowCredentials(false);
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

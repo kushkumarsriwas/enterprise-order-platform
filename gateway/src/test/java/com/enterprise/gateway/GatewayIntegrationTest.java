@@ -136,6 +136,12 @@ class GatewayIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.headers().firstValue("Access-Control-Allow-Origin"))
                 .hasValue("https://enterprise-frontend-wvds.onrender.com");
+
+        HttpResponse<String> download = send(HttpRequest.newBuilder(uri("/api/merchant/reports/sales/pdf"))
+                .header("Origin", "https://enterprise-frontend-wvds.onrender.com")
+                .header("Authorization", "Bearer " + token()).GET());
+        assertThat(download.headers().firstValue("Access-Control-Expose-Headers").orElse(""))
+                .contains("Content-Disposition");
     }
 
     private URI uri(String path) {
