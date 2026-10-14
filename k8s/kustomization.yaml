@@ -1,16 +1,10 @@
+# kubectl apply -k k8s/      (images are built by: docker compose build)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: enterprise-platform
 resources:
   - namespace.yaml
-  - configmap.yaml
-  - secret.yaml
-  - postgres.yaml
-  - redis.yaml
-  - oracle.yaml
-  - auth.yaml
-  - product-inventory.yaml
-  - order.yaml
-  - payment.yaml
-  - notification.yaml
-  - gateway.yaml
+  - config.yaml
+  - databases.yaml
+  - services.yaml
+  - frontend.yaml

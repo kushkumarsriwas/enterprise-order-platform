@@ -1,0 +1,196 @@
+# Full platform on one machine:  docker compose up -d --build --wait
+#   Frontend  http://localhost:3000      API gateway + Swagger  http://localhost:8080/swagger-ui.html
+# Databases: MySQL (auth), PostgreSQL (catalog, orders, notifications), Oracle (payments), Redis (cache)
+name: enterprise-order-platform
+
+x-java-service: &java-service
+  restart: unless-stopped
+  mem_limit: 512m
+  environment: &java-env
+    AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+    JAVA_OPTS: -XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:ReservedCodeCacheSize=64m -Xss512k
+
+x-postgres-env: &postgres-env
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/enterprise
+  SPRING_DATASOURCE_USERNAME: postgres
+  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+services:
+  # ------------------------------------------------------------------ databases
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: enterprise
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports: ["5433:5432"]
+    volumes: [postgres_data:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d enterprise"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pass}
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: auth_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-auth_pass}
+    ports: ["3307:3306"]
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:-oracle_admin}
+      APP_USER: payment
+      APP_USER_PASSWORD: ${ORACLE_APP_PASSWORD:-payment_pass}
+    ports: ["1522:1521"]
+    volumes: [oracle_data:/opt/oracle/oradata]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports: ["6380:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # ------------------------------------------------------------------ microservices
+  auth-service:
+    <<: *java-service
+    build: ./services/auth-service
+    image: enterprise/auth-service:1.0.0
+    environment:
+      <<: *java-env
+      SPRING_PROFILES_ACTIVE: mysql
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-auth_pass}
+    ports: ["8081:8081"]
+    depends_on:
+      mysql: { condition: service_healthy }
+    healthcheck: &health
+      test: ["CMD-SHELL", "curl -fs http://localhost:$${PORT:-8081}/actuator/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  product-inventory-service:
+    <<: *java-service
+    build: ./services/product-inventory-service
+    image: enterprise/product-inventory-service:1.0.0
+    environment:
+      <<: [*java-env, *postgres-env]
+      PORT: 8082
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    ports: ["8082:8082"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    healthcheck: *health
+
+  order-service:
+    <<: *java-service
+    build: ./services/order-service
+    image: enterprise/order-service:1.0.0
+    environment:
+      <<: [*java-env, *postgres-env]
+      PORT: 8083
+      PRODUCT_SERVICE_URL: http://product-inventory-service:8082
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    ports: ["8083:8083"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    healthcheck: *health
+
+  payment-service:
+    <<: *java-service
+    build: ./services/payment-service
+    image: enterprise/payment-service:1.0.0
+    environment:
+      <<: *java-env
+      PORT: 8084
+      SPRING_PROFILES_ACTIVE: oracle
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      SPRING_DATASOURCE_USERNAME: payment
+      SPRING_DATASOURCE_PASSWORD: ${ORACLE_APP_PASSWORD:-payment_pass}
+    ports: ["8084:8084"]
+    depends_on:
+      oracle: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    healthcheck: *health
+
+  notification-service:
+    <<: *java-service
+    build: ./services/notification-service
+    image: enterprise/notification-service:1.0.0
+    environment:
+      <<: [*java-env, *postgres-env]
+      PORT: 8085
+    ports: ["8085:8085"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth-service: { condition: service_healthy }
+    healthcheck: *health
+
+  api-gateway:
+    <<: *java-service
+    build: ./gateway
+    image: enterprise/api-gateway:1.0.0
+    environment:
+      <<: *java-env
+      PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PRODUCT_SERVICE_URL: http://product-inventory-service:8082
+      ORDER_SERVICE_URL: http://order-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8084
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    ports: ["8080:8080"]
+    depends_on:
+      auth-service: { condition: service_healthy }
+    healthcheck: *health
+
+  frontend:
+    build: ./frontend
+    image: enterprise/frontend:1.0.0
+    restart: unless-stopped
+    environment:
+      GATEWAY_URL: http://api-gateway:8080
+    ports: ["3000:80"]
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  mysql_data:
+  oracle_data:
