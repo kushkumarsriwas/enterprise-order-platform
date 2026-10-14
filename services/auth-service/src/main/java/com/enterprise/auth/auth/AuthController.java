@@ -26,13 +26,13 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a customer account (returns an access token)")
+    @Operation(summary = "Register a customer or seller account (returns an access token)")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Log in with username or email")
+    @Operation(summary = "Sign in with username or email")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
     }

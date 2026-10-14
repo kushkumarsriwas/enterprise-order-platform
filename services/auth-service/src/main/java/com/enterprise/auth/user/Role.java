@@ -1,10 +1,9 @@
 package com.enterprise.auth.user;
 
+/** The marketplace has exactly two kinds of accounts. */
 public enum Role {
-    /** Buys from the marketplace. */
+    /** Shops on the marketplace: search, cart, checkout, orders, reviews. */
     CUSTOMER,
-    /** Business that manages inventory and sells on the marketplace. */
-    MERCHANT,
-    /** Platform operator. */
-    ADMIN
+    /** Runs a store: inventory management, purchasing, sales, finance and analytics (Seller Central). */
+    SELLER
 }

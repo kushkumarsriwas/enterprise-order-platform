@@ -27,7 +27,7 @@ public class TokenService {
         this.expiration = Duration.ofMillis(expirationMs);
     }
 
-    /** storeName is added for merchants so other services can show the seller without calling back. */
+    /** storeName is added for sellers so other services can show the seller without calling back. */
     public IssuedToken issue(User user, String storeName) {
         Instant now = Instant.now();
         JwtBuilder builder = Jwts.builder()

@@ -1,6 +1,7 @@
 package com.enterprise.auth.user;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -9,9 +10,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -27,6 +28,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 120)
     private String email;
 
+    /** BCrypt hash - the plain password is never stored or logged. */
     @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
 
@@ -44,11 +46,17 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Embedded
+    private Address address;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
+
+    @Column(name = "password_changed_at")
+    private Instant passwordChangedAt;
 
     protected User() {
     }
@@ -62,14 +70,31 @@ public class User {
         this.role = role;
     }
 
+    @PrePersist
+    void onCreate() {
+        createdAt = Instant.now();
+    }
+
     public void updateContact(String fullName, String phone) {
         this.fullName = fullName;
         this.phone = phone;
     }
 
-    @PrePersist
-    void onCreate() {
-        createdAt = Instant.now();
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+        this.passwordChangedAt = Instant.now();
+    }
+
+    public void changeAddress(Address address) {
+        this.address = address;
+    }
+
+    public void recordLogin() {
+        this.lastLoginAt = Instant.now();
+    }
+
+    public boolean isSeller() {
+        return role == Role.SELLER;
     }
 
     public Long getId() {
@@ -100,16 +125,12 @@ public class User {
         return role;
     }
 
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
     public boolean isEnabled() {
         return enabled;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public Address getAddress() {
+        return address;
     }
 
     public Instant getCreatedAt() {
@@ -120,7 +141,7 @@ public class User {
         return lastLoginAt;
     }
 
-    public void recordLogin() {
-        this.lastLoginAt = Instant.now();
+    public Instant getPasswordChangedAt() {
+        return passwordChangedAt;
     }
 }
