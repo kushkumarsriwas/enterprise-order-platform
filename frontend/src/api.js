@@ -18,9 +18,27 @@ export const setUnauthorizedHandler = (fn) => (onUnauthorized = fn);
 export const setSlowStartHandler = (fn) => (onSlowStart = fn);
 
 export const tokenStore = {
-  get: () => localStorage.getItem(TOKEN_KEY),
-  set: (token) => localStorage.setItem(TOKEN_KEY, token),
-  clear: () => localStorage.removeItem(TOKEN_KEY),
+  get: () => {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set: (token) => {
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+    } catch {
+      /* storage unavailable */
+    }
+  },
+  clear: () => {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+  },
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -47,7 +65,7 @@ export async function api(path, { method = "GET", body, auth = true } = {}) {
           await sleep(3000);
           continue;
         }
-        throw new ApiError(0, "Cannot reach the server. Please check your connection and retry.");
+        throw new ApiError(0, "Cannot reach the server. Check your connection and try again.");
       }
       const retryable = [502, 503, 504].includes(response.status);
       if (retryable && Date.now() - started < 90000 && (method === "GET" || attempt < 2)) {
@@ -69,6 +87,34 @@ export async function api(path, { method = "GET", body, auth = true } = {}) {
   }
 }
 
+/** Downloads a generated report (PDF / Excel) with the user's token and saves it under the server's file name. */
+export async function download(path) {
+  const token = tokenStore.get();
+  const response = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!response.ok) {
+    let message = `Download failed (${response.status})`;
+    try {
+      message = (await response.json()).message || message;
+    } catch {
+      /* not JSON */
+    }
+    throw new ApiError(response.status, message);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  const name = match ? decodeURIComponent(match[1]) : path.split("/").pop();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return name;
+}
+
 function safeJson(text) {
   try {
     return JSON.parse(text);
@@ -80,7 +126,7 @@ function safeJson(text) {
 export const qs = (params) => {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") search.set(key, value);
+    if (value !== undefined && value !== null && value !== "" && value !== false) search.set(key, value);
   });
   const result = search.toString();
   return result ? `?${result}` : "";

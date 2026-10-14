@@ -1,19 +1,22 @@
 import { useState } from "react";
+import { Users } from "lucide-react";
 import { api, qs } from "../../api.js";
-import { formatDate } from "../../format.js";
-import { Alert, Badge, Pagination, Spinner } from "../../components/ui.jsx";
+import { formatDate, formatDay } from "../../format.js";
 import { useLoader } from "../../hooks.jsx";
+import { Alert, Badge, Empty, Modal, PageHeader, Pagination, Spinner, Tabs } from "../../components/ui.jsx";
 
-export default function UsersPage({ currentUser, toast }) {
+export default function AdminUsers({ user: me, toast }) {
+  const [role, setRole] = useState("");
   const [page, setPage] = useState(0);
-  const users = useLoader(() => api(`/api/users${qs({ page, size: 20 })}`), [page]);
+  const users = useLoader(() => api(`/api/users${qs({ role, page, size: 20 })}`), [role, page]);
+  const [confirm, setConfirm] = useState(null);
 
-  const toggleRole = async (user) => {
-    const role = user.role === "ADMIN" ? "CUSTOMER" : "ADMIN";
-    if (!window.confirm(`Change ${user.username} to ${role}?`)) return;
+  const setStatus = async () => {
+    const { user, enabled } = confirm;
     try {
-      await api(`/api/users/${user.id}/role`, { method: "PUT", body: { role } });
-      toast.show(`${user.username} is now ${role}`);
+      await api(`/api/users/${user.id}/status`, { method: "PUT", body: { enabled } });
+      toast.show(enabled ? `${user.username} reactivated` : `${user.username} suspended`);
+      setConfirm(null);
       users.reload();
     } catch (err) {
       toast.show(err.message, "error");
@@ -22,34 +25,103 @@ export default function UsersPage({ currentUser, toast }) {
 
   return (
     <div className="page">
-      <div className="page-head"><h1>Users</h1></div>
+      <PageHeader title="Users and stores" subtitle="Customers, merchants and administrators. Suspending a merchant hides the store and blocks sign-in." />
+      <Tabs
+        value={role}
+        onChange={(r) => { setRole(r); setPage(0); }}
+        tabs={[
+          { id: "", label: "Everyone" },
+          { id: "CUSTOMER", label: "Customers" },
+          { id: "MERCHANT", label: "Merchants" },
+          { id: "ADMIN", label: "Administrators" },
+        ]}
+      />
       <Alert>{users.error}</Alert>
-      {users.loading && !users.data ? <Spinner /> : (
-        <div className="card">
-          <table className="table">
-            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Last login</th><th className="right" /></tr></thead>
-            <tbody>
-              {users.data?.content.map((u) => (
-                <tr key={u.id}>
-                  <td><strong>{u.username}</strong><div className="muted small">{u.fullName}</div></td>
-                  <td>{u.email}</td>
-                  <td><Badge value={u.role} /></td>
-                  <td className="nowrap">{formatDate(u.createdAt)}</td>
-                  <td className="nowrap">{formatDate(u.lastLoginAt)}</td>
-                  <td className="right">
-                    {u.id !== currentUser.id && (
-                      <button className="btn btn-sm btn-ghost" onClick={() => toggleRole(u)}>
-                        Make {u.role === "ADMIN" ? "customer" : "admin"}
-                      </button>
-                    )}
-                  </td>
+      {users.loading && !users.data ? (
+        <Spinner />
+      ) : users.data?.content.length === 0 ? (
+        <Empty icon={Users} title="Nobody here yet" />
+      ) : (
+        <div className={`card flush ${users.loading ? "refetching" : ""}`}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Store</th>
+                  <th>Joined</th>
+                  <th>Last sign-in</th>
+                  <th>Status</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.data?.content.map((u) => (
+                  <tr key={u.id} className={u.enabled ? "" : "inactive"}>
+                    <td>
+                      <strong>{u.fullName || u.username}</strong>
+                      <span className="sub">
+                        {u.username} - {u.email}
+                      </span>
+                    </td>
+                    <td>
+                      <Badge value={u.role} />
+                    </td>
+                    <td>
+                      {u.store ? (
+                        <>
+                          <a className="link" href={`#/store/${u.id}`}>
+                            {u.store.storeName}
+                          </a>
+                          <span className="sub">
+                            {u.store.city}
+                            {u.store.tradeLicenseNumber ? ` - licence ${u.store.tradeLicenseNumber}` : ""}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="muted">-</span>
+                      )}
+                    </td>
+                    <td className="nowrap">{formatDay(u.createdAt)}</td>
+                    <td className="nowrap">{u.lastLoginAt ? formatDate(u.lastLoginAt) : "Never"}</td>
+                    <td>
+                      <Badge value={u.enabled ? "ACTIVE" : "SUSPENDED"} />
+                    </td>
+                    <td className="right">
+                      {u.id !== me.id && u.role !== "ADMIN" && (
+                        <button className={`btn btn-sm ${u.enabled ? "btn-danger" : ""}`} onClick={() => setConfirm({ user: u, enabled: !u.enabled })}>
+                          {u.enabled ? "Suspend" : "Reactivate"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       <Pagination page={users.data} onChange={setPage} />
+      {confirm && (
+        <Modal title={`${confirm.enabled ? "Reactivate" : "Suspend"} ${confirm.user.username}?`} onClose={() => setConfirm(null)}>
+          <div className="stack">
+            <p>
+              {confirm.enabled
+                ? "The user can sign in again" + (confirm.user.store ? " and the store is visible on the marketplace again." : ".")
+                : "The user cannot sign in any more" + (confirm.user.store ? " and the store disappears from the marketplace." : ".")}
+            </p>
+            <div className="row end">
+              <button className="btn btn-ghost" onClick={() => setConfirm(null)}>
+                Cancel
+              </button>
+              <button className={`btn ${confirm.enabled ? "btn-primary" : "btn-danger"}`} onClick={setStatus}>
+                {confirm.enabled ? "Reactivate" : "Suspend"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

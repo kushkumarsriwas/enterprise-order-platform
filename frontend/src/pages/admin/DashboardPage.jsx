@@ -1,95 +1,93 @@
-import { AlertTriangle, PackageCheck, ShoppingBag, TrendingUp } from "lucide-react";
+import { Banknote, Percent, ShoppingBag, Store, Undo2, Users } from "lucide-react";
 import { api } from "../../api.js";
-import { formatMoney } from "../../format.js";
-import { Alert, Badge, Spinner } from "../../components/ui.jsx";
+import { compactMoney, eachDay, formatMoney, formatNumber, label, lastDays, shortDay } from "../../format.js";
 import { useLoader } from "../../hooks.jsx";
+import { BarList, ChartCard, ColumnsChart } from "../../components/charts.jsx";
+import { Alert, PageHeader, StatTile } from "../../components/ui.jsx";
 
-export default function DashboardPage({ navigate }) {
+const METHOD_NAMES = { CARD: "Card", UPI: "UPI", COD: "Cash on delivery" };
+
+/** Marketplace health: sales volume (GMV), the platform's commission revenue, stores, customers and order flow. */
+export default function AdminDashboard() {
   const stats = useLoader(() => api("/api/orders/stats"), []);
-  const lowStock = useLoader(() => api("/api/inventory/low-stock"), []);
-
-  if (stats.loading && !stats.data) return <div className="page"><Spinner label="Loading dashboard..." /></div>;
+  const payments = useLoader(() => api("/api/payments/platform-summary"), []);
+  const merchants = useLoader(() => api("/api/users?role=MERCHANT&size=1"), []);
+  const customers = useLoader(() => api("/api/users?role=CUSTOMER&size=1"), []);
   const s = stats.data;
-  const maxRevenue = Math.max(1, ...(s?.last7Days || []).map((d) => Number(d.revenue)));
+  const p = payments.data;
+  const range = lastDays(14);
+  const byDay = new Map((s?.last14Days || []).map((d) => [d.date, d]));
+  const days = eachDay(range.from, range.to).map((date) => ({ date, sales: Number(byDay.get(date)?.sales || 0), orders: byDay.get(date)?.orders || 0 }));
+  const statusItems = Object.entries(s?.ordersByStatus || {}).map(([status, count]) => ({ key: status, label: label(status === "CONFIRMED" ? "Paid, to ship" : status === "PENDING" ? "Awaiting payment" : status), value: count }));
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>Operations dashboard</h1>
-          <p className="muted">Figures are computed with SQL aggregates in the order service.</p>
-        </div>
+      <PageHeader title="Platform overview" subtitle="The whole marketplace: sales volume, commission revenue, stores and customers." />
+      <Alert>{stats.error || payments.error}</Alert>
+      <div className="stats">
+        <StatTile hero icon={ShoppingBag} label="Gross merchandise value" value={s ? formatMoney(s.grossMerchandiseValue) : "-"} hint="Value of paid and cash-on-delivery orders" />
+        <StatTile hero icon={Percent} label="Platform commission" value={p ? formatMoney(p.platformRevenue) : "-"} hint={p ? `${p.feeRatePercent}% of each sale` : null} />
+        <StatTile hero icon={Banknote} label="Payments processed" value={p ? formatMoney(p.totalVolume) : "-"} hint={p ? `${formatNumber(p.payments)} payments, ${p.failedAttempts} declined` : null} />
       </div>
-      <Alert>{stats.error}</Alert>
-      {s && (
-        <>
-          <div className="kpis">
-            <div className="kpi"><TrendingUp size={18} /><span>Revenue</span><strong>{formatMoney(s.revenue, s.currency)}</strong></div>
-            <div className="kpi"><ShoppingBag size={18} /><span>Orders</span><strong>{s.totalOrders}</strong></div>
-            <div className="kpi"><PackageCheck size={18} /><span>Awaiting shipment</span><strong>{s.ordersByStatus.CONFIRMED}</strong></div>
-            <div className="kpi"><AlertTriangle size={18} /><span>Low-stock products</span><strong>{lowStock.data?.length ?? "-"}</strong></div>
-          </div>
-          <div className="two-col even">
-            <div className="card">
-              <h3>Orders by status</h3>
-              <div className="status-bars">
-                {Object.entries(s.ordersByStatus).map(([status, count]) => (
-                  <div key={status} className="status-bar">
-                    <Badge value={status} />
-                    <div className="bar"><span style={{ width: `${s.totalOrders ? (count / s.totalOrders) * 100 : 0}%` }} /></div>
-                    <strong>{count}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="card">
-              <h3>Revenue, last 7 days</h3>
-              {s.last7Days.length === 0 ? (
-                <p className="muted">No sales in the last 7 days.</p>
-              ) : (
-                <div className="day-chart">
-                  {s.last7Days.map((d) => (
-                    <div key={d.date} className="day" title={`${d.orders} orders`}>
-                      <div className="day-bar" style={{ height: `${(Number(d.revenue) / maxRevenue) * 100}%` }} />
-                      <span className="small">{d.date.slice(5)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="two-col even">
-            <div className="card">
-              <h3>Best sellers</h3>
-              <table className="table">
-                <thead><tr><th>Product</th><th>Units</th><th className="right">Revenue</th></tr></thead>
-                <tbody>
-                  {s.topProducts.map((p) => (
-                    <tr key={p.productId}><td>{p.productName}</td><td>{p.unitsSold}</td><td className="right">{formatMoney(p.revenue)}</td></tr>
-                  ))}
-                  {s.topProducts.length === 0 && <tr><td colSpan={3} className="muted">No sales yet</td></tr>}
-                </tbody>
-              </table>
-            </div>
-            <div className="card">
-              <h3>Low stock</h3>
-              <table className="table clickable">
-                <thead><tr><th>Product</th><th>Available</th><th>Reorder at</th></tr></thead>
-                <tbody>
-                  {(lowStock.data || []).map((i) => (
-                    <tr key={i.productId} onClick={() => navigate("/admin/products")}>
-                      <td>{i.productName}<div className="muted small">{i.sku}</div></td>
-                      <td><Badge value={String(i.availableQuantity)} tone={i.availableQuantity === 0 ? "red" : "amber"} /></td>
-                      <td>{i.reorderLevel}</td>
-                    </tr>
-                  ))}
-                  {lowStock.data?.length === 0 && <tr><td colSpan={3} className="muted">All products are well stocked</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="stats">
+        <StatTile icon={Store} label="Stores" value={merchants.data ? formatNumber(merchants.data.totalElements) : "-"} />
+        <StatTile icon={Users} label="Customers" value={customers.data ? formatNumber(customers.data.totalElements) : "-"} hint={s ? `${formatNumber(s.totalOrders)} orders placed` : null} />
+        <StatTile icon={Undo2} label="Refunded" value={p ? formatMoney(p.refunded) : "-"} />
+      </div>
+      <ChartCard
+        title="Marketplace sales, last 14 days"
+        subtitle="AED, paid and cash-on-delivery orders"
+        empty={s && days.every((d) => d.sales === 0) ? "No sales in the last 14 days." : null}
+        table={{
+          columns: [
+            { key: "date", label: "Date", format: shortDay },
+            { key: "orders", label: "Orders", numeric: true },
+            { key: "sales", label: "Sales", numeric: true, format: (v) => formatMoney(v) },
+          ],
+          rows: days,
+        }}
+      >
+        <ColumnsChart data={days} xKey="date" labelFormat={shortDay} valueFormat={(v) => formatMoney(v)} series={[{ key: "sales", name: "Sales" }]} />
+      </ChartCard>
+      <div className="three-col">
+        <ChartCard
+          title="Top stores"
+          subtitle="By sales, all time"
+          empty={s && s.topMerchants.length === 0 ? "No sales yet." : null}
+          table={{
+            columns: [
+              { key: "merchantName", label: "Store" },
+              { key: "orders", label: "Orders", numeric: true },
+              { key: "sales", label: "Sales", numeric: true, format: (v) => formatMoney(v) },
+            ],
+            rows: s?.topMerchants || [],
+          }}
+        >
+          <BarList items={(s?.topMerchants || []).slice(0, 8).map((m) => ({ key: m.merchantId, label: m.merchantName, value: Number(m.sales), note: `${m.orders} orders` }))} valueFormat={compactMoney} />
+        </ChartCard>
+        <ChartCard
+          title="Orders by status"
+          subtitle="All time"
+          table={{ columns: [{ key: "label", label: "Status" }, { key: "value", label: "Orders", numeric: true }], rows: statusItems }}
+        >
+          <BarList items={statusItems} valueFormat={formatNumber} />
+        </ChartCard>
+        <ChartCard
+          title="Payment methods"
+          subtitle="Successful and cash-on-delivery payments"
+          empty={p && p.byMethod.length === 0 ? "No payments yet." : null}
+          table={{
+            columns: [
+              { key: "method", label: "Method", format: (v) => METHOD_NAMES[v] || v },
+              { key: "payments", label: "Payments", numeric: true },
+              { key: "amount", label: "Amount", numeric: true, format: (v) => formatMoney(v) },
+            ],
+            rows: p?.byMethod || [],
+          }}
+        >
+          <BarList items={(p?.byMethod || []).map((m) => ({ key: m.method, label: METHOD_NAMES[m.method] || m.method, value: Number(m.amount), note: `${m.payments} payments` }))} valueFormat={compactMoney} />
+        </ChartCard>
+      </div>
     </div>
   );
 }
