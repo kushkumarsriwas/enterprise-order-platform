@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: enterprise/auth-service:1.0.0
+          image: enterprise/auth-service:2.0.0
           imagePullPolicy: IfNotPresent
           ports: [{ containerPort: 8081 }]
           env:
@@ -22,6 +22,7 @@ spec:
             - { name: JAVA_OPTS, value: "-XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:ReservedCodeCacheSize=64m -Xss512k" }
             - { name: SPRING_PROFILES_ACTIVE, value: mysql }
             - { name: SPRING_DATASOURCE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: MYSQL_URL } } }
+            - { name: PRODUCT_SERVICE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: PRODUCT_SERVICE_URL } } }
             - { name: SPRING_DATASOURCE_USERNAME, value: auth_user }
             - { name: SPRING_DATASOURCE_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: MYSQL_PASSWORD } } }
           startupProbe:
@@ -63,7 +64,7 @@ spec:
     spec:
       containers:
         - name: product-inventory-service
-          image: enterprise/product-inventory-service:1.0.0
+          image: enterprise/product-inventory-service:2.0.0
           imagePullPolicy: IfNotPresent
           ports: [{ containerPort: 8082 }]
           env:
@@ -114,7 +115,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: enterprise/order-service:1.0.0
+          image: enterprise/order-service:2.0.0
           imagePullPolicy: IfNotPresent
           ports: [{ containerPort: 8083 }]
           env:
@@ -166,7 +167,7 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: enterprise/payment-service:1.0.0
+          image: enterprise/payment-service:2.0.0
           imagePullPolicy: IfNotPresent
           ports: [{ containerPort: 8084 }]
           env:
@@ -177,6 +178,8 @@ spec:
             - { name: SPRING_DATASOURCE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: ORACLE_URL } } }
             - { name: SPRING_DATASOURCE_USERNAME, value: payment }
             - { name: SPRING_DATASOURCE_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: ORACLE_APP_PASSWORD } } }
+            - { name: ORDER_SERVICE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: ORDER_SERVICE_URL } } }
+            - { name: NOTIFICATION_SERVICE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: NOTIFICATION_SERVICE_URL } } }
           startupProbe:
             httpGet: { path: /actuator/health/liveness, port: 8084 }
             periodSeconds: 5
@@ -216,13 +219,14 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: enterprise/notification-service:1.0.0
+          image: enterprise/notification-service:2.0.0
           imagePullPolicy: IfNotPresent
           ports: [{ containerPort: 8085 }]
           env:
             - { name: PORT, value: "8085" }
             - { name: JAVA_OPTS, value: "-XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:ReservedCodeCacheSize=64m -Xss512k" }
             - { name: AUTH_JWKS_URI, valueFrom: { configMapKeyRef: { name: platform-config, key: AUTH_JWKS_URI } } }
+            - { name: AUTH_SERVICE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: AUTH_SERVICE_URL } } }
             - { name: SPRING_DATASOURCE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: POSTGRES_URL } } }
             - { name: SPRING_DATASOURCE_USERNAME, value: postgres }
             - { name: SPRING_DATASOURCE_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: POSTGRES_PASSWORD } } }
@@ -265,7 +269,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: enterprise/api-gateway:1.0.0
+          image: enterprise/api-gateway:2.0.0
           imagePullPolicy: IfNotPresent
           ports: [{ containerPort: 8080 }]
           env:

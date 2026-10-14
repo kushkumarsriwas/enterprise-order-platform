@@ -78,13 +78,14 @@ services:
   auth-service:
     <<: *java-service
     build: ./services/auth-service
-    image: enterprise/auth-service:1.0.0
+    image: enterprise/auth-service:2.0.0
     environment:
       <<: *java-env
       SPRING_PROFILES_ACTIVE: mysql
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: auth_user
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-auth_pass}
+      PRODUCT_SERVICE_URL: http://product-inventory-service:8082
     ports: ["8081:8081"]
     depends_on:
       mysql: { condition: service_healthy }
@@ -98,7 +99,7 @@ services:
   product-inventory-service:
     <<: *java-service
     build: ./services/product-inventory-service
-    image: enterprise/product-inventory-service:1.0.0
+    image: enterprise/product-inventory-service:2.0.0
     environment:
       <<: [*java-env, *postgres-env]
       PORT: 8082
@@ -115,7 +116,7 @@ services:
   order-service:
     <<: *java-service
     build: ./services/order-service
-    image: enterprise/order-service:1.0.0
+    image: enterprise/order-service:2.0.0
     environment:
       <<: [*java-env, *postgres-env]
       PORT: 8083
@@ -131,7 +132,7 @@ services:
   payment-service:
     <<: *java-service
     build: ./services/payment-service
-    image: enterprise/payment-service:1.0.0
+    image: enterprise/payment-service:2.0.0
     environment:
       <<: *java-env
       PORT: 8084
@@ -139,6 +140,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       SPRING_DATASOURCE_USERNAME: payment
       SPRING_DATASOURCE_PASSWORD: ${ORACLE_APP_PASSWORD:-payment_pass}
+      ORDER_SERVICE_URL: http://order-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
     ports: ["8084:8084"]
     depends_on:
       oracle: { condition: service_healthy }
@@ -148,10 +151,11 @@ services:
   notification-service:
     <<: *java-service
     build: ./services/notification-service
-    image: enterprise/notification-service:1.0.0
+    image: enterprise/notification-service:2.0.0
     environment:
       <<: [*java-env, *postgres-env]
       PORT: 8085
+      AUTH_SERVICE_URL: http://auth-service:8081
     ports: ["8085:8085"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -161,7 +165,7 @@ services:
   api-gateway:
     <<: *java-service
     build: ./gateway
-    image: enterprise/api-gateway:1.0.0
+    image: enterprise/api-gateway:2.0.0
     environment:
       <<: *java-env
       PORT: 8080
@@ -177,7 +181,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: enterprise/frontend:1.0.0
+    image: enterprise/frontend:2.0.0
     restart: unless-stopped
     environment:
       GATEWAY_URL: http://api-gateway:8080

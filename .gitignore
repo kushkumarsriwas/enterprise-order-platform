@@ -16,6 +16,9 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Local run state (e.g. the local data version marker of run-local.cmd)
+.local/
+
 # Local leftovers (exports, transfer archives, notes)
 *.tar
 *.bundle

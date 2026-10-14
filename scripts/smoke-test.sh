@@ -161,7 +161,20 @@ r=$(call GET /api/payments/platform-summary "$ADMIN" ""); expect 200 "$r" "platf
 r=$(call PUT "/api/users/$MB_ID/status" "$ADMIN" '{"enabled":false}'); expect 200 "$r" "admin suspends merchant B"
 r=$(call POST /api/auth/login "" "{\"username\":\"desert$TS\",\"password\":\"Merchant123\",\"accountType\":\"MERCHANT\"}"); expect 403 "$r" "suspended merchant cannot log in"
 r=$(call GET "/api/merchants/$MB_ID" "" ""); expect 404 "$r" "suspended store hidden from the directory"
+r=$(call GET "/api/products?merchantId=$MB_ID" "" ""); equals "$(json "$r" .totalElements)" "0" "suspended store's products removed from the marketplace"
 r=$(call PUT "/api/users/$MB_ID/status" "$ADMIN" '{"enabled":true}'); expect 200 "$r" "admin reactivates merchant B"
+r=$(call GET "/api/products?merchantId=$MB_ID" "" ""); equals "$(json "$r" .totalElements)" "1" "products back after reactivation"
 r=$(call POST /internal/payments "$ADMIN" '{}'); expect 404 "$r" "internal APIs are not exposed by the gateway"
+
+if [ "${KEEP_TEST_DATA:-0}" != "1" ]; then
+  step "Clean-up: the marketplace shows only real data (set KEEP_TEST_DATA=1 to keep the test stores)"
+  for item in "$P1:$MA" "$P2:$MA" "$P3:$MB"; do
+    r=$(call DELETE "/api/merchant/products/${item%%:*}" "${item#*:}" ""); code=${r%%|*}
+    [ "${code:0:1}" = "2" ] && ok "test product ${item%%:*} archived" || fail "archive ${item%%:*}: $r"
+  done
+  for id in "$MA_ID" "$MB_ID" "$CU_ID"; do
+    r=$(call PUT "/api/users/$id/status" "$ADMIN" '{"enabled":false}'); expect 200 "$r" "test account $id deactivated"
+  done
+fi
 
 printf '\nAll %d checks passed.\n' "$PASS"

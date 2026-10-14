@@ -35,6 +35,7 @@ services:
       - { key: SPRING_DATASOURCE_USERNAME, sync: false }
       - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
       - { key: JWT_EXPIRATION, value: "86400000" }
+      - { key: PRODUCT_SERVICE_URL, value: https://enterprise-product-inventory.onrender.com }
 
   - type: web
     name: enterprise-product-inventory
@@ -79,6 +80,8 @@ services:
       - { key: SPRING_DATASOURCE_URL, sync: false }
       - { key: SPRING_DATASOURCE_USERNAME, sync: false }
       - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+      - { key: ORDER_SERVICE_URL, value: https://enterprise-order.onrender.com }
+      - { key: NOTIFICATION_SERVICE_URL, value: https://enterprise-notification.onrender.com }
 
   - type: web
     name: enterprise-notification
@@ -92,6 +95,7 @@ services:
       - { key: SPRING_DATASOURCE_URL, sync: false }
       - { key: SPRING_DATASOURCE_USERNAME, sync: false }
       - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+      - { key: AUTH_SERVICE_URL, value: https://enterprise-auth.onrender.com }
 
   - type: web
     name: enterprise-gateway
