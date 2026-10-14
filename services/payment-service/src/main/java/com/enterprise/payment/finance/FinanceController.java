@@ -30,8 +30,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@PreAuthorize("hasRole('MERCHANT')")
-@Tag(name = "Merchant - profit and loss")
+@PreAuthorize("hasRole('SELLER')")
+@Tag(name = "Seller - profit and loss")
 public class FinanceController {
 
     private final ProfitAndLossService profitAndLoss;
@@ -42,29 +42,29 @@ public class FinanceController {
         this.expenses = expenses;
     }
 
-    @GetMapping("/api/merchant/finance/profit-loss")
+    @GetMapping("/api/seller/finance/profit-loss")
     @Operation(summary = "Profit & loss statement with a monthly breakdown (default: the last 6 months)")
     public ProfitAndLoss statement(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-                                   @AuthenticationPrincipal AuthenticatedUser merchant) {
+                                   @AuthenticationPrincipal AuthenticatedUser seller) {
         LocalDate[] period = period(from, to);
-        return profitAndLoss.statement(merchant.id(), period[0], period[1]);
+        return profitAndLoss.statement(seller.id(), period[0], period[1]);
     }
 
-    @GetMapping("/api/merchant/reports/profit-loss/{format}")
+    @GetMapping("/api/seller/reports/profit-loss/{format}")
     @Operation(summary = "Profit & loss report with all expenses, as xlsx or pdf")
     public ResponseEntity<byte[]> report(@PathVariable String format,
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-                                         @AuthenticationPrincipal AuthenticatedUser merchant) {
+                                         @AuthenticationPrincipal AuthenticatedUser seller) {
         boolean excel = "xlsx".equalsIgnoreCase(format);
         if (!excel && !"pdf".equalsIgnoreCase(format)) {
             throw ApiException.badRequest("Format must be xlsx or pdf");
         }
         LocalDate[] period = period(from, to);
-        ProfitAndLoss pl = profitAndLoss.statement(merchant.id(), period[0], period[1]);
+        ProfitAndLoss pl = profitAndLoss.statement(seller.id(), period[0], period[1]);
         List<ExpenseResponse> expenseList = expenses
-                .findByMerchantIdAndExpenseDateBetweenOrderByExpenseDateDescIdDesc(merchant.id(), period[0], period[1])
+                .findBySellerIdAndExpenseDateBetweenOrderByExpenseDateDescIdDesc(seller.id(), period[0], period[1])
                 .stream().map(ExpenseResponse::from).toList();
 
         List<List<Object>> statement = new ArrayList<>();
@@ -83,7 +83,7 @@ public class FinanceController {
                 pl.netMarginPercent()));
 
         Report report = new Report(
-                "Profit and loss - " + merchant.displayName(),
+                "Profit and loss - " + seller.displayName(),
                 "Period " + pl.from() + " to " + pl.to() + " (amounts in AED; costs shown as negative numbers)",
                 List.of(new Report.Metric("Revenue", pl.revenue()),
                         new Report.Metric("Gross profit", pl.grossProfit()),

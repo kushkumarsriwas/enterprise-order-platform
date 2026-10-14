@@ -1,11 +1,12 @@
 package com.enterprise.payment.finance;
 
-import com.enterprise.payment.client.OrderClient;
 import com.enterprise.payment.client.OrderClient.MonthAmounts;
 import com.enterprise.payment.client.OrderClient.SalesSummary;
+import com.enterprise.payment.client.OrderClient;
 import com.enterprise.payment.finance.FinanceDtos.CategoryAmount;
 import com.enterprise.payment.finance.FinanceDtos.MonthLine;
 import com.enterprise.payment.finance.FinanceDtos.ProfitAndLoss;
+import com.enterprise.payment.payment.PaymentQueryService;
 import com.enterprise.payment.payment.PaymentRepository;
 import com.enterprise.payment.payment.PaymentService;
 import java.math.BigDecimal;
@@ -38,16 +39,16 @@ public class ProfitAndLossService {
     }
 
     /** No surrounding transaction on purpose: the remote call must not hold a database connection. */
-    public ProfitAndLoss statement(Long merchantId, LocalDate from, LocalDate to) {
-        SalesSummary sales = orderClient.salesSummary(merchantId, from, to);
+    public ProfitAndLoss statement(Long sellerId, LocalDate from, LocalDate to) {
+        SalesSummary sales = orderClient.salesSummary(sellerId, from, to);
 
         Map<String, BigDecimal> feesByMonth = new HashMap<>();
-        for (Object[] row : payments.monthlyFees(merchantId, PaymentService.SETTLED, PaymentService.startOf(from),
-                PaymentService.endOf(to))) {
+        for (Object[] row : payments.monthlyFees(sellerId, PaymentService.SETTLED, PaymentQueryService.startOf(from),
+                PaymentQueryService.endOf(to))) {
             feesByMonth.merge(monthKey(row[0], row[1]), Money.of(row[2]), BigDecimal::add);
         }
         Map<String, BigDecimal> expensesByMonth = new HashMap<>();
-        for (Object[] row : expenses.totalsByMonth(merchantId, from, to)) {
+        for (Object[] row : expenses.totalsByMonth(sellerId, from, to)) {
             expensesByMonth.merge(monthKey(row[0], row[1]), Money.of(row[2]), BigDecimal::add);
         }
         Map<String, MonthAmounts> salesByMonth = new HashMap<>();
@@ -73,7 +74,7 @@ public class ProfitAndLossService {
         }
 
         List<CategoryAmount> byCategory = new ArrayList<>();
-        for (Object[] row : expenses.totalsByCategory(merchantId, from, to)) {
+        for (Object[] row : expenses.totalsByCategory(sellerId, from, to)) {
             ExpenseCategory category = (ExpenseCategory) row[0];
             BigDecimal amount = Money.of(row[2]);
             byCategory.add(new CategoryAmount(category.name(), category.label(), ((Number) row[1]).longValue(),

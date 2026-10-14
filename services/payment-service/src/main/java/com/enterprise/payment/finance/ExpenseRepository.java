@@ -10,33 +10,33 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpecificationExecutor<Expense> {
 
-    Optional<Expense> findByIdAndMerchantId(Long id, Long merchantId);
+    Optional<Expense> findByIdAndSellerId(Long id, Long sellerId);
 
-    List<Expense> findByMerchantIdAndExpenseDateBetweenOrderByExpenseDateDescIdDesc(Long merchantId, LocalDate from,
+    List<Expense> findBySellerIdAndExpenseDateBetweenOrderByExpenseDateDescIdDesc(Long sellerId, LocalDate from,
                                                                                       LocalDate to);
 
     @Query("""
             select e.category, count(e), sum(e.amount)
             from Expense e
-            where e.merchantId = :merchantId and e.expenseDate >= :from and e.expenseDate <= :to
+            where e.sellerId = :sellerId and e.expenseDate >= :from and e.expenseDate <= :to
             group by e.category
             order by sum(e.amount) desc
             """)
-    List<Object[]> totalsByCategory(Long merchantId, LocalDate from, LocalDate to);
+    List<Object[]> totalsByCategory(Long sellerId, LocalDate from, LocalDate to);
 
     @Query("""
             select year(e.expenseDate), month(e.expenseDate), sum(e.amount)
             from Expense e
-            where e.merchantId = :merchantId and e.expenseDate >= :from and e.expenseDate <= :to
+            where e.sellerId = :sellerId and e.expenseDate >= :from and e.expenseDate <= :to
             group by year(e.expenseDate), month(e.expenseDate)
             """)
-    List<Object[]> totalsByMonth(Long merchantId, LocalDate from, LocalDate to);
+    List<Object[]> totalsByMonth(Long sellerId, LocalDate from, LocalDate to);
 
     @Query("""
             select coalesce(sum(e.amount), 0)
             from Expense e
-            where e.merchantId = :merchantId and e.category = :category
+            where e.sellerId = :sellerId and e.category = :category
               and e.expenseDate >= :from and e.expenseDate <= :to
             """)
-    BigDecimal total(Long merchantId, ExpenseCategory category, LocalDate from, LocalDate to);
+    BigDecimal total(Long sellerId, ExpenseCategory category, LocalDate from, LocalDate to);
 }

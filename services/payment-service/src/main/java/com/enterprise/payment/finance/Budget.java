@@ -17,16 +17,16 @@ import java.time.Instant;
 
 /** Monthly spending limit of a seller for one expense category. */
 @Entity
-@Table(name = "budgets", uniqueConstraints = @UniqueConstraint(name = "uk_budgets_merchant_month_category",
-        columnNames = {"merchant_id", "budget_month", "category"}))
+@Table(name = "budgets", uniqueConstraints = @UniqueConstraint(name = "uk_budgets_seller_month_category",
+        columnNames = {"seller_id", "budget_month", "category"}))
 public class Budget {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "merchant_id", nullable = false)
-    private Long merchantId;
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
 
     /** ISO year-month, e.g. 2026-10. */
     @Column(name = "budget_month", nullable = false, length = 7)
@@ -52,8 +52,8 @@ public class Budget {
     protected Budget() {
     }
 
-    public Budget(Long merchantId, String budgetMonth, ExpenseCategory category, BigDecimal amount) {
-        this.merchantId = merchantId;
+    public Budget(Long sellerId, String budgetMonth, ExpenseCategory category, BigDecimal amount) {
+        this.sellerId = sellerId;
         this.budgetMonth = budgetMonth;
         this.category = category;
         this.amount = amount;
@@ -78,8 +78,8 @@ public class Budget {
         return id;
     }
 
-    public Long getMerchantId() {
-        return merchantId;
+    public Long getSellerId() {
+        return sellerId;
     }
 
     public String getBudgetMonth() {
