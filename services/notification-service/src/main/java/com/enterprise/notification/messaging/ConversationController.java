@@ -78,6 +78,13 @@ public class ConversationController {
         return messaging.send(user, id, request);
     }
 
+    @PostMapping("/{id}/report")
+    @Operation(summary = "Report a conversation (spam, abuse, scam) to Nexora support")
+    public ConversationResponse report(@PathVariable Long id, @Valid @RequestBody MessagingDtos.ReportRequest request,
+                                       @AuthenticationPrincipal AuthenticatedUser user) {
+        return messaging.report(user, id, request.reason());
+    }
+
     @PostMapping("/{id}/read")
     @Operation(summary = "Mark the conversation as read")
     public ConversationResponse markRead(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser user) {

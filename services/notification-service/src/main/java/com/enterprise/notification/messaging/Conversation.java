@@ -17,11 +17,11 @@ import java.time.Instant;
  */
 @Entity
 @Table(name = "conversations",
-        uniqueConstraints = @UniqueConstraint(name = "uk_conversations_customer_merchant",
-                columnNames = {"customer_id", "merchant_id"}),
+        uniqueConstraints = @UniqueConstraint(name = "uk_conversations_customer_seller",
+                columnNames = {"customer_id", "seller_id"}),
         indexes = {
                 @Index(name = "idx_conversations_customer_last", columnList = "customer_id, last_message_at"),
-                @Index(name = "idx_conversations_merchant_last", columnList = "merchant_id, last_message_at")
+                @Index(name = "idx_conversations_seller_last", columnList = "seller_id, last_message_at")
         })
 public class Conversation {
 
@@ -35,11 +35,11 @@ public class Conversation {
     @Column(name = "customer_name", nullable = false, length = 100)
     private String customerName;
 
-    @Column(name = "merchant_id", nullable = false)
-    private Long merchantId;
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
 
-    @Column(name = "merchant_name", nullable = false, length = 100)
-    private String merchantName;
+    @Column(name = "seller_name", nullable = false, length = 100)
+    private String sellerName;
 
     @Column(name = "last_message_preview", length = 200)
     private String lastMessagePreview;
@@ -50,8 +50,21 @@ public class Conversation {
     @Column(name = "customer_unread", nullable = false)
     private int customerUnread;
 
-    @Column(name = "merchant_unread", nullable = false)
-    private int merchantUnread;
+    @Column(name = "seller_unread", nullable = false)
+    private int sellerUnread;
+
+    /** A participant reported the conversation (spam, abuse, scam); the administrator reviews it. */
+    @Column(nullable = false)
+    private boolean reported;
+
+    @Column(name = "report_reason", length = 255)
+    private String reportReason;
+
+    @Column(name = "reported_by", length = 100)
+    private String reportedBy;
+
+    @Column(name = "reported_at")
+    private Instant reportedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -59,11 +72,11 @@ public class Conversation {
     protected Conversation() {
     }
 
-    public Conversation(Long customerId, String customerName, Long merchantId, String merchantName) {
+    public Conversation(Long customerId, String customerName, Long sellerId, String sellerName) {
         this.customerId = customerId;
         this.customerName = customerName;
-        this.merchantId = merchantId;
-        this.merchantName = merchantName;
+        this.sellerId = sellerId;
+        this.sellerName = sellerName;
     }
 
     @PrePersist
@@ -75,7 +88,7 @@ public class Conversation {
     }
 
     public boolean hasParticipant(Long userId) {
-        return customerId.equals(userId) || merchantId.equals(userId);
+        return customerId.equals(userId) || sellerId.equals(userId);
     }
 
     public boolean isCustomer(Long userId) {
@@ -87,11 +100,11 @@ public class Conversation {
         this.lastMessagePreview = preview;
         this.lastMessageAt = Instant.now();
         if (fromCustomer) {
-            merchantUnread++;
+            sellerUnread++;
             customerUnread = 0;
         } else {
             customerUnread++;
-            merchantUnread = 0;
+            sellerUnread = 0;
         }
     }
 
@@ -99,12 +112,24 @@ public class Conversation {
         if (isCustomer(userId)) {
             customerUnread = 0;
         } else {
-            merchantUnread = 0;
+            sellerUnread = 0;
         }
     }
 
+    public void report(String by, String reason) {
+        this.reported = true;
+        this.reportedBy = by;
+        this.reportReason = reason;
+        this.reportedAt = Instant.now();
+    }
+
+    /** The administrator reviewed the report. */
+    public void resolveReport() {
+        this.reported = false;
+    }
+
     public int unreadFor(Long userId) {
-        return isCustomer(userId) ? customerUnread : merchantUnread;
+        return isCustomer(userId) ? customerUnread : sellerUnread;
     }
 
     public Long getId() {
@@ -119,12 +144,12 @@ public class Conversation {
         return customerName;
     }
 
-    public Long getMerchantId() {
-        return merchantId;
+    public Long getSellerId() {
+        return sellerId;
     }
 
-    public String getMerchantName() {
-        return merchantName;
+    public String getSellerName() {
+        return sellerName;
     }
 
     public String getLastMessagePreview() {
@@ -139,8 +164,24 @@ public class Conversation {
         return customerUnread;
     }
 
-    public int getMerchantUnread() {
-        return merchantUnread;
+    public int getSellerUnread() {
+        return sellerUnread;
+    }
+
+    public boolean isReported() {
+        return reported;
+    }
+
+    public String getReportReason() {
+        return reportReason;
+    }
+
+    public String getReportedBy() {
+        return reportedBy;
+    }
+
+    public Instant getReportedAt() {
+        return reportedAt;
     }
 
     public Instant getCreatedAt() {
