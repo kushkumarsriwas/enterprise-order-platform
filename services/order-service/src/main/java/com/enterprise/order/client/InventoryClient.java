@@ -24,6 +24,14 @@ public class InventoryClient {
         this.client = factory.create(NAME, url);
     }
 
+    public List<ProductInfo> lookup(List<Long> productIds) {
+        return RemoteCalls.call(NAME, () -> client.post().uri("/internal/products/lookup")
+                .body(java.util.Map.of("productIds", productIds))
+                .retrieve()
+                .body(new org.springframework.core.ParameterizedTypeReference<List<ProductInfo>>() {
+                }));
+    }
+
     public Reservation reserve(String orderRef, List<Item> items) {
         return RemoteCalls.call(NAME, () -> client.post().uri("/internal/inventory/reservations")
                 .body(new ReserveRequest(orderRef, items))
@@ -75,6 +83,12 @@ public class InventoryClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Line(Long productId, String sku, String name, BigDecimal unitPrice, int quantity) {
+    public record Line(Long productId, Long merchantId, String merchantName, String sku, String name,
+                       BigDecimal unitPrice, BigDecimal unitCost, int quantity) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ProductInfo(Long productId, Long merchantId, String merchantName, String name, BigDecimal price,
+                              boolean purchasable, int availableQuantity) {
     }
 }

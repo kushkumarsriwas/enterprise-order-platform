@@ -24,6 +24,7 @@ import java.util.List;
 @Entity
 @Table(name = "orders", indexes = {
         @Index(name = "idx_orders_user_created", columnList = "user_id, created_at"),
+        @Index(name = "idx_orders_merchant_status", columnList = "merchant_id, status, created_at"),
         @Index(name = "idx_orders_status_created", columnList = "status, created_at")
 })
 public class Order {
@@ -43,6 +44,27 @@ public class Order {
 
     @Column(name = "customer_email", length = 120)
     private String customerEmail;
+
+    @Column(name = "customer_phone", length = 30)
+    private String customerPhone;
+
+    @Column(name = "merchant_id", nullable = false)
+    private Long merchantId;
+
+    @Column(name = "merchant_name", nullable = false, length = 80)
+    private String merchantName;
+
+    @Column(length = 60)
+    private String carrier;
+
+    @Column(name = "tracking_number", length = 60)
+    private String trackingNumber;
+
+    @Column(name = "shipped_at")
+    private Instant shippedAt;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -93,12 +115,15 @@ public class Order {
     protected Order() {
     }
 
-    public Order(String orderNumber, Long userId, String customerUsername, String customerEmail, String currency,
-                 String shippingAddress) {
+    public Order(String orderNumber, Long userId, String customerUsername, String customerEmail, String customerPhone,
+                 Long merchantId, String merchantName, String currency, String shippingAddress) {
         this.orderNumber = orderNumber;
         this.userId = userId;
         this.customerUsername = customerUsername;
         this.customerEmail = customerEmail;
+        this.customerPhone = customerPhone;
+        this.merchantId = merchantId;
+        this.merchantName = merchantName;
         this.currency = currency;
         this.shippingAddress = shippingAddress;
         this.status = OrderStatus.PENDING;
@@ -147,8 +172,28 @@ public class Order {
         this.paymentInProgress = false;
     }
 
+    public void ship(String carrier, String trackingNumber, String actor, String note) {
+        changeStatus(OrderStatus.SHIPPED, actor, note == null ? "Shipped with " + carrier + " (" + trackingNumber + ")" : note);
+        this.carrier = carrier;
+        this.trackingNumber = trackingNumber;
+        this.shippedAt = Instant.now();
+    }
+
+    public void deliver(String actor) {
+        changeStatus(OrderStatus.DELIVERED, actor, "Delivered to the customer");
+        this.deliveredAt = Instant.now();
+    }
+
     public boolean isOwnedBy(Long userId) {
         return this.userId.equals(userId);
+    }
+
+    public boolean isSoldBy(Long merchantId) {
+        return this.merchantId.equals(merchantId);
+    }
+
+    public java.math.BigDecimal getTotalCost() {
+        return items.stream().map(OrderItem::getLineCost).reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 
     public void setPaymentInProgress(boolean paymentInProgress) {
@@ -177,6 +222,34 @@ public class Order {
 
     public String getCustomerEmail() {
         return customerEmail;
+    }
+
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public Long getMerchantId() {
+        return merchantId;
+    }
+
+    public String getMerchantName() {
+        return merchantName;
+    }
+
+    public String getCarrier() {
+        return carrier;
+    }
+
+    public String getTrackingNumber() {
+        return trackingNumber;
+    }
+
+    public Instant getShippedAt() {
+        return shippedAt;
+    }
+
+    public Instant getDeliveredAt() {
+        return deliveredAt;
     }
 
     public OrderStatus getStatus() {

@@ -34,7 +34,8 @@ public class PaymentClient {
                 .retrieve().body(PaymentResult.class));
     }
 
-    public record ChargeRequest(Long orderId, String orderNumber, Long userId, BigDecimal amount, String currency,
+    public record ChargeRequest(Long orderId, String orderNumber, Long userId, Long merchantId, BigDecimal amount,
+                                String currency,
                                 String method, String cardNumber, String cardHolder, String expiry, String cvv,
                                 String upiId) {
     }

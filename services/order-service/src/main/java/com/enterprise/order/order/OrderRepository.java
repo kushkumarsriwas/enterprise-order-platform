@@ -1,6 +1,7 @@
 package com.enterprise.order.order;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Limit;
@@ -19,29 +20,88 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByUserIdAndStatus(Long userId, OrderStatus status, Pageable pageable);
 
+    Page<Order> findByMerchantId(Long merchantId, Pageable pageable);
+
+    Page<Order> findByMerchantIdAndStatus(Long merchantId, OrderStatus status, Pageable pageable);
+
     Page<Order> findByStatus(OrderStatus status, Pageable pageable);
 
     List<Order> findByStatusAndPaymentInProgressFalseAndCreatedAtBefore(OrderStatus status, Instant cutoff, Limit limit);
 
-    /** Orders and revenue per status (GROUP BY). */
+    @EntityGraph(attributePaths = "items")
+    List<Order> findByMerchantIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long merchantId, Instant from, Instant to);
+
+    // ---------------------------------------------------------------- platform statistics (admin)
+
     @Query("select o.status, count(o), coalesce(sum(o.totalAmount), 0) from Order o group by o.status")
     List<Object[]> countAndRevenueByStatus();
 
-    /** Best sellers among non-cancelled orders (JOIN + GROUP BY + ORDER BY aggregate). */
     @Query("""
-            select i.productId, i.productName, sum(i.quantity), sum(i.lineTotal)
-            from OrderItem i join i.order o
-            where o.status in :statuses
-            group by i.productId, i.productName
-            order by sum(i.quantity) desc""")
-    List<Object[]> topProducts(List<OrderStatus> statuses, Limit limit);
+            select o.merchantId, o.merchantName, count(o), coalesce(sum(o.totalAmount), 0)
+            from Order o where o.status in :statuses
+            group by o.merchantId, o.merchantName
+            order by coalesce(sum(o.totalAmount), 0) desc""")
+    List<Object[]> topMerchants(Collection<OrderStatus> statuses, Limit limit);
 
-    /** Daily order count and revenue since a date. */
     @Query("""
             select cast(o.createdAt as LocalDate), count(o), coalesce(sum(o.totalAmount), 0)
             from Order o
-            where o.createdAt >= :since and o.status <> com.enterprise.order.order.OrderStatus.CANCELLED
+            where o.createdAt >= :since and o.status in :statuses
             group by cast(o.createdAt as LocalDate)
             order by cast(o.createdAt as LocalDate)""")
-    List<Object[]> dailySales(Instant since);
+    List<Object[]> dailySales(Instant since, Collection<OrderStatus> statuses);
+
+    // ---------------------------------------------------------------- merchant analytics (one merchant)
+
+    /** Revenue, cost of goods sold and units per day (JOIN + GROUP BY + SUM over computed columns). */
+    @Query("""
+            select cast(o.createdAt as LocalDate), count(distinct o.id), sum(i.lineTotal), sum(i.unitCost * i.quantity),
+                   sum(i.quantity)
+            from OrderItem i join i.order o
+            where o.merchantId = :merchantId and o.status in :statuses and o.createdAt >= :from and o.createdAt < :to
+            group by cast(o.createdAt as LocalDate)
+            order by cast(o.createdAt as LocalDate)""")
+    List<Object[]> merchantDaily(Long merchantId, Collection<OrderStatus> statuses, Instant from, Instant to);
+
+    @Query("""
+            select i.productId, i.productName, sum(i.quantity), sum(i.lineTotal), sum(i.unitCost * i.quantity)
+            from OrderItem i join i.order o
+            where o.merchantId = :merchantId and o.status in :statuses and o.createdAt >= :from and o.createdAt < :to
+            group by i.productId, i.productName
+            order by sum(i.lineTotal) desc""")
+    List<Object[]> merchantTopProducts(Long merchantId, Collection<OrderStatus> statuses, Instant from, Instant to,
+                                       Limit limit);
+
+    @Query("""
+            select o.status, count(o), coalesce(sum(o.totalAmount), 0)
+            from Order o
+            where o.merchantId = :merchantId and o.createdAt >= :from and o.createdAt < :to
+            group by o.status""")
+    List<Object[]> merchantStatusBreakdown(Long merchantId, Instant from, Instant to);
+
+    @Query("""
+            select coalesce(o.paymentMethod, 'UNPAID'), count(o), coalesce(sum(o.totalAmount), 0)
+            from Order o
+            where o.merchantId = :merchantId and o.status in :statuses and o.createdAt >= :from and o.createdAt < :to
+            group by coalesce(o.paymentMethod, 'UNPAID')""")
+    List<Object[]> merchantPaymentMethods(Long merchantId, Collection<OrderStatus> statuses, Instant from, Instant to);
+
+    @Query("""
+            select o.userId, o.customerUsername, count(o), coalesce(sum(o.totalAmount), 0)
+            from Order o
+            where o.merchantId = :merchantId and o.status in :statuses and o.createdAt >= :from and o.createdAt < :to
+            group by o.userId, o.customerUsername
+            order by coalesce(sum(o.totalAmount), 0) desc""")
+    List<Object[]> merchantTopCustomers(Long merchantId, Collection<OrderStatus> statuses, Instant from, Instant to,
+                                        Limit limit);
+
+    @Query("""
+            select count(o) from Order o where o.merchantId = :merchantId and o.status = :status""")
+    long countByMerchantAndStatus(Long merchantId, OrderStatus status);
+
+    /** Has this customer received an order of this merchant containing the product? (verified-purchase reviews) */
+    @Query("""
+            select count(i) > 0 from OrderItem i join i.order o
+            where o.id = :orderId and o.userId = :customerId and i.productId = :productId and o.status = :status""")
+    boolean hasDeliveredItem(Long orderId, Long customerId, Long productId, OrderStatus status);
 }
