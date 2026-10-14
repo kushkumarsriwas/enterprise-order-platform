@@ -1,5 +1,6 @@
 package com.enterprise.inventory.config;
 
+import com.enterprise.inventory.security.InternalApiKeyFilter;
 import com.enterprise.inventory.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * URL rules (defense in depth - controllers also use @PreAuthorize):
  * the marketplace catalogue is public, Seller Central needs SELLER, the admin console needs ADMIN,
- * service-to-service /internal endpoints need any valid token (and are not routed by the gateway).
+ * service-to-service /internal endpoints need the shared service key (and are not routed by the gateway).
  */
 @Configuration
 @EnableMethodSecurity
@@ -24,6 +25,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
+                                                   InternalApiKeyFilter internalApiKeyFilter,
                                                    AuthenticationEntryPoint entryPoint,
                                                    AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
@@ -36,10 +38,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
                         .requestMatchers("/api/seller/**", "/api/inventory/**").hasRole("SELLER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/internal/**").authenticated()
                         .requestMatchers("/", "/actuator/health/**", "/actuator/info",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(jwtFilter, InternalApiKeyFilter.class);
         return http.build();
     }
 }
