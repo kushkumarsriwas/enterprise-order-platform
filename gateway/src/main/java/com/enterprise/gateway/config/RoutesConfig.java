@@ -15,6 +15,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 /**
  * Public API routes. Only /api/** (plus the JWKS and API docs) is exposed; the services'
  * /internal/** endpoints are deliberately NOT routed, so they can't be reached through the gateway.
+ * The merchant console (/api/merchant/**) is spread over three services: inventory, orders and finance.
  */
 @Configuration
 public class RoutesConfig {
@@ -26,24 +27,36 @@ public class RoutesConfig {
                                                     @Value("${services.payment.url}") String payment,
                                                     @Value("${services.notification.url}") String notification) {
         return route("auth-service")
-                .route(path("/api/auth/**", "/api/users", "/api/users/**", "/.well-known/jwks.json"), http())
+                .route(path("/api/auth/**", "/api/users", "/api/users/**", "/api/merchants", "/api/merchants/**",
+                        "/.well-known/jwks.json"), http())
                 .before(uri(auth))
                 .build()
                 .and(route("product-inventory-service")
                         .route(path("/api/products", "/api/products/**", "/api/categories", "/api/categories/**",
-                                "/api/inventory/**"), http())
+                                "/api/merchant/products", "/api/merchant/products/**",
+                                "/api/merchant/inventory", "/api/merchant/inventory/**",
+                                "/api/merchant/purchases", "/api/merchant/purchases/**",
+                                "/api/merchant/reports/inventory/**"), http())
                         .before(uri(inventory))
                         .build())
                 .and(route("order-service")
-                        .route(path("/api/orders", "/api/orders/**"), http())
+                        .route(path("/api/orders", "/api/orders/**", "/api/reviews", "/api/reviews/**",
+                                "/api/merchant/orders", "/api/merchant/orders/**", "/api/merchant/analytics",
+                                "/api/merchant/reviews", "/api/merchant/reviews/**",
+                                "/api/merchant/reports/sales/**"), http())
                         .before(uri(order))
                         .build())
                 .and(route("payment-service")
-                        .route(path("/api/payments", "/api/payments/**"), http())
+                        .route(path("/api/payments", "/api/payments/**",
+                                "/api/merchant/payments", "/api/merchant/payments/**",
+                                "/api/merchant/expenses", "/api/merchant/expenses/**",
+                                "/api/merchant/budgets", "/api/merchant/budgets/**",
+                                "/api/merchant/finance/**", "/api/merchant/reports/profit-loss/**"), http())
                         .before(uri(payment))
                         .build())
                 .and(route("notification-service")
-                        .route(path("/api/notifications", "/api/notifications/**"), http())
+                        .route(path("/api/notifications", "/api/notifications/**",
+                                "/api/conversations", "/api/conversations/**"), http())
                         .before(uri(notification))
                         .build())
                 .and(docs("auth", auth))

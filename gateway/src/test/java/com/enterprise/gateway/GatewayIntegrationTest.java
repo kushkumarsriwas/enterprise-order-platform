@@ -37,7 +37,8 @@ class GatewayIntegrationTest {
 
     private static final KeyPair KEYS = generate();
     private static final Map<String, String> LAST_HEADERS = new ConcurrentHashMap<>();
-    private static final HttpServer BACKEND = startBackend();
+    private static final String[] SERVICES = {"auth", "inventory", "order", "payment", "notification"};
+    private static final Map<String, HttpServer> BACKENDS = startBackends();
     private static final HttpClient CLIENT = HttpClient.newHttpClient();
 
     @LocalServerPort
@@ -45,15 +46,13 @@ class GatewayIntegrationTest {
 
     @DynamicPropertySource
     static void routes(DynamicPropertyRegistry registry) {
-        String url = "http://localhost:" + BACKEND.getAddress().getPort();
-        for (String service : new String[] {"auth", "inventory", "order", "payment", "notification"}) {
-            registry.add("services." + service + ".url", () -> url);
-        }
+        BACKENDS.forEach((service, server) -> registry.add("services." + service + ".url",
+                () -> "http://localhost:" + server.getAddress().getPort()));
     }
 
     @AfterAll
     static void stop() {
-        BACKEND.stop(0);
+        BACKENDS.values().forEach(server -> server.stop(0));
     }
 
     @Test
@@ -62,6 +61,50 @@ class GatewayIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).contains("/api/products");
         assertThat(LAST_HEADERS.get("x-correlation-id")).isNotBlank();
+        for (String path : new String[] {"/api/merchants", "/api/merchants/12", "/api/reviews?productId=3",
+                "/api/categories"}) {
+            assertThat(send(HttpRequest.newBuilder(uri(path)).GET()).statusCode()).as(path).isEqualTo(200);
+        }
+        assertThat(send(HttpRequest.newBuilder(uri("/api/reviews/mine")).GET()).statusCode()).isEqualTo(401);
+        assertThat(send(HttpRequest.newBuilder(uri("/api/merchants/12")).POST(HttpRequest.BodyPublishers.noBody()))
+                .statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void everyApiPathIsRoutedToTheRightService() throws Exception {
+        Map<String, String> expected = Map.ofEntries(
+                Map.entry("/api/users/me", "auth"),
+                Map.entry("/api/merchants/5", "auth"),
+                Map.entry("/api/products/9", "inventory"),
+                Map.entry("/api/merchant/products", "inventory"),
+                Map.entry("/api/merchant/inventory/summary", "inventory"),
+                Map.entry("/api/merchant/purchases", "inventory"),
+                Map.entry("/api/merchant/reports/inventory/pdf", "inventory"),
+                Map.entry("/api/orders/stats", "order"),
+                Map.entry("/api/reviews/mine", "order"),
+                Map.entry("/api/merchant/orders/4", "order"),
+                Map.entry("/api/merchant/analytics", "order"),
+                Map.entry("/api/merchant/reviews", "order"),
+                Map.entry("/api/merchant/reports/sales/xlsx", "order"),
+                Map.entry("/api/payments", "payment"),
+                Map.entry("/api/merchant/payments/summary", "payment"),
+                Map.entry("/api/merchant/expenses", "payment"),
+                Map.entry("/api/merchant/budgets", "payment"),
+                Map.entry("/api/merchant/finance/profit-loss", "payment"),
+                Map.entry("/api/merchant/reports/profit-loss/pdf", "payment"),
+                Map.entry("/api/notifications/unread-count", "notification"),
+                Map.entry("/api/conversations/3/messages", "notification"));
+        String token = "Bearer " + token();
+        for (Map.Entry<String, String> route : expected.entrySet()) {
+            HttpResponse<String> response = send(HttpRequest.newBuilder(uri(route.getKey()))
+                    .header("Authorization", token).GET());
+            assertThat(response.statusCode()).as(route.getKey()).isEqualTo(200);
+            assertThat(response.body()).as(route.getKey())
+                    .contains("\"service\":\"" + route.getValue() + "\"")
+                    .contains("\"path\":\"" + route.getKey() + "\"");
+        }
+        assertThat(send(HttpRequest.newBuilder(uri("/api/merchant/unknown")).header("Authorization", token).GET())
+                .statusCode()).isEqualTo(404);
     }
 
     @Test
@@ -110,13 +153,22 @@ class GatewayIntegrationTest {
                 .signWith(KEYS.getPrivate(), Jwts.SIG.RS256).compact();
     }
 
-    private static HttpServer startBackend() {
+    private static Map<String, HttpServer> startBackends() {
+        Map<String, HttpServer> servers = new ConcurrentHashMap<>();
+        for (String service : SERVICES) {
+            servers.put(service, startBackend(service));
+        }
+        return servers;
+    }
+
+    private static HttpServer startBackend(String service) {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             server.createContext("/", exchange -> {
                 LAST_HEADERS.clear();
                 exchange.getRequestHeaders().forEach((name, values) -> LAST_HEADERS.put(name.toLowerCase(), values.get(0)));
-                byte[] body = ("{\"path\":\"" + exchange.getRequestURI().getPath() + "\"}").getBytes(StandardCharsets.UTF_8);
+                byte[] body = ("{\"service\":\"" + service + "\",\"path\":\"" + exchange.getRequestURI().getPath()
+                        + "\"}").getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, body.length);
                 try (OutputStream out = exchange.getResponseBody()) {
