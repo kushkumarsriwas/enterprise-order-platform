@@ -6,14 +6,15 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
 /**
- * Programmatic cache eviction. The Redis cache manager is transaction-aware, so evictions
- * happen only after the database transaction commits (no stale data re-cached mid-transaction).
+ * Programmatic cache eviction. The Redis cache manager is transaction-aware, so evictions happen only after
+ * the database transaction commits (no stale data re-cached in the middle of a transaction).
  */
 @Component
 public class ProductCache {
 
     public static final String PRODUCT = "product";
     public static final String CATEGORIES = "categories";
+    public static final String HOME = "home";
 
     private final ObjectProvider<CacheManager> cacheManager;
 
@@ -28,8 +29,14 @@ public class ProductCache {
         }
     }
 
-    public void evictCategories() {
-        Cache cache = cache(CATEGORIES);
+    /** Category counts and the storefront home page change when listings change. */
+    public void evictListings() {
+        clear(CATEGORIES);
+        clear(HOME);
+    }
+
+    private void clear(String name) {
+        Cache cache = cache(name);
         if (cache != null) {
             cache.clear();
         }

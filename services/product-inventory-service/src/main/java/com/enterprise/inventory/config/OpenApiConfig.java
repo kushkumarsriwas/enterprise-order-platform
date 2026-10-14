@@ -16,8 +16,8 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openApi() {
         return new OpenAPI()
-                .info(new Info().title("Product & Inventory Service API").version("1.0.0")
-                        .description("Catalogue, categories, stock levels, reservations (Redis-cached)"))
+                .info(new Info().title("Product & Inventory Service API").version("3.0.0")
+                        .description("Marketplace catalogue and search, seller inventory management: warehouses, stock ledger, suppliers, purchase orders, stock counts, analytics"))
                 .servers(List.of(new Server().url("/")))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))

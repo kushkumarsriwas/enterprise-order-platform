@@ -13,6 +13,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * URL rules (defense in depth - controllers also use @PreAuthorize):
+ * the marketplace catalogue is public, Seller Central needs SELLER, the admin console needs ADMIN,
+ * service-to-service /internal endpoints need any valid token (and are not routed by the gateway).
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -29,12 +34,12 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint).accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
-                        .requestMatchers("/api/merchant/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/seller/**", "/api/inventory/**").hasRole("SELLER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/", "/actuator/health/**", "/actuator/info",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-
 }
