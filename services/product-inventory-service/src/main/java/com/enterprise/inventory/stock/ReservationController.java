@@ -27,13 +27,13 @@ public class ReservationController {
     }
 
     @PostMapping("/products/lookup")
-    @Operation(summary = "Merchant, price and availability for a set of products")
+    @Operation(summary = "Seller, price and availability for a set of products")
     public List<ProductLookup> lookup(@Valid @RequestBody LookupRequest request) {
         return inventoryService.lookup(request.productIds());
     }
 
     @PostMapping("/inventory/reservations")
-    @Operation(summary = "Reserve stock for one merchant's order (all-or-nothing, idempotent)")
+    @Operation(summary = "Reserve stock for one seller's order (all-or-nothing, idempotent)")
     public ReservationResponse reserve(@Valid @RequestBody ReserveRequest request) {
         return inventoryService.reserve(request);
     }

@@ -9,12 +9,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.enterprise.auth.audit.ClientInfo;
+import com.enterprise.auth.audit.LoginAuditService;
 import com.enterprise.auth.auth.AuthDtos.AccountType;
 import com.enterprise.auth.auth.AuthDtos.LoginRequest;
 import com.enterprise.auth.auth.AuthDtos.RegisterRequest;
 import com.enterprise.auth.common.ApiException;
-import com.enterprise.auth.user.MerchantProfile;
-import com.enterprise.auth.user.MerchantProfileRepository;
+import com.enterprise.auth.user.SellerProfile;
+import com.enterprise.auth.user.SellerProfileRepository;
 import com.enterprise.auth.user.Role;
 import com.enterprise.auth.user.User;
 import com.enterprise.auth.user.UserRepository;
@@ -33,16 +35,20 @@ class AuthServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private MerchantProfileRepository merchantRepository;
+    private SellerProfileRepository sellerRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
     private TokenService tokenService;
+    @Mock
+    private LoginAuditService audit;
     @InjectMocks
     private AuthService authService;
 
+    private static final ClientInfo CLIENT = new ClientInfo("10.0.0.7", "JUnit");
+
     private static RegisterRequest customer(String username, String email) {
-        return new RegisterRequest(AccountType.CUSTOMER, username, email, "Secret123", "Kush", null, null, null, null, null);
+        return new RegisterRequest(AccountType.CUSTOMER, username, email, "Secret123", "Kush", null, null, null, null, null, null);
     }
 
     @Test
@@ -60,23 +66,25 @@ class AuthServiceTest {
     }
 
     @Test
-    void merchantRegistrationCreatesAStoreAndPutsItInTheToken() {
+    void sellerRegistrationCreatesAStoreAndPutsItInTheToken() {
         when(passwordEncoder.encode(any())).thenReturn("$2a$hash");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(MerchantProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sellerRepository.save(any(SellerProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(tokenService.issue(any(User.class), eq("Gulf Gadgets"))).thenReturn(new TokenService.IssuedToken("jwt", 3600));
 
-        var response = authService.register(new RegisterRequest(AccountType.MERCHANT, "gulfgadgets", "sales@gulf.ae",
-                "Secret123", "Aisha", "+971 50 123 4567", "Gulf Gadgets", "Phones and accessories", "Dubai", "DED-1234"));
+        var response = authService.register(new RegisterRequest(AccountType.SELLER, "gulfgadgets", "sales@gulf.ae",
+                "Secret123", "Aisha", "+971 50 123 4567", "Gulf Gadgets", "Phones and accessories", "Dubai", "DED-1234",
+                "100123456700003"));
 
-        assertThat(response.user().role()).isEqualTo("MERCHANT");
+        assertThat(response.user().role()).isEqualTo("SELLER");
         assertThat(response.user().store().storeName()).isEqualTo("Gulf Gadgets");
+        assertThat(response.user().store().vatNumber()).isEqualTo("100123456700003");
     }
 
     @Test
-    void merchantRegistrationNeedsStoreDetails() {
-        assertThatThrownBy(() -> authService.register(new RegisterRequest(AccountType.MERCHANT, "shop", "s@x.ae",
-                "Secret123", null, null, null, null, null, null)))
+    void sellerRegistrationNeedsStoreDetails() {
+        assertThatThrownBy(() -> authService.register(new RegisterRequest(AccountType.SELLER, "shop", "s@x.ae",
+                "Secret123", null, null, null, null, null, null, null)))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Store name");
         verify(userRepository, never()).save(any());
@@ -99,32 +107,65 @@ class AuthServiceTest {
         when(userRepository.findByUsernameIgnoreCase("kush")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "$2a$hash")).thenReturn(false);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "wrong", AccountType.CUSTOMER)))
+        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "wrong", AccountType.CUSTOMER), CLIENT))
                 .isInstanceOf(ApiException.class)
                 .hasMessage("Invalid username or password");
     }
 
     @Test
-    void customersCannotUseTheMerchantPortal() {
+    void customersCannotUseTheSellerPortal() {
         User user = new User("kush", "kush@example.com", "$2a$hash", null, null, Role.CUSTOMER);
         when(userRepository.findByUsernameIgnoreCase("kush")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "Secret123", AccountType.MERCHANT)))
+        assertThatThrownBy(() -> authService.login(new LoginRequest("kush", "Secret123", AccountType.SELLER), CLIENT))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Customer login");
+                .hasMessageContaining("customer sign-in");
     }
 
     @Test
-    void suspendedAccountCannotLogIn() {
-        User user = new User("kush", "kush@example.com", "$2a$hash", null, null, Role.CUSTOMER);
-        user.setEnabled(false);
-        when(userRepository.findByEmailIgnoreCase("kush@example.com")).thenReturn(Optional.of(user));
+    void sellersSignInToSellerCentralOnly() {
+        User user = new User("gulf", "sales@gulf.ae", "$2a$hash", null, null, Role.SELLER);
+        when(userRepository.findByEmailIgnoreCase("sales@gulf.ae")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("kush@example.com", "Secret123", null)))
+        assertThatThrownBy(() -> authService.login(new LoginRequest("sales@gulf.ae", "Secret123", AccountType.CUSTOMER), CLIENT))
                 .isInstanceOf(ApiException.class)
                 .extracting(ex -> ((ApiException) ex).getStatus())
                 .isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void theAdminCannotSignInOnTheMarketplace() {
+        User admin = new User("admin", "admin@nexora.local", "$2a$hash", null, null, Role.ADMIN);
+        when(userRepository.findByUsernameIgnoreCase("admin")).thenReturn(Optional.of(admin));
+        when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("admin", "Secret123", AccountType.SELLER), CLIENT))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Invalid username or password");
+        verify(audit).record(any(), eq("admin"), eq(Role.SELLER), eq(false),
+                eq("Admin account used on the marketplace sign-in"), eq(CLIENT));
+        verify(tokenService, never()).issue(any(), any());
+    }
+
+    @Test
+    void theAdminConsoleOnlyAcceptsTheAdmin() {
+        User seller = new User("gulf", "sales@gulf.ae", "$2a$hash", null, null, Role.SELLER);
+        when(userRepository.findByUsernameIgnoreCase("gulf")).thenReturn(Optional.of(seller));
+        when(passwordEncoder.matches("Secret123", "$2a$hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.adminLogin(new LoginRequest("gulf", "Secret123", null), CLIENT))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Invalid username or password");
+    }
+
+    @Test
+    void everyFailedAttemptIsAudited() {
+        when(userRepository.findByUsernameIgnoreCase("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest("ghost", "whatever1", AccountType.CUSTOMER), CLIENT))
+                .isInstanceOf(ApiException.class);
+        verify(audit).record(isNull(), eq("ghost"), eq(Role.CUSTOMER), eq(false), eq("Unknown username"), eq(CLIENT));
     }
 }

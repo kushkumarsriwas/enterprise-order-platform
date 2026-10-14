@@ -10,8 +10,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.math.BigDecimal;
 import java.time.Instant;
 
+/** Units held for one order line until it is paid (commit), cancelled (release) or times out (expire). */
 @Entity
 @Table(name = "stock_reservations",
         uniqueConstraints = @UniqueConstraint(name = "uk_reservation_order_product", columnNames = {"order_ref", "product_id"}),
@@ -31,6 +33,13 @@ public class StockReservation {
     @Column(nullable = false)
     private int quantity;
 
+    /** Price and weighted average cost at the time of the order (the order snapshot uses the same values). */
+    @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "unit_cost", nullable = false, precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ReservationStatus status;
@@ -47,10 +56,13 @@ public class StockReservation {
     protected StockReservation() {
     }
 
-    public StockReservation(String orderRef, Long productId, int quantity, Instant expiresAt) {
+    public StockReservation(String orderRef, Long productId, int quantity, BigDecimal unitPrice, BigDecimal unitCost,
+                            Instant expiresAt) {
         this.orderRef = orderRef;
         this.productId = productId;
         this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.unitCost = unitCost;
         this.status = ReservationStatus.RESERVED;
         this.expiresAt = expiresAt;
         this.createdAt = Instant.now();
@@ -76,6 +88,14 @@ public class StockReservation {
 
     public int getQuantity() {
         return quantity;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public BigDecimal getUnitCost() {
+        return unitCost;
     }
 
     public ReservationStatus getStatus() {
