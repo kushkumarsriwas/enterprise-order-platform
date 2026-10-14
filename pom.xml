@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Aggregator: builds and tests every service with one command ("mvnw verify").
+     Each service keeps its own parent (spring-boot-starter-parent) so it can be built and deployed alone. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.enterprise</groupId>
+    <artifactId>enterprise-order-platform</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>enterprise-order-platform</name>
+
+    <modules>
+        <module>services/auth-service</module>
+        <module>services/product-inventory-service</module>
+        <module>services/order-service</module>
+        <module>services/payment-service</module>
+        <module>services/notification-service</module>
+        <module>gateway</module>
+    </modules>
+</project>
