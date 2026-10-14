@@ -1,0 +1,120 @@
+# Render Blueprint describing the live deployment (Infrastructure as Code).
+# The services already exist on Render; this file documents them and can recreate the whole
+# stack in a new workspace (Render dashboard -> New -> Blueprint). Values marked sync:false are
+# entered in the dashboard (JDBC URL, passwords) and never committed to git.
+#
+# How a deploy works:
+#   git push -> GitHub Actions (tests + e2e) -> deploy hooks for gateway & frontend
+#   the five backend services use Render auto-deploy on every push to main
+#   Every container sets SPRING_PROFILES_ACTIVE=render automatically when RENDER=true (see Dockerfiles).
+
+databases:
+  - name: enterprise-postgres
+    plan: free
+    region: oregon
+    databaseName: enterprise_platform
+    user: enterprise_user
+
+services:
+  - type: keyvalue
+    name: enterprise-redis
+    plan: free
+    region: oregon
+    ipAllowList: []
+
+  - type: web
+    name: enterprise-auth
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./services/auth-service/Dockerfile
+    dockerContext: ./services/auth-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - { key: SPRING_DATASOURCE_URL, sync: false }
+      - { key: SPRING_DATASOURCE_USERNAME, sync: false }
+      - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+      - { key: JWT_EXPIRATION, value: "86400000" }
+
+  - type: web
+    name: enterprise-product-inventory
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./services/product-inventory-service/Dockerfile
+    dockerContext: ./services/product-inventory-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - { key: SPRING_DATASOURCE_URL, sync: false }
+      - { key: SPRING_DATASOURCE_USERNAME, sync: false }
+      - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+      - key: SPRING_DATA_REDIS_HOST
+        fromService: { type: keyvalue, name: enterprise-redis, property: host }
+      - key: SPRING_DATA_REDIS_PORT
+        fromService: { type: keyvalue, name: enterprise-redis, property: port }
+
+  - type: web
+    name: enterprise-order
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./services/order-service/Dockerfile
+    dockerContext: ./services/order-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - { key: SPRING_DATASOURCE_URL, sync: false }
+      - { key: SPRING_DATASOURCE_USERNAME, sync: false }
+      - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+      - { key: PRODUCT_SERVICE_URL, value: https://enterprise-product-inventory.onrender.com }
+
+  - type: web
+    name: enterprise-payment
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./services/payment-service/Dockerfile
+    dockerContext: ./services/payment-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - { key: SPRING_DATASOURCE_URL, sync: false }
+      - { key: SPRING_DATASOURCE_USERNAME, sync: false }
+      - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+
+  - type: web
+    name: enterprise-notification
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./services/notification-service/Dockerfile
+    dockerContext: ./services/notification-service
+    healthCheckPath: /actuator/health
+    envVars:
+      - { key: SPRING_DATASOURCE_URL, sync: false }
+      - { key: SPRING_DATASOURCE_USERNAME, sync: false }
+      - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
+
+  - type: web
+    name: enterprise-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeploy: false   # deployed by GitHub Actions after the tests pass
+    dockerfilePath: ./gateway/Dockerfile
+    dockerContext: ./gateway
+    healthCheckPath: /actuator/health
+    envVars:
+      - { key: AUTH_SERVICE_URL, value: https://enterprise-auth.onrender.com }
+      - { key: PRODUCT_SERVICE_URL, value: https://enterprise-product-inventory.onrender.com }
+      - { key: ORDER_SERVICE_URL, value: https://enterprise-order.onrender.com }
+      - { key: PAYMENT_SERVICE_URL, value: https://enterprise-payment.onrender.com }
+      - { key: NOTIFICATION_SERVICE_URL, value: https://enterprise-notification.onrender.com }
+
+  - type: web
+    name: enterprise-frontend
+    runtime: static
+    autoDeploy: false   # deployed by GitHub Actions after the tests pass
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - { key: VITE_API_BASE_URL, value: https://enterprise-gateway.onrender.com }
