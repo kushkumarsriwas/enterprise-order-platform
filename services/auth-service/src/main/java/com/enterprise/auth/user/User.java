@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 
 @Entity
@@ -31,7 +33,11 @@ public class User {
     @Column(name = "full_name", length = 120)
     private String fullName;
 
+    @Column(length = 30)
+    private String phone;
+
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private Role role;
 
@@ -47,12 +53,18 @@ public class User {
     protected User() {
     }
 
-    public User(String username, String email, String passwordHash, String fullName, Role role) {
+    public User(String username, String email, String passwordHash, String fullName, String phone, Role role) {
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
         this.fullName = fullName;
+        this.phone = phone;
         this.role = role;
+    }
+
+    public void updateContact(String fullName, String phone) {
+        this.fullName = fullName;
+        this.phone = phone;
     }
 
     @PrePersist
@@ -78,6 +90,10 @@ public class User {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public String getPhone() {
+        return phone;
     }
 
     public Role getRole() {

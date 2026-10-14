@@ -2,6 +2,7 @@ package com.enterprise.auth.auth;
 
 import com.enterprise.auth.keys.SigningKeyService;
 import com.enterprise.auth.user.User;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,10 +27,10 @@ public class TokenService {
         this.expiration = Duration.ofMillis(expirationMs);
     }
 
-    public IssuedToken issue(User user) {
+    /** storeName is added for merchants so other services can show the seller without calling back. */
+    public IssuedToken issue(User user, String storeName) {
         Instant now = Instant.now();
-        Instant expiresAt = now.plus(expiration);
-        String token = Jwts.builder()
+        JwtBuilder builder = Jwts.builder()
                 .header().keyId(signingKeyService.activeKeyId()).and()
                 .id(UUID.randomUUID().toString())
                 .issuer(issuer)
@@ -38,9 +39,11 @@ public class TokenService {
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(expiresAt))
-                .signWith(signingKeyService.activePrivateKey(), Jwts.SIG.RS256)
-                .compact();
+                .expiration(Date.from(now.plus(expiration)));
+        if (storeName != null) {
+            builder.claim("storeName", storeName);
+        }
+        String token = builder.signWith(signingKeyService.activePrivateKey(), Jwts.SIG.RS256).compact();
         return new IssuedToken(token, expiration.toSeconds());
     }
 

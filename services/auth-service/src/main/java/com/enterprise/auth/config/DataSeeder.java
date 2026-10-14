@@ -12,7 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Creates the first admin (and a demo customer) so the platform is usable right after deployment. */
+/** Creates the platform administrator on first start (no demo data: products and orders come from real users). */
 @Component
 public class DataSeeder implements ApplicationRunner {
 
@@ -27,7 +27,7 @@ public class DataSeeder implements ApplicationRunner {
     public DataSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder,
                       @Value("${app.seed.admin-password:Admin@12345}") String adminPassword,
                       @Value("${app.seed.customer-password:Customer@12345}") String customerPassword,
-                      @Value("${app.seed.demo-customer:true}") boolean seedDemoCustomer) {
+                      @Value("${app.seed.demo-customer:false}") boolean seedDemoCustomer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.adminPassword = adminPassword;
@@ -40,12 +40,12 @@ public class DataSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         if (!userRepository.existsByRole(Role.ADMIN) && !userRepository.existsByUsernameIgnoreCase("admin")) {
             userRepository.save(new User("admin", "admin@enterprise-platform.dev",
-                    passwordEncoder.encode(adminPassword), "Platform Administrator", Role.ADMIN));
+                    passwordEncoder.encode(adminPassword), "Platform Administrator", null, Role.ADMIN));
             log.info("Seeded default admin account 'admin'");
         }
         if (seedDemoCustomer && !userRepository.existsByUsernameIgnoreCase("customer")) {
             userRepository.save(new User("customer", "customer@enterprise-platform.dev",
-                    passwordEncoder.encode(customerPassword), "Demo Customer", Role.CUSTOMER));
+                    passwordEncoder.encode(customerPassword), "Demo Customer", null, Role.CUSTOMER));
             log.info("Seeded demo customer account 'customer'");
         }
     }
