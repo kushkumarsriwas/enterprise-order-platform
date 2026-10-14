@@ -1,6 +1,7 @@
 package com.enterprise.inventory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -78,6 +79,32 @@ class InventoryApiIntegrationTest {
                 .andExpect(jsonPath("$.marginPercent").value(39.7));
         mockMvc.perform(get("/api/products").param("search", "pub-"))
                 .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void suspendedStoresDisappearFromTheMarketplace() throws Exception {
+        String store = "Bearer " + TestTokens.merchant(300);
+        long product = createProduct(store, "SUS-1", 5, true);
+        mockMvc.perform(get("/api/products").param("merchantId", "300"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        mockMvc.perform(put("/internal/merchants/300/status").header("Authorization", store)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put("/internal/merchants/300/status").header("Authorization", "Bearer " + TestTokens.admin())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products").value(1));
+        mockMvc.perform(get("/api/products").param("merchantId", "300"))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mockMvc.perform(get("/api/products/" + product)).andExpect(status().isNotFound());
+        assertThatThrownBy(() -> inventoryService.reserve(new ReserveRequest("ORD-SUS-1", List.of(new ReserveItem(product, 1)))))
+                .hasMessageContaining("not available");
+
+        mockMvc.perform(put("/internal/merchants/300/status").header("Authorization", "Bearer " + TestTokens.admin())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"active\":true}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/products/" + product)).andExpect(status().isOk());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.enterprise.auth.user;
 
+import com.enterprise.auth.client.CatalogClient;
 import com.enterprise.auth.common.ApiException;
 import com.enterprise.auth.common.PageResponse;
 import com.enterprise.auth.security.AuthenticatedUser;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,10 +35,15 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final MerchantProfileRepository merchantRepository;
+    private final CatalogClient catalogClient;
+    private final TransactionTemplate tx;
 
-    public UserController(UserRepository userRepository, MerchantProfileRepository merchantRepository) {
+    public UserController(UserRepository userRepository, MerchantProfileRepository merchantRepository,
+                          CatalogClient catalogClient, TransactionTemplate tx) {
         this.userRepository = userRepository;
         this.merchantRepository = merchantRepository;
+        this.catalogClient = catalogClient;
+        this.tx = tx;
     }
 
     @GetMapping("/me")
@@ -79,18 +86,33 @@ public class UserController {
         return PageResponse.from(users, user -> UserResponse.from(user, profiles.get(user.getId())));
     }
 
+    /**
+     * Suspending a merchant also removes the store's products from the marketplace (inventory service).
+     * The remote call happens after the local transaction, so no database connection waits on the network;
+     * it is idempotent, so the administrator can simply retry if the inventory service was unreachable.
+     */
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    @Transactional
-    @Operation(summary = "Suspend or re-activate an account (admin)")
+    @Operation(summary = "Suspend or re-activate an account (admin); a suspended store disappears from the marketplace")
     public UserResponse changeStatus(@PathVariable Long id, @Valid @RequestBody StatusChange request,
                                      @AuthenticationPrincipal AuthenticatedUser principal) {
         if (principal.id().equals(id)) {
             throw ApiException.badRequest("You cannot change the status of your own account");
         }
-        User user = userRepository.findById(id).orElseThrow(() -> ApiException.notFound("User not found"));
-        user.setEnabled(request.enabled());
-        return UserResponse.from(user, merchantRepository.findByUserId(id).orElse(null));
+        UserResponse updated = tx.execute(status -> {
+            User user = userRepository.findById(id).orElseThrow(() -> ApiException.notFound("User not found"));
+            user.setEnabled(request.enabled());
+            return UserResponse.from(user, merchantRepository.findByUserId(id).orElse(null));
+        });
+        if (Role.MERCHANT.name().equals(updated.role())) {
+            try {
+                catalogClient.setMerchantActive(id, request.enabled());
+            } catch (ApiException ex) {
+                throw ApiException.serviceUnavailable("The account was " + (request.enabled() ? "reactivated" : "suspended")
+                        + ", but the store's products could not be updated yet. Please try again.");
+            }
+        }
+        return updated;
     }
 
     private static String blankToNull(String value) {

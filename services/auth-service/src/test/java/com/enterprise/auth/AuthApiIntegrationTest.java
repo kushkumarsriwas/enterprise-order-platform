@@ -1,12 +1,18 @@
 package com.enterprise.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.enterprise.auth.client.CatalogClient;
+import com.enterprise.auth.common.ApiException;
 import com.jayway.jsonpath.JsonPath;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
@@ -15,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Full Spring context + H2: customer and merchant sign-up, portals, JWKS, stores, admin. */
@@ -25,6 +32,8 @@ class AuthApiIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+    @MockitoBean
+    private CatalogClient catalogClient;
 
     private String login(String username, String password, String accountType) throws Exception {
         String body = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
@@ -104,6 +113,30 @@ class AuthApiIntegrationTest {
         mockMvc.perform(put("/api/users/" + customerId + "/status").header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":true}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void suspendingAMerchantHidesTheStoreAndItsProducts() throws Exception {
+        String body = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"accountType\":\"MERCHANT\",\"username\":\"oasis\",\"email\":\"hi@oasis.ae\","
+                                + "\"password\":\"Passw0rd!\",\"phone\":\"+971501234000\",\"storeName\":\"Oasis Outlet\","
+                                + "\"city\":\"Sharjah\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long merchantId = ((Number) JsonPath.read(body, "$.user.id")).longValue();
+        String admin = "Bearer " + login("admin", "Admin@12345", "MERCHANT");
+
+        mockMvc.perform(put("/api/users/" + merchantId + "/status").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":false}"))
+                .andExpect(status().isOk());
+        verify(catalogClient).setMerchantActive(merchantId, false);
+        mockMvc.perform(get("/api/merchants/" + merchantId)).andExpect(status().isNotFound());
+
+        doThrow(ApiException.serviceUnavailable("down")).when(catalogClient).setMerchantActive(anyLong(), anyBoolean());
+        mockMvc.perform(put("/api/users/" + merchantId + "/status").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":true}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("The account was reactivated, but the store's products could not be updated yet. Please try again."));
     }
 
     @Test

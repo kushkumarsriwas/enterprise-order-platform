@@ -49,6 +49,7 @@ public class ProductService {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.isTrue(root.get("active")));
             predicates.add(cb.isTrue(root.get("listed")));
+            predicates.add(cb.isTrue(root.get("merchantActive")));
             if (search != null && !search.isBlank()) {
                 String like = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
                 predicates.add(cb.or(

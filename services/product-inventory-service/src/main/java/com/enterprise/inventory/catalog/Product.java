@@ -72,6 +72,10 @@ public class Product {
     @Column(nullable = false)
     private boolean active = true;
 
+    /** False while an administrator has suspended the store: its products disappear from the marketplace. */
+    @Column(name = "merchant_active", nullable = false)
+    private boolean merchantActive = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -145,7 +149,7 @@ public class Product {
     }
 
     public boolean isPurchasable() {
-        return active && listed;
+        return active && listed && merchantActive;
     }
 
     public Long getId() {
@@ -186,6 +190,10 @@ public class Product {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public boolean isMerchantActive() {
+        return merchantActive;
     }
 
     public boolean isListed() {
