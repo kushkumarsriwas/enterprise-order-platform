@@ -1,271 +1,291 @@
-# Interview guide — how to explain this project
+# Interview guide — how to explain Nexora
 
 Use this to practise. Every answer points to real code, so you can open it and show it.
 
 ## 1. The 60-second pitch
-> "I built Nexora Commerce, a multi-vendor marketplace with a back office for every merchant, as Spring Boot
-> microservices. Customers shop from many stores in one cart; at checkout the order service splits the cart into one
-> order per store, reserves stock with an atomic SQL update so nothing is ever oversold, and charges the customer
-> through a payment service built with the Strategy and Factory patterns. If any step fails it compensates: releases
-> stock or refunds. Merchants get inventory management with weighted average cost, order fulfilment with courier
-> tracking, analytics, expenses, monthly budgets, a profit and loss statement and PDF/Excel reports. Security is RS256
-> JWT with a JWKS endpoint, so the gateway and every service verify tokens without a shared secret, and every merchant
-> only ever sees their own data. I used PostgreSQL, MySQL and Oracle with JPA/Hibernate, Redis for caching, Docker,
-> Kubernetes, and a GitHub Actions pipeline that runs 64 automated tests and a 92-step end-to-end test before
-> deploying to Render."
+> "I built Nexora, a multi-store marketplace where every store runs its business on a full inventory management
+> system, as six Spring Boot microservices behind an API gateway. A customer can buy from several stores in one
+> checkout: the order service splits the cart into one order per store and reserves stock with a single conditional SQL
+> update, so nothing is ever oversold. Payment goes through a payment service built with the Strategy and Factory
+> patterns behind a PaymentProcessor interface, so the mock provider can be swapped for a real gateway with
+> configuration. If any step fails, the saga compensates — it releases stock or refunds. Stores get warehouses, a
+> stock ledger, purchase orders, stock counts, an order desk, analytics and a profit and loss statement; one
+> administrator runs the marketplace from a separate console. Security is RS256 JWT with JWKS. Accounts are on MySQL,
+> payments on Oracle and the rest on PostgreSQL, with Redis caching. It is tested with JUnit 5, Mockito, MockMvc and
+> Testcontainers plus a 139-check end-to-end test, packaged with Docker, deployable to Kubernetes and AWS, and every
+> push goes through a GitHub Actions pipeline."
 
-## 2. Demo script (7 minutes)
-1. **Merchant**: sign up on the Merchant tab (store name, city, trade licence). Add a product with cost 420 and price
-   699 — the form shows the 39.9% margin live. Add a second product with "List on marketplace" switched off: it is
-   inventory only.
-2. **Inventory**: restock 8 units at a new cost and show the weighted average cost change, then the Stock movements tab
-   (audit trail) and the Purchases tab.
-3. **Customer** (another browser or a private window): search the marketplace, open the product, add 2 to the cart,
-   check out, pay with the declined card `4000 0000 0000 0002` (order stays unpaid), then with `4111 1111 1111 1111`.
-   Use "Contact seller" on the order.
-4. **Merchant**: the dashboard now shows revenue and gross profit; reply to the message; open the order, ship it with
-   Aramex and a tracking number, mark it delivered. The customer sees the tracking steps and can review the product.
-5. **Finance**: add a marketing expense and a budget (alert at 80%), show the profit and loss statement and the
-   payments received after the 5% platform fee; download the P&L as PDF and Excel from Reports.
-6. **Admin**: sign in as `admin` — GMV, platform commission, users; suspend a store and show it disappears.
-7. **Engineering**: Swagger on the gateway (`/swagger-ui.html`) shows every API; GitHub Actions shows parallel tests →
-   e2e → Docker images → deploy.
+## 2. Resume bullets
+* Designed and built **Nexora**, a multi-vendor marketplace with a seller inventory management system, as **6 Java 21 /
+  Spring Boot 4 microservices** behind an API gateway, with three React web applications (marketplace, Seller
+  Central, admin console) and 200+ REST endpoints documented with OpenAPI.
+* Implemented a **checkout saga across three services** (orders, inventory, payments) with compensating actions,
+  idempotent payment outcomes and **atomic stock reservations** (conditional SQL update) proven by a concurrent test:
+  10 parallel buyers for 5 units, exactly 5 succeed.
+* Built payments with the **Strategy and Factory patterns** behind a **PaymentProcessor** abstraction (mock provider,
+  plug-in point for a real gateway), 5% platform fees, refunds, and a monthly **profit and loss** in `BigDecimal`.
+* Secured the platform with **Spring Security and RS256 JWT + JWKS** (no shared secret), role-based access, per-store
+  data isolation, a separate administrator sign-in, a login audit log and a shared key for service-to-service calls.
+* Used **polyglot persistence** with JPA/Hibernate — **MySQL** (accounts), **Oracle** (payments), **PostgreSQL**
+  (catalogue, orders, notifications) — plus **Redis** caching, pessimistic and optimistic locking, and Criteria API
+  queries for filtered, paginated reports.
+* Wrote **144 JUnit 5 / Mockito / MockMvc / Testcontainers tests** and a **139-check end-to-end test** that CI runs
+  against the packaged services on PostgreSQL and Redis.
+* Containerised all services with **Docker** (multi-stage, non-root), orchestrated with **Docker Compose** and
+  **Kubernetes** (probes, resource limits, rolling updates, HorizontalPodAutoscaler), with an **AWS EKS** overlay and
+  an EC2 path.
+* Automated delivery with **GitHub Actions**: compile, unit and integration tests, JaCoCo coverage, CodeQL, manifest
+  validation, Docker images to GitHub Container Registry, and gated deployments; worked in **Scrum sprints** with
+  feature branches and pull requests.
 
-## 3. Questions you will be asked
+## 3. Demo script (8 minutes)
+Start everything with `scripts\windows\run-local.cmd`. The demo has four stores, six customers and five months of
+history; every demo password is `Demo-2026`.
+
+1. **Marketplace** (http://localhost:3000): search "earbuds", filter by brand and rating, open a product (rating,
+   verified reviews with store replies). Sign in as `aisha`.
+2. **Checkout across stores**: add earbuds from Al Noor Electronics and a dallah set from Sahara Home, check out — two
+   orders, one per store. Pay with the declined card `4000 0000 0000 0002` (order stays open, notification), then with
+   `4111 1111 1111 1111`. Show the tax invoice PDF.
+3. **Seller Central** (another browser, `alnoor`): the dashboard, the new order in the order desk, ship it with Aramex
+   and a tracking number. Then the inventory: stock per warehouse, the ledger with running balances, a purchase order
+   that is partly received, the stock count with its differences, reorder suggestions.
+4. **Money**: Payments (after the 5% fee), Profit and loss by month (the first months are a small loss, like a real
+   young store), budgets with the over-budget alert, download the P&L as Excel.
+5. **Control Center** (http://localhost:3001, `admin` + the password from `.env`): the overview, Ctrl+K to find
+   Aisha's order, suspend a store with a reason and show its products vanish from the marketplace, publish an
+   announcement, the security log with failed sign-ins.
+6. **Engineering**: Swagger at http://localhost:8080/swagger-ui.html; GitHub Actions (the stages, coverage summary,
+   images); `kubectl -n enterprise-platform scale deployment order-service --replicas=3` on Docker Desktop.
+
+## 4. Questions you will be asked
 
 ### Architecture
 
 **Why microservices instead of one application?**
-Each business capability — accounts, catalogue and stock, orders, payments and finance, notifications and messages —
-is developed, deployed and scaled independently and owns its own database. The order service is the busiest, so it
-can run more replicas (`kubectl scale deployment order-service --replicas=3`) without scaling the account service.
-Trade-off: network calls, no cross-service ACID transactions and more operations work — which is why I used a saga,
-timeouts and idempotency.
+Each business capability — accounts, catalogue and stock, orders, payments and finance, communication — owns its data
+and can be deployed and scaled on its own. The order service is the busiest at peak, so it gets more replicas and an
+autoscaler without touching the account service. The price is network calls and no cross-service ACID transactions,
+which is why I used a saga, timeouts, idempotent calls and retries.
 
 **How did you choose the service boundaries?**
-By who owns the data. Stock and the product's cost belong to the inventory service; an order and its price/cost
-snapshot belong to the order service; money (payments, fees, expenses, budgets) belongs to the payment and finance
-service; messages live with notifications because both are "communication". The profit and loss statement needs data
-from two services, so the finance service asks the order service for a monthly sales summary
-(`/internal/merchants/{id}/sales-summary`) and combines it with its own fees and expenses (`ProfitAndLossService`).
+By who owns the data. Stock and the product's cost belong to the product service; an order with its price and cost
+snapshot belongs to the order service; money (payments, fees, expenses, budgets) belongs to the payment service. The
+profit and loss needs data from two services, so `ProfitAndLossService` asks the order service for a sales summary
+(`/internal/sellers/{id}/sales-summary`) and combines it with its own fees and expenses.
 
 **What does the API gateway do?** (`gateway/`)
-One public entry point. It routes `/api/**` to the right service (`RoutesConfig` — the merchant console alone is spread
-over three services), validates the JWT before the request reaches a service (`JwtValidationFilter`, with
-`PublicPaths` for the marketplace pages visitors can browse), handles CORS once (`CorsConfig`), rate-limits login
-(`LoginRateLimitFilter`, HTTP 429), adds an `X-Correlation-Id` (`CorrelationIdFilter`) and aggregates Swagger. It never
-routes `/internal/**`. `GatewayIntegrationTest` starts one fake backend per service to prove where each path goes.
+It is the only public API. `RoutesConfig` maps `/api/**` to the right service; `JwtValidationFilter` rejects invalid
+tokens before they reach a service (`PublicPaths` lists what visitors may browse); `CorsConfig` handles CORS once;
+`LoginRateLimitFilter` limits sign-ins (20 a minute, 5 for the administrator, then 429); `CorrelationIdFilter` adds an
+`X-Correlation-Id`; Swagger shows all services in one UI. It never routes `/internal/**`. `GatewayIntegrationTest`
+starts fake backends to prove where each path goes.
 
 ### Security
 
 **How does authentication work? Why RS256 and not HS256?**
-`AuthService.login` checks the BCrypt hash and returns a JWT signed with an RSA private key (`TokenService`). The public
-key is published at `/.well-known/jwks.json` (`JwksController`). The gateway and every service download it, cache it
-(`JwksKeyProvider`) and verify each token themselves (`JwtAuthenticationFilter`). With HS256 every service would need
-the same secret — one leak and anyone can mint tokens. With RS256 only the account service can sign. The key pair is
-stored in the database so tokens survive a restart (`SigningKeyService`).
+`AuthService.login` checks the BCrypt hash and `TokenService` signs a JWT with an RSA private key. The public key is
+published at `/.well-known/jwks.json` (`JwksController`); the gateway and every service download and cache it
+(`JwksKeyProvider`) and verify each token themselves (`JwtAuthenticationFilter`). With HS256 every service would hold
+the signing secret, so one leak lets anyone mint tokens; with RS256 only the account service can sign. The key pair is
+stored in the database (`SigningKeyService`), so tokens survive restarts and every replica signs with the same key.
 
-**Customers and merchants — how are they separated?**
-Three roles: `CUSTOMER`, `MERCHANT`, `ADMIN`. Registration takes an `accountType`; a merchant must give a store name
-(unique), phone and city, stored in `MerchantProfile` (one-to-one with `User` via `@MapsId`). Login has two portals: the
-customer portal rejects business accounts and the merchant portal rejects customers (`AuthService.login`). The token
-carries the role and the store name, so services know who is calling without another lookup.
+**How are customers, stores and the administrator separated?**
+Three roles: `CUSTOMER`, `SELLER`, `ADMIN`. The marketplace sign-in takes an account type, and a customer cannot sign
+in as a store or the other way round. The administrator has a different endpoint (`AdminAuthController`,
+`/api/admin/auth/login`) and a different web application; the marketplace sign-in answers 401 for the administrator,
+exactly as for a wrong password, so it does not even reveal that the account exists. Admin tokens last 2 hours and live
+in `sessionStorage`, so closing the tab ends the session.
 
-**How do you stop one merchant from seeing another merchant's data?**
-Every merchant endpoint takes the merchant id **from the token, never from the request**, and every query filters by
-it: `findByIdAndMerchantId`, `findByMerchantId`... Asking for another store's order or product returns **404, not
-403**, so we don't even reveal that it exists. Integration tests check this for products, orders, expenses, budgets,
-payments and conversations (e.g. `merchantsOnlySeeAndChangeTheirOwnInventory`).
+**Why only one administrator, and where does its password come from?**
+`AdminAccountInitializer` creates it at start-up from `ADMIN_PASSWORD`; there is no API to create administrators.
+Changing the variable and restarting rotates the password; without it there is no administrator at all. Locally the
+run script generates a random password into the git-ignored `.env`; in Kubernetes it comes from a Secret, in CI from
+the job, on Render from an environment variable. No default password exists in the code.
 
-**What happens when an admin suspends a store?**
-The account service disables the account (no more sign-in, hidden from the store directory) in its own transaction,
-then calls the inventory service's internal endpoint, which hides every product of that store with one `UPDATE`
-(`merchant_active = false`) and evicts the cached product pages (`MerchantStatusController`). The products are no longer
-searchable, viewable or purchasable. If the inventory service is down, the admin gets a 503 and simply retries — the
-call is idempotent.
+**How do you stop one store from seeing another store's data?**
+Every Seller Central endpoint takes the store id from the token, never from the request, and every query filters by
+it. Asking for another store's product, order or conversation returns **404, not 403**, so we don't reveal that it
+exists. `ProductResourceControllerTest` and the integration tests check this; the smoke test does it end to end.
 
-**What can a customer never see?**
-The cost price (`ProductResponse` has no cost field; `MerchantProductResponse` has), inventory-only products (the
-public search only returns listed products of active stores; their product page is 404), the platform fee on their
-payment (`PaymentResponse` vs `MerchantPaymentResponse`), and other customers' orders.
+**How do services trust each other?**
+Calls between services carry the caller's JWT (the service acts on behalf of the user) and, for `/internal/**`, a
+shared key in `X-Internal-Key` (`InternalApiKeyFilter`) — so a stolen user token alone cannot call an internal
+endpoint, and the gateway does not route them anyway.
+
+**What happens when the administrator suspends a store?**
+`AdminUserService` disables the account (no sign-in, gone from the store directory) and calls the product service,
+which hides every product of the store in one update and evicts the cached pages. The reason is kept with the account
+and shown in the Control Center; the store sees "This account has been suspended" when it signs in. Reactivating
+reverses both.
 
 ### Orders, stock and payments
 
 **What happens at checkout with products from several stores?** (`OrderService.placeOrder`)
-1. Look up every product in the inventory service: owning store, live price, whether it can be bought.
-2. Group the lines by store and reserve stock **per store** (each store will ship its own parcel).
-3. If any store is out of stock, release the reservations already made — compensation — and return 409.
-4. Save all orders in one local transaction, with prices **and unit costs** from the server, never from the browser.
-The customer then pays every order in one step (`POST /api/orders/pay` → `OrderService.payMany`).
+1. Look up every product in the product service: owning store, live price, cost, whether it can be bought.
+2. Group the lines by store and reserve the stock for each store's order.
+3. If one store is short, release the reservations already made (compensation) and answer 409.
+4. Save all orders in one local transaction with prices and unit costs from the server — never from the browser.
 
-**How do you stop two people buying the last item at the same time?**
-The check and the decrement are one SQL statement:
-`UPDATE stock_levels SET available = available - :qty, reserved = reserved + :qty WHERE product_id = :id AND available >= :qty`.
-The row lock makes it atomic; 0 rows updated means "not enough stock". `concurrentReservationsNeverOversell` proves it
-with 10 threads and 5 units. Lines are locked in product-id order so two orders can't deadlock.
+**How do you stop two people buying the last unit?** (`InventoryRepository.reserve`)
+The check and the change are one statement:
+`update Inventory set available = available - :qty, reserved = reserved + :qty where productId = :id and available >= :qty`.
+The database row lock makes it atomic; 0 rows updated means not enough stock (409). `concurrentReservationsNeverOversell`
+fires 10 threads at 5 units. Physical stock changes (receiving, counting, transferring) use `SELECT ... FOR UPDATE`
+instead, because they change several warehouse rows under one lock — two locking strategies, each where it fits.
 
-**What is a saga and why not a distributed transaction (2PC)?**
-Each service has its own database, so one ACID transaction across them isn't possible (2PC is slow, blocks, and most
-modern stores don't support it). A saga is a sequence of local transactions with compensating actions: reserve stock
-→ charge → commit stock; if the commit fails after a successful payment, we refund and cancel
-(`OrderService.compensatePaidOrder`). The order service is the orchestrator. Unpaid orders are cancelled by
-`OrderExpiryJob`, and abandoned reservations are released by `ReservationExpiryJob`.
+**Walk me through a payment.** (`PaymentService.pay`, `OrderService.startPayment` / `applyPaymentOutcome`)
+`POST /api/payments` → the payment service asks the order service for a payment intent: the order must be PENDING,
+inside its 30-minute window and not already being paid (an `@Version` column turns a double click into 409). The
+strategy for the method validates the details, the processor charges, the payment is saved with the 5% fee, and the
+outcome goes back to the order service, which commits the reserved stock and confirms the order. If the stock can no
+longer be committed, the order is cancelled and the money refunded.
 
-**How do you prevent charging a customer twice?**
-Two layers. The order has a `@Version` column; `pay()` first sets `paymentInProgress`, so a second concurrent click
-fails with an optimistic-locking conflict (409). And the payment service is idempotent per order: if a successful
-payment already exists it returns it instead of charging again (`PaymentService.charge`).
+**What is a saga and why not a distributed transaction?**
+Each service has its own database, so one ACID transaction across them is impossible (two-phase commit is slow,
+blocks, and most modern stacks don't support it). A saga is a series of local transactions with compensating actions:
+reserve → charge → commit stock; on failure, release or refund. The order service orchestrates it. Unpaid orders
+expire (`OrderExpiryJob`), abandoned reservations are released (`ReservationExpiryJob`), and if the order service is
+down after a successful charge, `OrderUpdateRetryJob` keeps reporting the outcome until it is applied.
 
-**Strategy and Factory in payments?**
-`PaymentProcessor` is the strategy interface; `CardPaymentProcessor`, `UpiPaymentProcessor` and
-`CashOnDeliveryProcessor` implement it. `PaymentProcessorFactory` receives all of them from Spring and returns the one
-for the requested method. Adding Apple Pay or Tabby = one new class, no change to `PaymentService` (Open/Closed).
+**How do you avoid charging twice?**
+Three layers: one payment attempt per order at a time (`@Version`); the payment service returns the existing
+successful payment instead of charging again; and the order service treats a repeated outcome for the same payment as
+a replay and returns the same answer. Every retry is safe.
 
-**How does fulfilment work?**
-The merchant ships a paid order with a courier and tracking number (`OrderService.ship`), then marks it delivered
-(`deliver`) — for cash on delivery this also captures the payment. A merchant can cancel before shipping: the customer
-is refunded and the stock returns to the shelf. Every change is in `OrderStatusHistory` (who, when, note) and the
-customer is notified.
+**Strategy, Factory and PaymentProcessor — where and why?**
+`PaymentStrategy` has `CardPayment`, `UpiPayment` and `CashOnDelivery`: each validates its own details and decides
+how to charge (cash on delivery is authorised now and collected at delivery). `PaymentStrategyFactory` picks the
+strategy for the method. The provider is a separate abstraction, `PaymentProcessor`: `MockPaymentProcessor` today,
+`FutureRealPaymentProcessor` as the plug-in point for Network International or Checkout.com, chosen by
+`PaymentProcessorFactory` from `app.payments.provider`. Adding Apple Pay is one new strategy class; switching
+providers is configuration — Open/Closed in practice.
 
-### Inventory and accounting
+**What happens when an order is cancelled?** (`OrderService.cancel`)
+Customers can cancel before shipping, stores their own orders, the administrator any order (prefixed "Nexora support").
+A card payment is refunded through the payment service's internal endpoint, cash on delivery is voided, the stock goes
+back, and the status history records who, when and why. Delivered orders answer 409.
 
-**How do you value stock?** (`InventoryService.restock`)
-Weighted average cost. Restocking 7 units at 1,700 onto 3 units at 1,800 gives (3 × 1,800 + 7 × 1,700) / 10 = 1,730.
-Each restock is saved as a `StockPurchase` (supplier, invoice number) and a `StockMovement`, so the stock has a full
-audit trail: opening stock, restocks, counts, reservations, sales, releases.
+### Inventory management
 
-**Why does an order line store the unit cost?**
-Profit must not change when the merchant later changes the cost or the price. The unit cost at the moment of sale is
-copied into `OrderItem.unitCost`, so cost of goods sold and margins in the analytics, the P&L and the sales report are
-historically correct — the same reason banks store the exchange rate on a transaction.
+**What makes Seller Central an inventory system and not just a product list?**
+Stock per warehouse with bin locations; every change is a ledger row (`StockLedger`, `StockMovement`) with the
+running balance after it; purchase orders from suppliers received in one or several goods receipts; stock counts that
+post the differences; transfers between warehouses; reorder suggestions from the average daily sales and days of
+cover (`ReplenishmentService`); document numbers per store (`DocumentNumberService`); an Excel bulk upload that
+validates every row first and is all-or-nothing (`ProductImportService`).
+
+**How do you value stock?**
+Weighted average cost: receiving 7 units at 1,700 onto 3 units at 1,800 gives (3 × 1,800 + 7 × 1,700) / 10 = 1,730
+(`Product`). Each order line stores the unit cost at the moment of sale, so later cost changes never rewrite the
+profit of past sales — the same reason banks store the exchange rate on a transaction.
+
+**Which warehouse ships an order?**
+`WarehouseAllocationStrategy` decides; `DefaultWarehouseFirstAllocation` takes the default warehouse first, then the
+others. A nearest-warehouse or first-expiry-first-out strategy would plug in without touching the ledger.
+
+### Money
 
 **How is profit and loss calculated?** (`ProfitAndLossService`)
-Revenue (paid and cash-on-delivery orders) − cost of goods sold = gross profit; − platform fees (5% recorded on each
-payment) − operating expenses = net profit, per month. Stock purchases are not expenses; they become cost of goods when
-the items sell. Money is `BigDecimal` with two decimals and `HALF_UP` rounding everywhere — never `double`.
+Revenue − cost of goods sold = gross profit; − platform fees − operating expenses = net profit, per month. Stock
+purchases are not expenses; they reach profit as cost of goods when the units sell. Money is `BigDecimal` with two
+decimals and `HALF_UP` everywhere — never `double`. Prices include 5% UAE VAT, and the tax invoice shows the VAT part.
 
-**How do budgets and alerts work?** (`ExpenseService`, `BudgetService`)
-A merchant sets a monthly limit per expense category (unique per month and category in the database). When an expense
-is saved, the service compares the category's spending before and after it; crossing 80% or 100% publishes a
-`BudgetAlertEvent`. `BudgetAlertListener` is a `@TransactionalEventListener(AFTER_COMMIT)`, so a rolled-back expense
-never sends an alert, and the notification is sent asynchronously.
+**How do budgets and alerts work?**
+A store sets a monthly limit per expense category. Saving an expense compares spending before and after; crossing 80%
+or 100% publishes a `BudgetAlertEvent`, handled by `BudgetAlertListener` with `@TransactionalEventListener(AFTER_COMMIT)`
+— a rolled-back expense never sends an alert.
 
-**How do you generate PDF and Excel reports?**
-Each report is built once as a small model (`Report`: summary figures + tables). `ExcelReportWriter` writes it with
-Apache POI (a summary sheet and one sheet per table, number formats for money). `PdfReportWriter` is a small
-dependency-free PDF writer: headers repeated on every page, page numbers, automatic landscape for wide tables, numbers
-never truncated. The browser downloads them with the JWT (`download()` in `frontend/src/api.js`).
+### Communication
 
-### Messaging and notifications
+**How are e-mails sent reliably?** (`EmailOutbox`)
+The e-mail is saved in the database in the same transaction as the event; after commit it is sent, and a scheduled job
+retries failures with a counter and the last error. Nothing is lost if the mail server is down, and nothing is sent for
+a rolled-back transaction — the outbox pattern. The Control Center shows the outbox.
 
-**How does "Contact seller" work?** (`MessagingService`)
-One conversation per customer and store (unique constraint). Before starting one, the service checks the store with
-the account service's public directory (`StoreDirectoryClient`) — outside the database transaction — so a customer can
-only message a real, active store and the store name comes from a trusted source. Each side has its own unread counter.
-
-**Why a pessimistic lock there, when orders use optimistic locking?**
-When both sides send a message at the same moment, both update the same conversation row (counters, last message). With
-optimistic locking one of them would fail with a version conflict — bad for a chat. `SELECT ... FOR UPDATE`
-(`@Lock(PESSIMISTIC_WRITE)`) makes them wait a few milliseconds and apply one after the other. For payments a fast
-failure is what we want, so orders use `@Version`.
-
-**Why don't notifications ever break an order?**
-They are fire-and-forget: `@Async` on another thread, errors logged and ignored, and published after commit. A new
-message only notifies the receiver when their unread count goes from 0 to 1, so a burst of messages is one notification.
+**Why a pessimistic lock in messaging when orders use optimistic locking?**
+Both sides of a conversation update the same row (unread counters, last message) at the same moment. With optimistic
+locking one would fail — bad for a chat — so `ConversationRepository` uses `PESSIMISTIC_WRITE` and they wait a few
+milliseconds. For payments a fast failure is what we want, so orders use `@Version`.
 
 ### Data
 
-**Why three databases?**
-Polyglot persistence and proof that the JPA layer is vendor-independent: accounts on MySQL, payments and finance on
-Oracle, the rest on PostgreSQL. The vendor is chosen with Spring profiles; the Java code is identical. On Render
-(PostgreSQL only) everything runs on PostgreSQL with one schema per service.
+**Why three databases?** Polyglot persistence, and proof that the JPA layer is vendor-independent: accounts on MySQL,
+payments on Oracle, the rest on PostgreSQL, chosen with Spring profiles; the Java code is identical. Each service has its
+own schema; on Render everything runs on one PostgreSQL with a schema per service.
 
-**A bug you found and fixed?**
-Expense search found nothing in the Oracle-compatible test database. Hibernate generates `LIKE ? ESCAPE ''`, and in
-Oracle an empty string is `NULL`, so the whole condition became unknown. I switched to an explicit escape character
-and escape `%` and `_` in the user's text, which also stops "50%" from acting as a wildcard (`ExpenseService.list`).
+**How do you keep the Redis cache correct?** `@Cacheable` product pages and the home page (cache-aside). Every change
+evicts the entry after commit (`ProductCache`); entries also expire (10 minutes, home page 60 seconds). If Redis is
+down, `LoggingCacheErrorHandler` logs it and the database answers.
 
-**Why Redis? How do you keep the cache correct?**
-Product pages and the category list are read far more often than they change. `@Cacheable` on `ProductService.getById`
-is cache-aside. Every stock or product change evicts the entry (`ProductCache`); the cache manager is transaction-aware,
-so eviction happens only after commit. If Redis is down, `LoggingCacheErrorHandler` logs and we read the database.
+**Which JPA / Hibernate features did you use?** Relationships, JPQL aggregates (`GROUP BY`, `SUM`), the Criteria API
+for the filtered lists (`SellerProductQuery`; Spring Data `Specification`s in `OrderFilter` and `PaymentFilter`), pagination, `@Version` and
+`PESSIMISTIC_WRITE`, conditional bulk updates, unique constraints and indexes, `default_batch_fetch_size` against N+1,
+and `open-in-view=false`.
 
-**What JPA/Hibernate features did you use?**
-Relationships (`Order` 1-N `OrderItem`, `MerchantProfile` 1-1 `User` with `@MapsId`, `Message` N-1 `Conversation`),
-JPQL aggregates with `GROUP BY`, `SUM`, `year()`/`month()` (daily and monthly sales, fees per month, expenses per
-category), dynamic filters with `Specification`, pagination, `@Version` and `PESSIMISTIC_WRITE` locking, unique
-constraints, indexes, `default_batch_fetch_size` against N+1, `open-in-view=false`.
+**Transactions — where, and where deliberately not?** `@Transactional` on service methods that change data, but never
+around a call to another service: the saga uses `TransactionTemplate` for the local steps only, so a slow network call
+never holds a database connection and its locks.
 
-**What is the N+1 problem and how did you avoid it?**
-Loading 10 orders and then lazily loading items for each runs 1 + 10 queries. With
-`hibernate.default_batch_fetch_size=50` the items of the whole page load in one extra query.
+### Errors and logging
 
-**Transactions — where, and where deliberately not?**
-`@Transactional` on service methods that change data. I never hold a database transaction open while calling another
-service: the saga uses `TransactionTemplate` around the local steps only, the P&L calls the order service before
-touching its own database, and the messaging service checks the store before its transaction starts. A slow network
-call can't keep a connection and locks open.
+**How do you handle errors?** Every service has a `GlobalExceptionHandler` that turns exceptions into one JSON shape
+(`ApiError`: status, error, message, path, correlationId, fieldErrors). Validation errors are 400 with a message per
+field, business conflicts 409 (insufficient stock, duplicate SKU, an order that can't be cancelled), other stores' data
+404, and unexpected errors 500 without a stack trace. Calls to other services have timeouts and become a clean 503.
 
-### Operations
+**How do you debug a problem across services?** The gateway gives every request an `X-Correlation-Id`, every service
+puts it in the MDC so it is on every log line, and it is in every error body. Search the logs for that id.
 
-**What happens if one service goes down?**
-Every call has connect/read timeouts (`ServiceClientFactory`) and network errors become a clean 503 ("Order service is
-not reachable right now"). If inventory is down, checkout fails fast and nothing is half-done. Notifications can't
-break anything. Kubernetes restarts unhealthy pods using liveness/readiness probes. Next: Resilience4j circuit
-breakers and a message broker.
+### Testing and delivery
 
-**How would you scale it?**
-Services are stateless (JWT, no HTTP session), so add replicas behind the Kubernetes Service. Duplicate requests are
-safe because of optimistic locking and idempotent payments. Then: read replicas for analytics, Kafka for events.
+**How did you test?** 144 JUnit tests: unit tests with Mockito (`OrderServiceTest`: checkout split, compensation,
+payment outcomes; `PaymentStrategyTest`; `InventoryServiceTest`), MockMvc web tests (`ProductResourceControllerTest`),
+Spring Boot integration tests for every API including security and store isolation, Testcontainers tests on a real
+PostgreSQL, the concurrency test, and `scripts/smoke-test.mjs` — 139 checks through the gateway on the real services.
 
-**How did you test?**
-64 automated tests: unit tests with JUnit 5 + Mockito (`OrderServiceTest` — checkout split, compensation, payments,
-fulfilment; `InventoryServiceTest` — reservations, weighted average cost), Spring Boot integration tests with MockMvc
-and H2 for every API including security and data isolation, a concurrency test for overselling, a gateway routing
-test, and `scripts/smoke-test.sh` (92 checks: two stores, multi-store checkout, declined and successful payments,
-fulfilment, cash-on-delivery cancellation, reviews, messages, restocking, budgets, fees, P&L, reports, suspension)
-that GitHub Actions runs against real PostgreSQL and Redis. I also drove the whole UI in a headless browser.
+**Explain your CI/CD pipeline.** On every push and pull request: each Java service compiles, runs unit tests, then
+integration tests (with JaCoCo coverage in the job summary), and packages its JAR; both web apps are linted,
+format-checked and built; CodeQL scans the code; the Kubernetes manifests are rendered and validated with kubeconform;
+the end-to-end test runs the packaged JARs against PostgreSQL and Redis; then the eight Docker images are built and,
+on `main`, pushed to GitHub Container Registry. `cd.yml` deploys only after CI passes on `main`.
 
-**Explain your CI/CD pipeline.** (`.github/workflows/ci.yml`)
-On every push: six services are built and tested in parallel, the frontend is linted and built, the e2e job starts all
-services against PostgreSQL + Redis and runs the smoke test, Docker images are pushed to GitHub Container Registry,
-and only if everything is green the gateway and frontend are deployed to Render through deploy hooks.
+**Docker and Kubernetes — what did you configure?** Multi-stage Dockerfiles (Maven build → slim JRE, non-root user,
+memory flags). Compose runs 12 containers with health checks and start-up order. In `k8s/`: a namespace, a ConfigMap,
+a Secret generated by kustomize from a git-ignored file, PVCs for the databases, and per service a Deployment (startup,
+readiness and liveness probes, requests and limits, zero-downtime rolling updates) and a Service; an HPA scales
+`order-service` from 2 to 5 pods at 70% CPU. `deploy/aws` reuses all of it for EKS.
 
-**Docker and Kubernetes — what did you configure?**
-Multi-stage Dockerfiles (Maven build → slim JRE, non-root user, memory flags for 512 MB containers).
-`docker-compose.yml` runs 11 containers with health checks and startup order. In `k8s/`: Deployments with startup,
-readiness and liveness probes, resource requests/limits, ConfigMap for URLs, Secret for passwords, PVCs for databases,
-NodePort services for the UI and gateway, applied with Kustomize.
-
-**How do you debug a problem across services?**
-Every request gets an `X-Correlation-Id` at the gateway; it is forwarded to each service and printed in every log line.
-Search the logs for that id to follow one request through all services.
+**What happens if a service goes down?** Its health check fails and Kubernetes replaces the pod; callers time out
+quickly and answer 503 instead of hanging; checkout fails before anything is half-done; payment outcomes are retried;
+e-mails wait in the outbox. Next steps would be Resilience4j circuit breakers and a message broker.
 
 ### Front end
 
-**What did you do on the front end?**
-React 19 with Vite. Two experiences in one app: a storefront for customers and visitors (browsing needs no account) and
-a back office for merchants and admins. The consoles are lazy-loaded with `React.lazy`, so shoppers don't download the
-chart library (the storefront bundle is about 95 KB gzipped). Charts use one colour-blind-safe palette, have a legend
-and tooltips, and every chart can switch to a table view for accessibility.
+**What did you build on the front end?** Three React 19 applications: the marketplace and Seller Central (one app,
+lazy-loaded so shoppers never download the Seller Central code) and the Control Center as a separate app with its own
+nginx container, `noindex` and `X-Frame-Options: DENY`. Filters live in the URL so every view can be bookmarked and
+shared, charts use a colour-blind-safe palette with legends and tooltips, everything has a dark mode and works on a
+phone.
 
-**What would you improve with more time?**
-Flyway migrations, Kafka with the outbox pattern, Resilience4j, Prometheus + Grafana, refresh tokens, Testcontainers for
-MySQL/Oracle, 5% UAE VAT on invoices, merchant payouts (settlement batches), product images upload to object storage,
-and a private network on the cloud provider.
+**What would you improve with more time?** Kafka with the outbox pattern for events, Resilience4j, Flyway migrations,
+OpenTelemetry tracing with Prometheus and Grafana, refresh tokens and MFA for the administrator, a real payment gateway
+behind `PaymentProcessor`, S3 for product images, and managed databases (RDS) in production.
 
-## 4. Banking-relevant points to mention
+## 5. Banking-relevant points to mention
 * **Money**: `BigDecimal`, scale 2, `HALF_UP`, never floating point; totals computed on the server only.
-* **Idempotency**: a payment is never charged twice for the same order.
-* **Audit trails**: order status history (who/when/why), stock movements, payment records with masked instruments.
-* **Reconciliation**: payments (amount, fee, net) can be matched against orders; refunds and voids are explicit states.
+* **Idempotency**: a payment is never charged twice, and every retry is safe.
+* **Audit trails**: order status history (who, when, why), the stock ledger, payment records with masked
+  instruments, the sign-in log with IP addresses.
+* **Reconciliation**: every payment carries amount, fee and net, and can be matched to its order; refunds and voids
+  are explicit states.
 * **PCI-DSS awareness**: card numbers and CVVs are never stored.
-* **Least privilege and isolation**: role checks plus per-merchant data filtering; internal APIs not exposed.
+* **Least privilege**: roles, per-store data filtering, a separate administrator sign-in, internal APIs behind a key.
 
-## 5. Spring terms they may ask you to distinguish
-* **Spring Framework**: the core (dependency injection, AOP, transactions).
-* **Spring MVC**: the web layer — `@RestController`, request mapping, validation, exception handlers.
-* **Spring Boot**: auto-configuration, starters, embedded Tomcat, `application.properties`, Actuator.
-* **Spring Data JPA**: repositories generated from interfaces (`OrderRepository`).
-* **JPA**: the Java standard API (annotations, `EntityManager`). **Hibernate**: the JPA implementation that generates SQL.
-* **Spring Security**: filter chain, authentication, authorization (`SecurityConfig`, `@PreAuthorize`).
+## 6. Spring terms they may ask you to distinguish
+* **Spring Framework**: dependency injection, AOP, transactions. **Spring Boot**: auto-configuration, starters,
+  embedded Tomcat, Actuator. **Spring MVC**: `@RestController`, validation, exception handlers.
+* **JPA** is the standard API (annotations, `EntityManager`); **Hibernate** implements it and generates the SQL;
+  **Spring Data JPA** generates repositories from interfaces.
+* **Spring Security**: the filter chain, authentication (who you are) and authorization (what you may do) —
+  `SecurityConfig` URL rules plus `@PreAuthorize` on methods.

@@ -1,0 +1,42 @@
+name: User story
+description: A piece of value for a customer, a store or the administrator
+labels: ["user story"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: As a ..., I want ..., so that ...
+      placeholder: As a store owner, I want to approve purchase orders above a limit, so that large purchases are checked.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Given / when / then
+      placeholder: |
+        Given a purchase order above AED 10,000
+        When it is submitted
+        Then it waits for approval and the supplier is not contacted yet
+    validations:
+      required: true
+  - type: dropdown
+    id: epic
+    attributes:
+      label: Epic
+      options:
+        - EPIC-1 Accounts and security
+        - EPIC-2 Catalogue and inventory
+        - EPIC-3 Orders and fulfilment
+        - EPIC-4 Payments and finance
+        - EPIC-5 Communication
+        - EPIC-6 Web applications
+        - EPIC-7 Quality and delivery
+    validations:
+      required: true
+  - type: dropdown
+    id: points
+    attributes:
+      label: Story points
+      options: ["1", "2", "3", "5", "8"]
