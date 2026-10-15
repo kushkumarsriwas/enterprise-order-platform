@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Banknote, CircleAlert, CreditCard, Minus, Plus, Smartphone } from "lucide-react";
+import { Banknote, ChevronRight, CircleAlert, CreditCard, Minus, Plus, Smartphone } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { useCart } from "../cart.js";
@@ -70,7 +70,11 @@ export function ProductShelf({ title, sub, products, link, linkLabel = "See all"
           <h2>{title}</h2>
           {sub && <p>{sub}</p>}
         </div>
-        {link && <a href={link}>{linkLabel}</a>}
+        {link && (
+          <a className="see-all" href={link}>
+            {linkLabel} <ChevronRight />
+          </a>
+        )}
       </div>
       <div className="shelf-row">
         {products.map((product) => (

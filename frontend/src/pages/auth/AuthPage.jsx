@@ -1,12 +1,30 @@
 import { useState } from "react";
-import { BarChart3, Boxes, CircleAlert, FileSpreadsheet, MessageSquare, PackageCheck, ShieldCheck, Truck, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  Boxes,
+  CircleAlert,
+  CircleCheck,
+  Eye,
+  EyeOff,
+  FileSpreadsheet,
+  LockKeyhole,
+  MessageSquare,
+  PackageCheck,
+  ShieldCheck,
+  ShoppingCart,
+  TrendingUp,
+  Truck,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import { qs } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
 import { Logo } from "../../components/brand.jsx";
 import { Button, Field, Input, Notice, Select, Textarea } from "../../components/ui.jsx";
 import { EMIRATES } from "../../format.js";
-import { useTitle } from "../../hooks.jsx";
+import { useTilt, useTitle } from "../../hooks.jsx";
 import { ThemeToggle } from "../../layouts/StoreLayout.jsx";
+import { Aurora } from "../shop/HomePage.jsx";
 import { fieldErrorsOf } from "../account/ProfilePage.jsx";
 
 const USERNAME = /^[a-zA-Z0-9._-]{3,50}$/;
@@ -33,6 +51,66 @@ const SIDES = {
     ],
   },
 };
+
+/** Floating previews of what the account is for (an illustration, hidden from screen readers). */
+function AuthShowcase({ seller }) {
+  if (seller) {
+    return (
+      <div className="auth-showcase" aria-hidden="true">
+        <div className="show-card show-a">
+          <span className="show-title">
+            <TrendingUp /> Sales today
+          </span>
+          <b className="show-figure">AED 2,480.00</b>
+          <svg className="spark" viewBox="0 0 120 32" preserveAspectRatio="none">
+            <polyline points="0,27 14,23 28,25 42,16 56,19 70,11 84,13 98,6 120,4" />
+          </svg>
+          <span className="show-note">18% more than yesterday</span>
+        </div>
+        <div className="show-card show-b">
+          <span className="show-title">
+            <PackageCheck /> New order
+          </span>
+          <b>NX-24118</b>
+          <span className="show-note">2 items, paid by card</span>
+        </div>
+        <div className="show-card show-c">
+          <span className="show-title">
+            <Boxes /> Low stock
+          </span>
+          <span className="show-note">3 products to reorder</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="auth-showcase" aria-hidden="true">
+      <div className="show-card show-a">
+        <span className="show-title">
+          <Truck /> Out for delivery
+        </span>
+        <b>Order NX-24117</b>
+        <span className="show-progress">
+          <i />
+        </span>
+        <span className="show-note">Arriving today</span>
+      </div>
+      <div className="show-card show-b">
+        <span className="show-title">
+          <ShoppingCart /> Your cart
+        </span>
+        <b>3 items from 2 stores</b>
+        <span className="show-note">AED 573.00, VAT included</span>
+      </div>
+      <div className="show-card show-c">
+        <span className="show-title">
+          <CircleCheck /> Payment received
+        </span>
+        <span className="show-note">AED 349.00 by card</span>
+      </div>
+    </div>
+  );
+}
 
 function validate(form, mode, seller) {
   const errors = {};
@@ -75,6 +153,8 @@ export function AuthPage({ seller, mode, route }) {
   const [errors, setErrors] = useState({});
   const [problem, setProblem] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const tilt = useTilt();
   useTitle(`${mode === "signin" ? "Sign in" : seller ? "Open a store" : "Create an account"}${seller ? " to Seller Central" : ""}`);
 
   const set = (key) => (event) => setForm({ ...form, [key]: event.target.value });
@@ -125,29 +205,29 @@ export function AuthPage({ seller, mode, route }) {
 
   return (
     <div className="auth-page">
-      <aside className="auth-side">
+      <aside className="auth-side" ref={tilt}>
+        <Aurora />
         <Logo suffix={seller ? "Seller Central" : null} />
-        <div>
+        <div className="auth-pitch">
           <h2>{side.title}</h2>
           <ul>
             {side.points.map(([Icon, text]) => (
               <li key={text}>
-                <Icon /> {text}
+                <span className="tick">
+                  <Icon />
+                </span>
+                {text}
               </li>
             ))}
           </ul>
         </div>
-        <p className="small" style={{ opacity: 0.75 }}>
-          Nexora Marketplace and Seller Inventory Management Platform
-        </p>
+        <AuthShowcase seller={seller} />
+        <p className="auth-foot">Nexora Marketplace and Seller Inventory Management Platform</p>
       </aside>
 
       <main className="auth-main">
         <div className="auth-card">
           <div className="row-between auth-topbar">
-            <span className="auth-mobile-logo">
-              <Logo suffix={seller ? "Seller Central" : null} size={26} />
-            </span>
             <span className="row" style={{ gap: 6, marginLeft: "auto" }}>
               <a href="#/" className="small">
                 Back to the marketplace
@@ -222,10 +302,24 @@ export function AuthPage({ seller, mode, route }) {
             ) : (
               <>
                 <Field label="Username or email" error={errors.username}>
-                  <Input value={form.username} onChange={set("username")} autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus />
+                  <span className="input-affix">
+                    <UserRound />
+                    <Input value={form.username} onChange={set("username")} autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus />
+                  </span>
                 </Field>
                 <Field label="Password" error={errors.password}>
-                  <Input type="password" value={form.password} onChange={set("password")} autoComplete="current-password" />
+                  <span className="input-affix input-affix-end">
+                    <LockKeyhole />
+                    <Input type={showPassword ? "text" : "password"} value={form.password} onChange={set("password")} autoComplete="current-password" />
+                    <button
+                      type="button"
+                      className="affix-btn"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowPassword((shown) => !shown)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  </span>
                 </Field>
               </>
             )}
@@ -243,7 +337,7 @@ export function AuthPage({ seller, mode, route }) {
               </Notice>
             )}
 
-            <Button type="submit" variant="primary" size="lg" block loading={busy}>
+            <Button type="submit" variant="primary" size="lg" block loading={busy} className="btn-shine">
               {mode === "signin" ? "Sign in" : seller ? "Open my store" : "Create account"}
             </Button>
           </form>

@@ -1,39 +1,106 @@
 /*
- * Motion: what moves on the marketplace and in Seller Central. Every animation here is feedback or decoration,
- * so all of it sits behind prefers-reduced-motion: no-preference - people who ask for less motion get a still,
- * fully working interface.
+ * Motion on the marketplace and in Seller Central. Things under the pointer move with a long, soft deceleration
+ * (--ease-out); only feedback (an item reaching the cart, a new count) keeps a small spring. Everything sits behind
+ * prefers-reduced-motion: no-preference, and pointer effects apply only where there is a pointer, so people who ask
+ * for less motion, and touch screens, get a still, fully working interface.
+ *
+ * Entrances use fill-mode "backwards" and the independent translate / scale properties, so once they end they leave
+ * nothing behind that could block a hover effect or trap a fixed overlay.
  */
 @media (prefers-reduced-motion: no-preference) {
   /* ---------- pages fade up once when they open */
   .page-enter {
-    animation: page-in 0.38s var(--ease) both;
+    animation: page-in 0.45s var(--ease-out) backwards;
   }
 
-  /* ---------- logo: the mark tilts and its dot pulses */
+  /* ---------- the dark first-look panels: coloured light drifts slowly behind them */
+  .aurora span {
+    will-change: transform;
+  }
+
+  .aurora span:nth-child(1) {
+    animation: drift-a 18s ease-in-out infinite alternate;
+  }
+
+  .aurora span:nth-child(2) {
+    animation: drift-b 23s ease-in-out infinite alternate;
+  }
+
+  .aurora span:nth-child(3) {
+    animation: drift-c 27s ease-in-out infinite alternate;
+  }
+
+  /* ---------- hero: a staged entrance, then the showcase floats and leans towards the pointer */
+  .hero-copy > * {
+    animation: rise-in 0.8s var(--ease-out) backwards;
+  }
+
+  .hero-copy > :nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .hero-copy > :nth-child(3) {
+    animation-delay: 0.16s;
+  }
+
+  .hero-copy > :nth-child(4) {
+    animation-delay: 0.24s;
+  }
+
+  .hero-stage {
+    animation: stage-in 1s var(--ease-out) 0.12s backwards;
+  }
+
+  .hero-pick {
+    transition:
+      transform 0.8s var(--ease-out),
+      box-shadow 0.6s var(--ease-out);
+    animation: float 7s ease-in-out 1.2s infinite alternate;
+  }
+
+  .chip-rating {
+    animation: float 4.5s ease-in-out 0.4s infinite alternate-reverse;
+  }
+
+  .chip-delivery {
+    animation: float 5.5s ease-in-out 0.9s infinite alternate;
+  }
+
+  .hero-mini a {
+    animation: rise-in 0.7s var(--ease-out) backwards;
+    transition:
+      background-color 0.3s var(--ease-out),
+      border-color 0.3s var(--ease-out),
+      transform 0.5s var(--ease-out);
+  }
+
+  .hero-mini a:nth-child(1) {
+    animation-delay: 0.4s;
+  }
+
+  .hero-mini a:nth-child(2) {
+    animation-delay: 0.48s;
+  }
+
+  .hero-mini a:nth-child(3) {
+    animation-delay: 0.56s;
+  }
+
+  .hero-mini a:nth-child(4) {
+    animation-delay: 0.64s;
+  }
+
+  .hero-mini .product-image > * {
+    transition: transform 0.6s var(--ease-out);
+  }
+
+  .perks {
+    animation: rise-in 0.8s var(--ease-out) 0.3s backwards;
+  }
+
+  /* ---------- header: the logo leans, counts pop, the bell rings when something new arrives */
   .logo .mark {
-    transition: transform 0.35s var(--ease-spring);
-  }
-
-  .logo:hover .mark {
-    transform: rotate(-8deg) scale(1.06);
-  }
-
-  .logo .mark circle {
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-
-  .logo:hover .mark circle {
-    animation: dot-pulse 0.8s var(--ease) infinite alternate;
-  }
-
-  /* ---------- header icons: lift on hover, ring when a new message or notification arrives */
-  .icon-btn svg {
-    transition: transform 0.2s var(--ease-spring);
-  }
-
-  .icon-btn:hover svg {
-    transform: translateY(-1px) scale(1.1);
+    transition: transform 0.6s var(--ease-out);
   }
 
   .icon-btn svg.ring-on {
@@ -41,260 +108,275 @@
     animation: ring 1s ease 0.25s 2;
   }
 
-  .dot-count {
-    animation: pop 0.35s var(--ease-spring);
+  .dot-count,
+  .cart-count {
+    animation: pop 0.4s var(--ease-spring);
   }
 
   .icon-btn svg.theme-icon {
-    animation: spin-in 0.5s var(--ease-spring);
+    animation: spin-in 0.6s var(--ease-out);
   }
 
-  /* ---------- cart: the icon jumps and the count pops every time something is added */
+  /* the cart takes the item: the icon jumps every time something is added */
   .cart-btn svg.bump {
-    animation: cart-bump 0.65s var(--ease-spring);
+    animation: cart-bump 0.7s var(--ease-spring);
   }
 
-  .cart-btn:hover svg {
-    animation: wiggle 0.5s ease;
-  }
-
-  .cart-count {
-    animation: pop 0.35s var(--ease-spring);
-  }
-
-  /* ---------- departments: icons hop */
   .dept-link svg {
-    transition: transform 0.3s var(--ease-spring);
+    transition: transform 0.4s var(--ease-out);
   }
 
-  .dept-link:hover svg {
-    transform: translateY(-2px) rotate(-10deg) scale(1.18);
-  }
-
-  /* ---------- buttons press in, primary buttons lift, their icons nudge */
+  /* ---------- buttons press in; filled buttons rise a little */
   .btn {
     transition:
-      background-color 0.15s,
-      border-color 0.15s,
-      color 0.15s,
-      box-shadow 0.2s var(--ease),
-      transform 0.15s var(--ease);
+      background-color 0.25s var(--ease-out),
+      border-color 0.25s var(--ease-out),
+      color 0.25s var(--ease-out),
+      box-shadow 0.4s var(--ease-out),
+      transform 0.4s var(--ease-out);
   }
 
   .btn:active:not(:disabled) {
     transform: scale(0.97);
+    transition-duration: 0.1s;
   }
 
-  .btn-primary:hover:not(:disabled),
-  .btn-accent:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--brand) 70%, transparent);
+  .btn-shine::after {
+    transition: transform 0.9s var(--ease-out);
   }
 
-  .btn:hover:not(:disabled) > svg:not(.spin) {
-    animation: nudge 0.45s var(--ease);
-  }
-
-  /* ---------- product cards: lift, zoom, a shine across the deal badge, a springy add button */
-  .product-card {
-    transition:
-      transform 0.28s var(--ease),
-      box-shadow 0.28s var(--ease),
-      border-color 0.2s;
-  }
-
-  .product-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-3);
-  }
-
-  .product-card .product-image > * {
-    transition: transform 0.5s var(--ease);
-  }
-
-  .product-card:hover .product-image > * {
-    transform: scale(1.07);
-  }
-
-  .card-badges .badge {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .product-card:hover .card-badges .badge::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
-    animation: shine 0.8s ease;
-  }
-
-  .product-card .add-btn {
-    transition:
-      background-color 0.15s,
-      color 0.15s,
-      transform 0.15s var(--ease);
-  }
-
+  /* ---------- cards: the add button answers a press, its number pops when it changes */
   .product-card .add-btn:active:not(:disabled) {
-    transform: scale(0.86);
+    transform: scale(0.9);
+    transition: transform 0.1s;
   }
 
   .add-btn-face {
     display: inline-grid;
     place-items: center;
-    animation: pop 0.3s var(--ease-spring);
+    animation: pop 0.35s var(--ease-spring);
   }
 
-  .product-card .add-btn:hover:not(:disabled) svg {
-    transform: rotate(90deg);
-    transition: transform 0.35s var(--ease-spring);
+  /* ---------- sign-in: the pitch arrives, the previews float, the form card rises */
+  .auth-pitch > * {
+    animation: rise-in 0.8s var(--ease-out) backwards;
   }
 
-  /* ---------- home: moving light behind the hero, a staged entrance and a floating pick */
-  .hero::before {
-    animation: drift-a 16s ease-in-out infinite alternate;
+  .auth-pitch > :nth-child(2) {
+    animation-delay: 0.1s;
   }
 
-  .hero::after {
-    animation: drift-b 20s ease-in-out infinite alternate;
+  .auth-showcase {
+    animation: stage-in 1s var(--ease-out) 0.2s backwards;
   }
 
-  .hero h1,
-  .hero-lead,
-  .hero-chips,
-  .hero-facts {
-    animation: rise-in 0.6s var(--ease) both;
+  .show-card {
+    transition: transform 0.9s var(--ease-out);
   }
 
-  .hero-lead {
-    animation-delay: 0.08s;
+  .show-a {
+    animation: float 6s ease-in-out 1s infinite alternate;
   }
 
-  .hero-chips {
-    animation-delay: 0.16s;
+  .show-b {
+    animation: float 7s ease-in-out 1.4s infinite alternate-reverse;
   }
 
-  .hero-facts {
-    animation-delay: 0.24s;
+  .show-c {
+    animation: float 5s ease-in-out 1.8s infinite alternate;
   }
 
-  .hero-pick {
-    animation:
-      rise-in 0.7s var(--ease) 0.15s both,
-      float 5s ease-in-out 1.2s infinite alternate;
+  .show-progress i {
+    transform-origin: left center;
+    animation: grow 1.6s var(--ease-out) 0.8s backwards;
   }
 
-  .hero-mini a {
-    animation: rise-in 0.5s var(--ease) both;
-    transition:
-      background-color 0.2s,
-      transform 0.25s var(--ease);
+  /* the line is drawn from the left (its length on screen is well under 400px) */
+  .spark polyline {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: draw 2.2s var(--ease-out) 0.7s forwards;
   }
 
-  .hero-mini a:nth-child(2) {
-    animation-delay: 0.08s;
+  .auth-card {
+    animation: rise-in 0.7s var(--ease-out) 0.05s backwards;
   }
 
-  .hero-mini a:nth-child(3) {
-    animation-delay: 0.16s;
-  }
-
-  .hero-mini a:nth-child(4) {
-    animation-delay: 0.24s;
-  }
-
-  .hero-mini a:hover {
-    transform: translateY(-3px);
-  }
-
-  .hero-chips a {
-    transition:
-      background-color 0.2s,
-      transform 0.2s var(--ease-spring);
-  }
-
-  .hero-chips a:hover {
-    transform: translateY(-2px);
-  }
-
-  /* the perks under the hero arrive one by one; their icons and the department icons hop on hover */
-  .perks li {
-    animation: rise-in 0.5s var(--ease) both;
-    transition: transform 0.25s var(--ease);
-  }
-
-  .perks li:nth-child(2) {
-    animation-delay: 0.3s;
-  }
-
-  .perks li:nth-child(3) {
-    animation-delay: 0.38s;
-  }
-
-  .perks li:nth-child(4) {
-    animation-delay: 0.46s;
-  }
-
-  .perks li:first-child {
-    animation-delay: 0.22s;
-  }
-
-  .perks li:hover {
-    transform: translateY(-2px);
-  }
-
-  .perks li:hover .perk-icon svg,
-  .dept-tile:hover .icon svg {
-    animation: hop 0.5s var(--ease-spring);
-  }
-
-  .dept-tile {
-    transition:
-      transform 0.25s var(--ease),
-      box-shadow 0.25s var(--ease),
-      border-color 0.2s;
-  }
-
-  .dept-tile:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-2);
-  }
-
-  .auth-side::before {
-    animation: drift-a 18s ease-in-out infinite alternate;
-  }
-
-  .auth-side::after {
-    animation: drift-b 22s ease-in-out infinite alternate;
-  }
-
-  /* ---------- rating stars grow under the pointer */
-  .star-picker button svg {
-    transition: transform 0.2s var(--ease-spring);
-  }
-
-  .star-picker button:hover svg {
-    transform: scale(1.25) rotate(-8deg);
-  }
-
-  /* ---------- Seller Central: sidebar icons slide, urgent counts pulse, figures and panels arrive */
-  .sc-nav a svg {
-    transition: transform 0.25s var(--ease-spring);
-  }
-
-  .sc-nav a:hover svg {
-    transform: translateX(2px) scale(1.12);
-  }
-
+  /* ---------- Seller Central: urgent counts pulse */
   .sc-nav .sc-count.hot {
     animation: pulse-ring 2.2s ease-out infinite;
   }
 
+  .sc-nav a svg {
+    transition: transform 0.4s var(--ease-out);
+  }
+
   .stat {
     transition:
-      transform 0.25s var(--ease),
-      box-shadow 0.25s var(--ease);
+      transform 0.5s var(--ease-out),
+      box-shadow 0.5s var(--ease-out);
+  }
+}
+
+/* Pointer effects: only for a mouse or trackpad, and only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .logo:hover .mark {
+    transform: rotate(-6deg) scale(1.04);
+  }
+
+  .dept-link:hover svg {
+    transform: translateY(-1px) scale(1.1);
+  }
+
+  .btn-primary:hover:not(:disabled),
+  .btn-accent:hover:not(:disabled),
+  .btn-light:hover:not(:disabled),
+  .btn-shine:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 12px 26px -12px color-mix(in srgb, var(--brand) 80%, transparent);
+  }
+
+  .btn-light:hover:not(:disabled) {
+    box-shadow: 0 16px 36px -12px rgba(47, 107, 255, 0.75);
+  }
+
+  .btn-shine:hover:not(:disabled)::after {
+    transform: translateX(120%);
+  }
+
+  /* product cards: the card rises, the item lifts off its shadow, the add button turns */
+  .product-card {
+    transition:
+      transform 0.55s var(--ease-out),
+      box-shadow 0.55s var(--ease-out),
+      border-color 0.3s var(--ease-out);
+  }
+
+  .product-card:hover {
+    transform: translateY(-6px);
+  }
+
+  .product-card .product-image img,
+  .product-card .product-image.placeholder svg {
+    transition: transform 0.8s var(--ease-out);
+  }
+
+  .product-card:hover .product-image img {
+    transform: scale(1.05);
+  }
+
+  .product-card:hover .product-image.placeholder svg {
+    transform: translateY(-7px) scale(1.07);
+  }
+
+  .product-card .product-image.placeholder::after {
+    transition:
+      transform 0.8s var(--ease-out),
+      opacity 0.8s var(--ease-out);
+  }
+
+  .product-card:hover .product-image.placeholder::after {
+    transform: scale(0.75);
+    opacity: 0.6;
+  }
+
+  .product-card .card-name {
+    transition: color 0.3s var(--ease-out);
+  }
+
+  .product-card .add-btn svg {
+    transition: transform 0.5s var(--ease-out);
+  }
+
+  .product-card .add-btn:hover:not(:disabled) svg {
+    transform: rotate(90deg);
+  }
+
+  /* the showcase items brighten and rise */
+  .hero-mini a:hover {
+    transform: translateY(-3px);
+  }
+
+  .hero-mini a:hover .product-image > * {
+    transform: scale(1.1);
+  }
+
+  /* departments and stores: a lift, the colour washes in, an arrow slides into the corner */
+  .dept-tile,
+  .store-tile {
+    transition:
+      transform 0.55s var(--ease-out),
+      box-shadow 0.55s var(--ease-out),
+      border-color 0.3s var(--ease-out);
+  }
+
+  .dept-tile:hover,
+  .store-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .dept-tile::before {
+    transition: opacity 0.55s var(--ease-out);
+  }
+
+  .dept-tile .icon {
+    transition:
+      background-color 0.4s var(--ease-out),
+      color 0.4s var(--ease-out),
+      transform 0.6s var(--ease-out);
+  }
+
+  .dept-tile:hover .icon {
+    transform: scale(1.08) rotate(-6deg);
+  }
+
+  .dept-tile .go,
+  .store-tile .go {
+    transform: translate(-6px, 6px);
+    transition:
+      opacity 0.4s var(--ease-out),
+      transform 0.5s var(--ease-out);
+  }
+
+  .dept-tile:hover .go,
+  .store-tile:hover .go {
+    transform: none;
+  }
+
+  .store-tile .avatar {
+    transition: transform 0.6s var(--ease-out);
+  }
+
+  .store-tile:hover .avatar {
+    transform: scale(1.06);
+  }
+
+  .see-all svg {
+    transition: transform 0.4s var(--ease-out);
+  }
+
+  .see-all:hover svg {
+    transform: translateX(3px);
+  }
+
+  /* rating stars grow under the pointer */
+  .star-picker button svg {
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  .star-picker button:hover svg {
+    transform: scale(1.22);
+  }
+
+  /* Seller Central */
+  .sc-nav a:hover svg {
+    transform: translateX(2px);
   }
 
   .stat:hover {
@@ -306,22 +388,31 @@
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    translate: 0 10px;
   }
 }
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    translate: 0 22px;
+  }
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    translate: 0 34px;
+    scale: 0.96;
+  }
+}
+
+@keyframes float {
+  from {
+    translate: 0 0;
   }
   to {
-    opacity: 1;
-    transform: none;
+    translate: 0 -10px;
   }
 }
 
@@ -330,7 +421,7 @@
     transform: scale(0.4);
   }
   60% {
-    transform: scale(1.2);
+    transform: scale(1.18);
   }
   100% {
     transform: scale(1);
@@ -375,59 +466,14 @@
   }
 }
 
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  30% {
-    transform: rotate(-12deg);
-  }
-  70% {
-    transform: rotate(9deg);
-  }
-}
-
-@keyframes nudge {
-  0%,
-  100% {
-    transform: none;
-  }
-  50% {
-    transform: translateX(2px) scale(1.12);
-  }
-}
-
 @keyframes spin-in {
   from {
     opacity: 0;
-    transform: rotate(-140deg) scale(0.4);
+    transform: rotate(-120deg) scale(0.5);
   }
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes hop {
-  0%,
-  100% {
-    transform: none;
-  }
-  40% {
-    transform: translateY(-5px) rotate(-8deg) scale(1.1);
-  }
-  70% {
-    transform: translateY(1px) rotate(3deg);
-  }
-}
-
-@keyframes float {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-8px);
   }
 }
 
@@ -436,7 +482,7 @@
     transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translate(160px, 90px) scale(1.25);
+    transform: translate(180px, 110px) scale(1.25);
   }
 }
 
@@ -445,25 +491,28 @@
     transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translate(-180px, -70px) scale(1.2);
+    transform: translate(-200px, 90px) scale(1.18);
   }
 }
 
-@keyframes shine {
+@keyframes drift-c {
   from {
-    transform: translateX(-100%);
+    transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translateX(100%);
+    transform: translate(-160px, -120px) scale(1.3);
   }
 }
 
-@keyframes dot-pulse {
+@keyframes grow {
   from {
-    transform: scale(1);
+    transform: scaleX(0.15);
   }
+}
+
+@keyframes draw {
   to {
-    transform: scale(1.4);
+    stroke-dashoffset: 0;
   }
 }
 

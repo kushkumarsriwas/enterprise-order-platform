@@ -186,3 +186,37 @@ export function useCountUp(value, duration = 900) {
   }, [value, duration]);
   return frame && frame.value === value ? frame.text : value;
 }
+
+/**
+ * Pointer-follow depth for a showcase area: sets --px and --py (-0.5 to 0.5) on the element while the pointer moves
+ * over it, which the styles turn into a small 3D tilt and parallax. Nothing happens on touch screens or when the
+ * visitor asks for less motion. Use the returned function as the element's ref.
+ */
+export function useTilt() {
+  return useCallback((node) => {
+    if (!node || reducedMotion() || !window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) return undefined;
+    let frame = 0;
+    const move = (event) => {
+      const box = node.getBoundingClientRect();
+      const x = (event.clientX - box.left) / box.width - 0.5;
+      const y = (event.clientY - box.top) / box.height - 0.5;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        node.style.setProperty("--px", x.toFixed(3));
+        node.style.setProperty("--py", y.toFixed(3));
+      });
+    };
+    const leave = () => {
+      cancelAnimationFrame(frame);
+      node.style.setProperty("--px", "0");
+      node.style.setProperty("--py", "0");
+    };
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerleave", leave);
+    return () => {
+      cancelAnimationFrame(frame);
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerleave", leave);
+    };
+  }, []);
+}

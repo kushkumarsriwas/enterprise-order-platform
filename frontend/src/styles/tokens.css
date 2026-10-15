@@ -17,8 +17,24 @@
   --cobalt-50: #eff4ff;
   --tangerine-700: #9a3412;
   --tangerine-600: #c2410c;
+  --tangerine-500: #f26b1d;
   --tangerine-100: #ffedd5;
   --mist-100: #eef3fb;
+
+  /* night: the first look (hero, sign-in, sell band) is dark in both themes, lit by moving coloured light */
+  --night-950: #040a1a;
+  --night-900: #071331;
+  --night-800: #0c1d45;
+  --night-700: #15306a;
+  --night-ink: #f4f7ff;
+  --night-ink-2: #b8c6e6;
+  --night-line: rgba(255, 255, 255, 0.12);
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-2: rgba(255, 255, 255, 0.12);
+  --glow-blue: #2f6bff;
+  --glow-sky: #38bdf8;
+  --glow-violet: #7c5cff;
+  --glow-amber: #ff8a3d;
 
   /* surfaces and ink */
   --bg: #f5f7fa;
@@ -85,9 +101,11 @@
   --r-lg: 16px;
   --r-xl: 22px;
   --r-pill: 999px;
-  --shadow-1: 0 1px 2px rgba(15, 27, 45, 0.06);
-  --shadow-2: 0 6px 20px rgba(15, 27, 45, 0.08), 0 1px 3px rgba(15, 27, 45, 0.06);
-  --shadow-3: 0 18px 50px rgba(15, 27, 45, 0.18);
+  --shadow-1: 0 1px 2px rgba(15, 27, 45, 0.05);
+  --shadow-2: 0 1px 2px rgba(15, 27, 45, 0.04), 0 8px 24px -6px rgba(15, 27, 45, 0.12);
+  --shadow-3: 0 2px 6px rgba(15, 27, 45, 0.05), 0 24px 56px -16px rgba(15, 27, 45, 0.28);
+  /* a card under the pointer: lifted, with a faint cobalt cast */
+  --shadow-lift: 0 2px 6px rgba(15, 27, 45, 0.04), 0 16px 32px -12px rgba(15, 27, 45, 0.16), 0 32px 64px -28px rgba(29, 78, 216, 0.34);
 
   /* surfaces with a fixed character (sell band, photos, toasts) */
   --band-bg: var(--mist-100);
@@ -102,6 +120,9 @@
   --container: 1320px;
   --sidebar-w: 252px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* long, soft deceleration for things that move under the pointer */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* a small overshoot, kept for feedback (a count arriving, the cart taking an item) */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -147,8 +168,9 @@
     --chart-grid: #222c3c;
     --chart-axis: #8a97ab;
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+    --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
+    --shadow-3: 0 2px 6px rgba(0, 0, 0, 0.3), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
+    --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.3), 0 18px 40px -14px rgba(0, 0, 0, 0.65), 0 30px 64px -28px rgba(47, 107, 255, 0.4);
     --band-bg: #15233b;
     --band-ink: #c9d6ea;
     --band-ink-soft: #c9d6ea;
@@ -199,8 +221,9 @@
   --chart-grid: #222c3c;
   --chart-axis: #8a97ab;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 2px 6px rgba(0, 0, 0, 0.3), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.3), 0 18px 40px -14px rgba(0, 0, 0, 0.65), 0 30px 64px -28px rgba(47, 107, 255, 0.4);
   --band-bg: #15233b;
   --band-ink: #c9d6ea;
   --band-ink-soft: #c9d6ea;
