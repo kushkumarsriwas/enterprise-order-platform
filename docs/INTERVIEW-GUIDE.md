@@ -44,7 +44,7 @@ history; every demo password is `Demo-2026`.
 
 1. **Marketplace** (http://localhost:3000): search "earbuds", filter by brand and rating, open a product (rating,
    verified reviews with store replies). Sign in as `aisha`.
-2. **Checkout across stores**: add earbuds from Al Noor Electronics and a dallah set from Sahara Home, check out — two
+2. **Checkout across stores**: add earbuds from Al Noor Electronics and a coffee set from Sahara Home, check out — two
    orders, one per store. Pay with the declined card `4000 0000 0000 0002` (order stays open, notification), then with
    `4111 1111 1111 1111`. Show the tax invoice PDF.
 3. **Seller Central** (another browser, `alnoor`): the dashboard, the new order in the order desk, ship it with Aramex
