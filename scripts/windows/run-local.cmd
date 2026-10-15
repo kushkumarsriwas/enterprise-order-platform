@@ -13,11 +13,16 @@ echo [1/6] Checking Docker...
 call "%~dp0ensure-docker.cmd"
 if errorlevel 1 goto failed
 
-echo [2/6] Removing containers of older versions of this project (if any)...
+echo [2/6] Removing containers and images of older versions of this project (if any)...
 for %%C in (enterprise-gateway enterprise-auth enterprise-order enterprise-product-inventory enterprise-payment enterprise-notification enterprise-oracle enterprise-redis enterprise-redis-compose enterprise-postgres) do (
   docker rm -f %%C >nul 2>&1
 )
 docker compose -p infrastructure down >nul 2>&1
+rem Images of older versions (1.x, 2.x) are no longer used: remove them, and dangling layers of earlier builds
+for /f "tokens=1,2" %%A in ('docker images --filter "reference=enterprise/*" --format "{{.Tag}} {{.Repository}}:{{.Tag}}" 2^>nul') do (
+  if not "%%A"=="3.0.0" docker rmi %%B >nul 2>&1
+)
+docker image prune -f >nul 2>&1
 kubectl get namespace enterprise-platform >nul 2>&1
 if not errorlevel 1 (
   echo       The Kubernetes deployment is running - removing it to free memory ^(re-create it with scripts\windows\k8s-deploy.cmd^)
