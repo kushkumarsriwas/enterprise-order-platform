@@ -157,4 +157,4 @@ export function RecentLogins({ detail }) {
   );
 }
 
-export const VatBadge = ({ store }) => (store?.vatNumber ? <Badge tone="teal">VAT registered</Badge> : null);
+export const VatBadge = ({ store }) => (store?.vatNumber ? <Badge tone="brand">VAT registered</Badge> : null);

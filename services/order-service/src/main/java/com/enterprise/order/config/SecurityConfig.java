@@ -28,6 +28,8 @@ public class SecurityConfig {
                                                    AuthenticationEntryPoint entryPoint,
                                                    AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
+                // stateless API: the JWT travels in the Authorization header, never in a cookie, so there is nothing
+                // for a cross-site request to borrow and CSRF tokens would protect nothing
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

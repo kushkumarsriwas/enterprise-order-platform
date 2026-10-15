@@ -1,0 +1,12 @@
+# CodeQL settings for the code-quality job in ci.yml: GitHub's security-and-quality queries, with one check left out.
+name: Nexora code scanning
+
+queries:
+  - uses: security-and-quality
+
+query-filters:
+  # Every service is a stateless JSON API. The browser sends the JWT in the Authorization header, never in a cookie,
+  # so a forged cross-site request carries no credentials and CSRF tokens would protect nothing: each SecurityConfig
+  # turns CSRF protection off on purpose and says why.
+  - exclude:
+      id: java/spring-disabled-csrf-protection

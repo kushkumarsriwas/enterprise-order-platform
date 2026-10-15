@@ -62,18 +62,17 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiError> handleAccessDenied(HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "You do not have permission to perform this action", request, null);
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiError> handleAuthentication(HttpServletRequest request) {
         return build(HttpStatus.UNAUTHORIZED, "Authentication required", request, null);
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<ApiError> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
-                                                         HttpServletRequest request) {
+    public ResponseEntity<ApiError> handleOptimisticLock(HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "The record was changed by another request. Please retry.", request, null);
     }
 
@@ -84,7 +83,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiError> handleNoResource(HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, "Endpoint not found", request, null);
     }
 
@@ -96,7 +95,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest request) {
-        log.error("Unexpected error on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        log.error("Unexpected error on {} {}", request.getMethod(), loggable(request.getRequestURI()), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request, null);
     }
 
@@ -105,5 +104,10 @@ public class GlobalExceptionHandler {
         ApiError body = new ApiError(Instant.now(), status.value(), status.getReasonPhrase(), message,
                 request.getRequestURI(), MDC.get(CorrelationIdFilter.MDC_KEY), fieldErrors);
         return ResponseEntity.status(status).body(body);
+    }
+
+    /** Request values are logged without line breaks, so they cannot forge extra log lines. */
+    private static String loggable(String value) {
+        return value == null ? null : value.replaceAll("\\R", "_");
     }
 }

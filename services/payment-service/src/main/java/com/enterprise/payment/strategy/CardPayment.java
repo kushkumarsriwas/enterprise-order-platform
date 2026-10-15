@@ -7,11 +7,15 @@ import com.enterprise.payment.processor.PaymentRequest;
 import com.enterprise.payment.processor.PaymentResult;
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Component;
 
 /** Debit/credit card: Luhn checksum, holder, expiry (MM/YY) and CVV are checked before the provider is called. */
 @Component
 public class CardPayment implements PaymentStrategy {
+
+    /** Card expiry as MM/YY; validate() checks the format before it is parsed. */
+    private static final DateTimeFormatter EXPIRY = DateTimeFormatter.ofPattern("MM/yy");
 
     @Override
     public PaymentMethod method() {
@@ -31,9 +35,7 @@ public class CardPayment implements PaymentStrategy {
         if (!expiry.matches("(0[1-9]|1[0-2])/\\d{2}")) {
             throw ApiException.badRequest("The expiry date must be in MM/YY format");
         }
-        YearMonth value = YearMonth.of(2000 + Integer.parseInt(expiry.substring(3)),
-                Integer.parseInt(expiry.substring(0, 2)));
-        if (value.isBefore(YearMonth.now())) {
+        if (YearMonth.parse(expiry, EXPIRY).isBefore(YearMonth.now())) {
             throw ApiException.badRequest("The card has expired");
         }
         if (details.cvv() == null || !details.cvv().matches("\\d{3,4}")) {

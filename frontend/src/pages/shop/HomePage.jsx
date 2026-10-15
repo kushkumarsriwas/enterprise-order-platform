@@ -1,10 +1,18 @@
-import { BarChart3, Boxes, FileSpreadsheet, Store, Truck } from "lucide-react";
+import { Banknote, BarChart3, Boxes, FileSpreadsheet, ReceiptText, ShieldCheck, Store, Truck } from "lucide-react";
 import { api, qs } from "../../api.js";
-import { CategoryIcon, Price, ProductImage, StarLattice } from "../../components/brand.jsx";
+import { CategoryIcon, Price, ProductImage } from "../../components/brand.jsx";
 import { ProductShelf } from "../../components/commerce.jsx";
 import { Avatar, Badge, Button, Empty, ErrorState, Loader } from "../../components/ui.jsx";
 import { formatNumber } from "../../format.js";
 import { useLoader, useTitle } from "../../hooks.jsx";
+
+/** What every order on Nexora comes with, shown under the hero. */
+const PERKS = [
+  [Truck, "Free delivery", "Every store ships free across the UAE"],
+  [Banknote, "Pay your way", "Card, instant bank transfer or cash on delivery"],
+  [ShieldCheck, "Cancel for free", "Until the store ships your order"],
+  [ReceiptText, "Tax invoice", "Every order invoiced with 5% VAT"],
+];
 
 export function HomePage() {
   useTitle(null);
@@ -22,7 +30,6 @@ export function HomePage() {
   return (
     <div className="home">
       <section className="hero">
-        <StarLattice />
         <div>
           <h1>Shop the independent stores of the UAE</h1>
           <p className="hero-lead">
@@ -46,7 +53,7 @@ export function HomePage() {
               <ProductImage product={pick} iconSize={48} />
               <div>
                 <span className="pick-label">
-                  <Badge tone={pick.discountPercent > 0 ? "solid-bloom" : "teal"}>
+                  <Badge tone={pick.discountPercent > 0 ? "solid-accent" : "brand"}>
                     {pick.discountPercent > 0 ? `Today's pick: ${pick.discountPercent}% off` : "Today's pick"}
                   </Badge>
                 </span>
@@ -86,6 +93,20 @@ export function HomePage() {
         </div>
       </section>
 
+      <ul className="perks" aria-label="Why shop on Nexora">
+        {PERKS.map(([Icon, title, text]) => (
+          <li key={title}>
+            <span className="perk-icon">
+              <Icon />
+            </span>
+            <span>
+              <b>{title}</b>
+              <small>{text}</small>
+            </span>
+          </li>
+        ))}
+      </ul>
+
       {empty && (
         <div className="panel">
           <Empty icon={Store} title="Nothing on sale yet">
@@ -104,7 +125,7 @@ export function HomePage() {
           </div>
           <div className="dept-grid">
             {categories.map((c) => (
-              <a key={c.id} className="dept-tile" href={`#/search?category=${c.id}`}>
+              <a key={c.id} className="dept-tile" style={{ "--tile": `var(--series-${(c.id % 6) + 1})` }} href={`#/search?category=${c.id}`}>
                 <span className="icon">
                   <CategoryIcon icon={c.icon} name={c.name} />
                 </span>

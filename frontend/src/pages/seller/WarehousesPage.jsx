@@ -140,7 +140,7 @@ function WarehouseCards({ navigate }) {
                 <h3 className="ellipsis">{w.name}</h3>
               </div>
               {w.defaultWarehouse ? (
-                <Badge tone="teal" icon={Star}>
+                <Badge tone="brand" icon={Star}>
                   Default
                 </Badge>
               ) : !w.active ? (

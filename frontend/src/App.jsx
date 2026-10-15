@@ -102,7 +102,9 @@ export default function App() {
   } else {
     content = (
       <StoreLayout route={route} navigate={navigate}>
-        {storefrontPage(route, navigate, auth)}
+        <div key={path} className="page-enter">
+          {storefrontPage(route, navigate, auth)}
+        </div>
       </StoreLayout>
     );
   }

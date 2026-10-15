@@ -4,11 +4,11 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  Contrast,
   LayoutDashboard,
   LogOut,
   MapPin,
   MessageSquare,
-  Moon,
   Package,
   Search,
   ShoppingCart,
@@ -86,9 +86,26 @@ export function useUnreadCounts(enabled) {
   return counts;
 }
 
+/** Counts how many times the cart has grown on this page, so the cart icon can jump each time (see motion.css). */
+function useAdditions(count) {
+  const [added, setAdded] = useState(0);
+  const last = useRef(count);
+  useEffect(() => {
+    if (count > last.current) setAdded((n) => n + 1);
+    last.current = count;
+  }, [count]);
+  return added;
+}
+
 export function ThemeToggle() {
   const { dark, toggle } = useTheme();
-  return <IconButton icon={dark ? Sun : Moon} label={dark ? "Switch to light mode" : "Switch to dark mode"} onClick={toggle} />;
+  const Icon = dark ? Sun : Contrast;
+  const text = dark ? "Switch to light mode" : "Switch to dark mode";
+  return (
+    <button type="button" className="icon-btn" aria-label={text} title={text} onClick={toggle}>
+      <Icon key={dark ? "light" : "dark"} className="theme-icon" />
+    </button>
+  );
 }
 
 function HeaderSearch({ categories, route, navigate }) {
@@ -244,6 +261,7 @@ function AccountMenu({ user, logout, navigate }) {
 export function StoreLayout({ route, navigate, children }) {
   const { user, isSeller, isCustomer, logout } = useAuth();
   const cart = useCart();
+  const added = useAdditions(cart.count);
   const categories = useLoader(() => api("/api/categories", { auth: false }), []);
   const announcements = useLoader(() => api("/api/announcements").catch(() => []), [user?.id]);
   const unread = useUnreadCounts(!!user);
@@ -307,9 +325,13 @@ export function StoreLayout({ route, navigate, children }) {
               </a>
             ) : (
               <a className="cart-btn" href="#/cart" aria-label={`Cart, ${cart.count} items`}>
-                <ShoppingCart />
+                <ShoppingCart key={added} className={added ? "bump" : undefined} />
                 <span className="cart-label">Cart</span>
-                {cart.count > 0 && <span className="cart-count">{cart.count}</span>}
+                {cart.count > 0 && (
+                  <span key={cart.count} className="cart-count">
+                    {cart.count}
+                  </span>
+                )}
               </a>
             )}
           </div>

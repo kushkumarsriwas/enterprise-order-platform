@@ -1,10 +1,11 @@
 package com.enterprise.auth.security;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.LocatorAdapter;
+import io.jsonwebtoken.ProtectedHeader;
+import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,12 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = header.substring(7).trim();
         try {
             Claims claims = Jwts.parser()
-                    .keyLocator(new LocatorAdapter<Key>() {
-                        @Override
-                        protected Key locate(JwsHeader jwsHeader) {
-                            return keyResolver.resolve(jwsHeader.getKeyId());
-                        }
-                    })
+                    .keyLocator(this::signingKey)
                     .requireIssuer(issuer)
                     .build()
                     .parseSignedClaims(token)
@@ -79,5 +75,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
         }
         chain.doFilter(request, response);
+    }
+
+    /** The public key a token was signed with, found by the key id in its header; unsigned tokens are refused. */
+    private Key signingKey(Header header) {
+        if (header instanceof ProtectedHeader signed) {
+            return keyResolver.resolve(signed.getKeyId());
+        }
+        throw new UnsupportedJwtException("Only signed tokens are accepted");
     }
 }

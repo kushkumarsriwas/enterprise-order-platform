@@ -16,7 +16,7 @@ export function ProductCard({ product, showSeller = true }) {
   const soldOut = !product.inStock;
   return (
     <article className="product-card">
-      <div className="card-badges">{product.discountPercent > 0 && <Badge tone="solid-bloom">-{product.discountPercent}%</Badge>}</div>
+      <div className="card-badges">{product.discountPercent > 0 && <Badge tone="solid-accent">-{product.discountPercent}%</Badge>}</div>
       <ProductImage product={product} />
       <div className="stack-sm" style={{ gap: 4 }}>
         {product.brand && <span className="card-brand">{product.brand}</span>}
@@ -41,7 +41,9 @@ export function ProductCard({ product, showSeller = true }) {
               toast(`Added ${product.name} to your cart`);
             }}
           >
-            {inCart ? formatNumber(inCart) : <Plus />}
+            <span key={inCart} className="add-btn-face">
+              {inCart ? formatNumber(inCart) : <Plus />}
+            </span>
           </button>
         )}
       </div>

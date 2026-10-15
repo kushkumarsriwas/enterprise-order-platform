@@ -26,8 +26,8 @@
   flex: none;
   color: var(--chrome-ink);
   text-decoration: none;
-  --mark-fill: #1b968f;
-  --mark-center: var(--chrome);
+  --mark-fill: #3b82f6;
+  --mark-ink: #ffffff;
 }
 
 .console-logo:hover {
@@ -151,8 +151,8 @@
 }
 
 .cc-find-box:focus-within {
-  border-color: #3bbcb2;
-  box-shadow: 0 0 0 3px rgba(59, 188, 178, 0.25);
+  border-color: #6ea0ff;
+  box-shadow: 0 0 0 3px rgba(110, 160, 255, 0.28);
 }
 
 .cc-find-box svg {
@@ -1029,6 +1029,38 @@
   overflow: hidden;
 }
 
+/* Soft light behind the sign-in panel (it drifts when motion is allowed, see motion.css). */
+.cc-signin-side::before,
+.cc-signin-side::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+.cc-signin-side::before {
+  top: -200px;
+  left: -140px;
+  width: 460px;
+  height: 460px;
+  background: rgba(59, 130, 246, 0.45);
+}
+
+.cc-signin-side::after {
+  right: -120px;
+  bottom: -200px;
+  width: 380px;
+  height: 380px;
+  background: rgba(242, 165, 49, 0.32);
+}
+
+.cc-signin-side > * {
+  position: relative;
+  z-index: 1;
+}
+
 .cc-signin-side h1 {
   max-width: 14ch;
   color: var(--chrome-ink);
@@ -1066,16 +1098,6 @@
   color: var(--saffron-400);
 }
 
-.cc-signin-star {
-  position: absolute;
-  top: -150px;
-  right: -150px;
-  width: 440px;
-  height: 440px;
-  opacity: 0.06;
-  pointer-events: none;
-}
-
 .cc-signin-main {
   display: grid;
   place-items: center;
@@ -1110,8 +1132,7 @@
     font-size: var(--text-2xl);
   }
 
-  .cc-signin-side ul,
-  .cc-signin-star {
+  .cc-signin-side ul {
     display: none;
   }
 }

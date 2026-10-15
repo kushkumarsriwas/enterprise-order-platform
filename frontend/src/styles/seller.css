@@ -1,12 +1,12 @@
 /*
- * Nexora Seller Central: the back office. A deep-lagoon sidebar separates it from the storefront at a glance;
+ * Nexora Seller Central: the back office. A deep navy sidebar separates it from the storefront at a glance;
  * the work area uses the same surfaces, controls and status colours as the rest of the product.
  */
 :root {
-  --sc-side-bg: #0a3f3c;
-  --sc-side-ink: #c6e2df;
+  --sc-side-bg: #0f1d36;
+  --sc-side-ink: #c9d5ea;
   --sc-side-strong: #ffffff;
-  --sc-side-muted: #86b5b0;
+  --sc-side-muted: #8fa2c2;
   --sc-side-hover: rgba(255, 255, 255, 0.07);
   --sc-side-active: rgba(255, 255, 255, 0.13);
   --sc-side-line: rgba(255, 255, 255, 0.1);
@@ -15,13 +15,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
-    --sc-side-bg: #07211f;
+    --sc-side-bg: #0a1426;
     --sc-side-line: rgba(255, 255, 255, 0.08);
   }
 }
 
 :root[data-theme="dark"] {
-  --sc-side-bg: #07211f;
+  --sc-side-bg: #0a1426;
   --sc-side-line: rgba(255, 255, 255, 0.08);
 }
 
@@ -55,9 +55,9 @@
 
 .sc-brand .logo {
   color: var(--sc-side-strong);
-  --mark-fill: #3bbcb2;
-  --mark-center: var(--sc-side-bg);
-  --mark-dot: #f48db4;
+  --mark-fill: var(--cobalt-500);
+  --mark-ink: #ffffff;
+  --mark-dot: #ff8b3d;
 }
 
 .sc-brand .logo-word {
@@ -131,7 +131,7 @@
 .sc-nav a.active {
   background: var(--sc-side-active);
   color: var(--sc-side-strong);
-  box-shadow: inset 3px 0 0 #3bbcb2;
+  box-shadow: inset 3px 0 0 #6ea0ff;
 }
 
 .sc-nav a svg {
@@ -155,7 +155,7 @@
 }
 
 .sc-nav .sc-count.hot {
-  background: var(--bloom-600);
+  background: var(--tangerine-600);
 }
 
 .sc-side-foot {
@@ -334,7 +334,7 @@
     position: fixed;
     inset: 0;
     z-index: 55;
-    background: rgba(4, 20, 18, 0.45);
+    background: rgba(6, 12, 24, 0.45);
   }
 
   .sc-menu-btn {

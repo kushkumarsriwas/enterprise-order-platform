@@ -43,11 +43,12 @@ for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do if /i "%%A"=="ADM
 if not exist ".local" mkdir ".local"
 set "DATA_VERSION=0"
 if exist ".local\data-version" set /p DATA_VERSION=<".local\data-version"
-if not "%DATA_VERSION%"=="3" (
-  echo       Version 3 ^(Nexora^) changes the database tables, so the OLD local test data is deleted once.
+rem Raised whenever the demo or the tables change; the local data is then deleted once and the demo loaded again
+if not "%DATA_VERSION%"=="4" (
+  echo       This version comes with a new demo, so the OLD local test data is deleted once.
   docker compose down -v --remove-orphans >nul 2>&1
   if exist ".local\demo-loaded" del ".local\demo-loaded"
-  >".local\data-version" echo 3
+  >".local\data-version" echo 4
 )
 
 echo [4/6] Building images and starting 12 containers (first run: 10-25 minutes, Oracle is slow to initialise)...

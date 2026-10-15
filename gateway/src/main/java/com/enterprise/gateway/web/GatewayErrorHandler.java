@@ -29,7 +29,7 @@ public class GatewayErrorHandler {
     @ExceptionHandler(ResourceAccessException.class)
     public ResponseEntity<Map<String, Object>> unavailable(ResourceAccessException ex, HttpServletRequest request) {
         boolean timeout = ex.getCause() instanceof SocketTimeoutException || ex.getCause() instanceof HttpTimeoutException;
-        log.warn("Downstream call for {} failed: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Downstream call for {} failed: {}", loggable(request.getRequestURI()), ex.getMessage());
         return timeout
                 ? body(HttpStatus.GATEWAY_TIMEOUT, "The service took too long to respond. Please retry.", request)
                 : body(HttpStatus.SERVICE_UNAVAILABLE, "The service is starting up or unavailable. Please retry in a few seconds.", request);
@@ -37,7 +37,7 @@ public class GatewayErrorHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unexpected(Exception ex, HttpServletRequest request) {
-        log.error("Gateway error on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        log.error("Gateway error on {} {}", request.getMethod(), loggable(request.getRequestURI()), ex);
         return body(HttpStatus.BAD_GATEWAY, "The gateway could not complete the request", request);
     }
 
@@ -53,5 +53,10 @@ public class GatewayErrorHandler {
             body.put("correlationId", correlationId);
         }
         return ResponseEntity.status(status).body(body);
+    }
+
+    /** Request values are logged without line breaks, so they cannot forge extra log lines. */
+    private static String loggable(String value) {
+        return value == null ? null : value.replaceAll("\\R", "_");
     }
 }
