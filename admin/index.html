@@ -8,6 +8,8 @@
     <meta name="description" content="Nexora Control Center: the administrator's console for the Nexora marketplace." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Nexora Control Center</title>
+    <!-- deployment settings (the marketplace address); in Docker, nginx writes this file when the container starts -->
+    <script src="/config.js"></script>
     <script>
       // apply the saved theme before the first paint (no light flash in dark mode)
       try {
