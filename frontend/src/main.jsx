@@ -8,8 +8,11 @@ import "./styles/base.css";
 import "./styles/ui.css";
 import "./styles/store.css";
 import App from "./App.jsx";
+import { keepServicesAwake } from "./wake.js";
 import { AuthProvider } from "./auth.jsx";
 import { ToastProvider } from "./hooks.jsx";
+
+keepServicesAwake();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

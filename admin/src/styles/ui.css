@@ -1070,6 +1070,32 @@
   flex: 1;
 }
 
+/* shown while the free Render servers wake up (see wake.js) */
+.wake-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 11px 16px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-3);
+  transform: translateX(-50%);
+  animation: rise 0.2s var(--ease);
+}
+
+.wake-banner svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
 .toasts {
   position: fixed;
   right: 20px;

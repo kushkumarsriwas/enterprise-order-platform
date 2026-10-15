@@ -16,7 +16,7 @@ accepts the administrator, and the console never accepts a store or customer acc
 | | |
 |---|---|
 | **Run everything locally** | one command on Windows: `scripts\windows\run-local.cmd` (Docker Desktop) — see [Run it](#run-it) |
-| **Live demo** | marketplace https://enterprise-frontend-wvds.onrender.com · Swagger https://enterprise-gateway.onrender.com/swagger-ui.html (free hosting: the first request wakes the servers, about a minute) |
+| **Live demo** | marketplace https://enterprise-frontend-wvds.onrender.com · Control Center https://enterprise-admin-sikh.onrender.com · API docs https://enterprise-gateway.onrender.com/docs (free hosting: the servers sleep when nobody visits, and the first visit wakes them in up to two minutes) |
 | **Demo accounts** | password `Demo-2026` · stores `alnoor`, `saharahome`, `oudamber`, `falconsports` (Seller Central) · customers `aisha`, `rahul`, `fatima`, `omar`, `maria`, `hamad` |
 | **Administrator** | user `admin`, password = `ADMIN_PASSWORD` from configuration (generated into your local `.env`; never committed) |
 | **Test payments** | card `4111 1111 1111 1111` approved · `4000 0000 0000 0002` declined · any UPI id approved · cash on delivery |
@@ -155,7 +155,7 @@ service keeps retrying the outcome (`OrderUpdateRetryJob`), so money and orders 
 
 ## Testing
 
-144 JUnit tests across the six services, plus an end-to-end test that CI runs on the packaged services.
+148 JUnit tests across the six services, plus an end-to-end test that CI runs on the packaged services.
 
 | Level | Tools | Examples |
 |---|---|---|

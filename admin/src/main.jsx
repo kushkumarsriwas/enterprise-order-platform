@@ -8,6 +8,9 @@ import "./styles/console.css";
 import { AdminSessionProvider } from "./auth.jsx";
 import { ToastProvider } from "./hooks.jsx";
 import App from "./App.jsx";
+import { keepServicesAwake } from "./wake.js";
+
+keepServicesAwake();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

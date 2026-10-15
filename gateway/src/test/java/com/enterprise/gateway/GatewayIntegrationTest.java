@@ -164,6 +164,13 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    void theApiDocumentationPageOpensSwaggerAtOnceWhereNothingSleeps() throws Exception {
+        HttpResponse<String> response = send(HttpRequest.newBuilder(uri("/docs")).GET());
+        assertThat(response.statusCode()).isEqualTo(302);
+        assertThat(response.headers().firstValue("Location")).hasValue("/swagger-ui.html");
+    }
+
+    @Test
     void internalEndpointsAreNotExposed() throws Exception {
         HttpResponse<String> response = send(HttpRequest.newBuilder(uri("/internal/orders/1/payment-outcome"))
                 .header("Authorization", "Bearer " + token()).POST(HttpRequest.BodyPublishers.ofString("{}")));

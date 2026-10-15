@@ -34,7 +34,7 @@ function WakeBanner() {
   return (
     <div className="wake-banner" role="status">
       <LoaderCircle className="spin" />
-      Waking Nexora up. The free servers sleep when nobody visits; this takes up to a minute.
+      Waking Nexora up. The free servers sleep when nobody visits; this takes up to two minutes.
     </div>
   );
 }
