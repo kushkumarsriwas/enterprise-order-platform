@@ -1,38 +1,20 @@
 /*
- * Motion in the Control Center: feedback and a little life, never in the way of the work. Everything sits behind
- * prefers-reduced-motion: no-preference - people who ask for less motion get a still, fully working console.
+ * Motion in the Control Center: feedback and a little life, never in the way of the work. Things under the pointer
+ * move with a long, soft deceleration (--ease-out); only feedback (a new count) keeps a small spring. Everything sits
+ * behind prefers-reduced-motion: no-preference, and pointer effects apply only where there is a pointer.
+ *
+ * Entrances use fill-mode "backwards" and the independent translate / scale properties, so once they end they leave
+ * nothing behind that could block a hover effect or trap a fixed overlay.
  */
 @media (prefers-reduced-motion: no-preference) {
   /* ---------- pages fade up once when they open */
   .page-enter {
-    animation: page-in 0.32s var(--ease) both;
+    animation: page-in 0.4s var(--ease-out) backwards;
   }
 
-  /* ---------- logo: the mark tilts and its dot pulses */
+  /* ---------- logo and command bar: counts pop, the bell rings when something new arrives */
   .console-logo .mark {
-    transition: transform 0.35s var(--ease-spring);
-  }
-
-  .console-logo:hover .mark {
-    transform: rotate(-8deg) scale(1.06);
-  }
-
-  .console-logo .mark circle {
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-
-  .console-logo:hover .mark circle {
-    animation: dot-pulse 0.8s var(--ease) infinite alternate;
-  }
-
-  /* ---------- icons: lift on hover, ring when a count arrives, the theme icon spins in */
-  .icon-btn svg {
-    transition: transform 0.2s var(--ease-spring);
-  }
-
-  .icon-btn:hover svg {
-    transform: translateY(-1px) scale(1.1);
+    transition: transform 0.6s var(--ease-out);
   }
 
   .icon-btn svg.ring-on {
@@ -41,90 +23,186 @@
   }
 
   .dot-count {
-    animation: pop 0.35s var(--ease-spring);
+    animation: pop 0.4s var(--ease-spring);
   }
 
   .icon-btn svg.theme-icon {
-    animation: spin-in 0.5s var(--ease-spring);
+    animation: spin-in 0.6s var(--ease-out);
   }
 
-  /* ---------- navigation: icons slide, waiting work pulses */
+  /* ---------- navigation: waiting work pulses */
   .cc-nav a svg {
-    transition: transform 0.25s var(--ease-spring);
-  }
-
-  .cc-nav a:hover svg {
-    transform: translateX(2px) scale(1.12);
+    transition: transform 0.4s var(--ease-out);
   }
 
   .cc-count.hot {
     animation: pulse-ring 2.2s ease-out infinite;
   }
 
-  /* ---------- buttons press in, primary buttons lift, their icons nudge */
+  /* ---------- buttons press in; filled buttons rise a little */
   .btn {
     transition:
-      background-color 0.15s,
-      border-color 0.15s,
-      color 0.15s,
-      box-shadow 0.2s var(--ease),
-      transform 0.15s var(--ease);
+      background-color 0.25s var(--ease-out),
+      border-color 0.25s var(--ease-out),
+      color 0.25s var(--ease-out),
+      box-shadow 0.4s var(--ease-out),
+      transform 0.4s var(--ease-out);
   }
 
   .btn:active:not(:disabled) {
     transform: scale(0.97);
+    transition-duration: 0.1s;
+  }
+
+  .btn-shine::after {
+    transition: transform 0.9s var(--ease-out);
+  }
+
+  /* ---------- figures */
+  .stat {
+    transition:
+      transform 0.5s var(--ease-out),
+      box-shadow 0.5s var(--ease-out);
+  }
+
+  /* ---------- sign-in: light drifts behind the panel, the pitch arrives, the previews float */
+  .aurora span {
+    will-change: transform;
+  }
+
+  .aurora span:nth-child(1) {
+    animation: drift-a 18s ease-in-out infinite alternate;
+  }
+
+  .aurora span:nth-child(2) {
+    animation: drift-b 23s ease-in-out infinite alternate;
+  }
+
+  .aurora span:nth-child(3) {
+    animation: drift-c 27s ease-in-out infinite alternate;
+  }
+
+  .cc-pitch > * {
+    animation: rise-in 0.8s var(--ease-out) backwards;
+  }
+
+  .cc-pitch > :nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .cc-pitch > :nth-child(3) {
+    animation-delay: 0.16s;
+  }
+
+  .cc-showcase {
+    animation: stage-in 1s var(--ease-out) 0.2s backwards;
+  }
+
+  .show-card {
+    transition: transform 0.9s var(--ease-out);
+  }
+
+  .show-a {
+    animation: float 6s ease-in-out 1s infinite alternate;
+  }
+
+  .show-b {
+    animation: float 7s ease-in-out 1.4s infinite alternate-reverse;
+  }
+
+  .show-c {
+    animation: float 5s ease-in-out 1.8s infinite alternate;
+  }
+
+  .show-bars i {
+    transform-origin: bottom;
+    animation: grow-up 1.2s var(--ease-out) backwards;
+  }
+
+  .show-bars i:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+
+  .show-bars i:nth-child(3) {
+    animation-delay: 0.16s;
+  }
+
+  .show-bars i:nth-child(4) {
+    animation-delay: 0.24s;
+  }
+
+  .show-bars i:nth-child(5) {
+    animation-delay: 0.32s;
+  }
+
+  .show-bars i:nth-child(6) {
+    animation-delay: 0.4s;
+  }
+
+  .cc-signin-card {
+    animation: rise-in 0.7s var(--ease-out) 0.05s backwards;
+  }
+}
+
+/* Pointer effects: only for a mouse or trackpad, and only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .console-logo:hover .mark {
+    transform: rotate(-6deg) scale(1.04);
+  }
+
+  .cc-nav a:hover svg {
+    transform: translateX(2px);
+  }
+
+  .btn-primary:hover:not(:disabled),
+  .btn-shine:hover:not(:disabled) {
+    transform: translateY(-1px);
   }
 
   .btn-primary:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--brand) 70%, transparent);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 12px 26px -12px color-mix(in srgb, var(--brand) 80%, transparent);
   }
 
-  .btn:hover:not(:disabled) > svg:not(.spin) {
-    animation: nudge 0.45s var(--ease);
-  }
-
-  /* ---------- figures lift under the pointer */
-  .stat {
-    transition:
-      transform 0.25s var(--ease),
-      box-shadow 0.25s var(--ease);
+  .btn-shine:hover:not(:disabled)::after {
+    transform: translateX(120%);
   }
 
   .stat:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-2);
   }
-
-  /* ---------- sign-in: soft light drifts behind the panel */
-  .cc-signin-side::before {
-    animation: drift-a 18s ease-in-out infinite alternate;
-  }
-
-  .cc-signin-side::after {
-    animation: drift-b 22s ease-in-out infinite alternate;
-  }
 }
 
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    translate: 0 8px;
   }
 }
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    translate: 0 22px;
+  }
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    translate: 0 34px;
+    scale: 0.96;
+  }
+}
+
+@keyframes float {
+  from {
+    translate: 0 0;
   }
   to {
-    opacity: 1;
-    transform: none;
+    translate: 0 -10px;
   }
 }
 
@@ -133,26 +211,10 @@
     transform: scale(0.4);
   }
   60% {
-    transform: scale(1.2);
+    transform: scale(1.18);
   }
   100% {
     transform: scale(1);
-  }
-}
-
-@keyframes cart-bump {
-  0%,
-  100% {
-    transform: none;
-  }
-  25% {
-    transform: translateY(-7px) rotate(-14deg);
-  }
-  50% {
-    transform: translateY(0) rotate(8deg);
-  }
-  70% {
-    transform: translateY(-2px) rotate(-4deg);
   }
 }
 
@@ -178,46 +240,14 @@
   }
 }
 
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  30% {
-    transform: rotate(-12deg);
-  }
-  70% {
-    transform: rotate(9deg);
-  }
-}
-
-@keyframes nudge {
-  0%,
-  100% {
-    transform: none;
-  }
-  50% {
-    transform: translateX(2px) scale(1.12);
-  }
-}
-
 @keyframes spin-in {
   from {
     opacity: 0;
-    transform: rotate(-140deg) scale(0.4);
+    transform: rotate(-120deg) scale(0.5);
   }
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes float {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-8px);
   }
 }
 
@@ -226,7 +256,7 @@
     transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translate(160px, 90px) scale(1.25);
+    transform: translate(180px, 110px) scale(1.25);
   }
 }
 
@@ -235,33 +265,30 @@
     transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translate(-180px, -70px) scale(1.2);
+    transform: translate(-200px, 90px) scale(1.18);
   }
 }
 
-@keyframes shine {
+@keyframes drift-c {
   from {
-    transform: translateX(-100%);
+    transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translateX(100%);
+    transform: translate(-160px, -120px) scale(1.3);
   }
 }
 
-@keyframes dot-pulse {
+@keyframes grow-up {
   from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.4);
+    transform: scaleY(0.1);
   }
 }
 
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.55);
+    box-shadow: 0 0 0 0 rgba(242, 165, 49, 0.55);
   }
   100% {
-    box-shadow: 0 0 0 9px rgba(249, 115, 22, 0);
+    box-shadow: 0 0 0 9px rgba(242, 165, 49, 0);
   }
 }

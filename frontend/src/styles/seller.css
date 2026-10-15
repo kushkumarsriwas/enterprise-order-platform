@@ -3,7 +3,7 @@
  * the work area uses the same surfaces, controls and status colours as the rest of the product.
  */
 :root {
-  --sc-side-bg: #0f1d36;
+  --sc-side-bg: #0b1a3d;
   --sc-side-ink: #c9d5ea;
   --sc-side-strong: #ffffff;
   --sc-side-muted: #8fa2c2;
@@ -39,7 +39,9 @@
   flex-direction: column;
   height: 100vh;
   overflow-y: auto;
-  background: var(--sc-side-bg);
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(47, 107, 255, 0.22), transparent 60%),
+    linear-gradient(180deg, var(--sc-side-bg), color-mix(in srgb, var(--sc-side-bg) 70%, #000000));
   color: var(--sc-side-ink);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;

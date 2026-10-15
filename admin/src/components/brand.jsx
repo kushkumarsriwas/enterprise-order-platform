@@ -18,6 +18,17 @@ export function Mark({ size = 26 }) {
   );
 }
 
+/** Moving coloured light behind the dark sign-in panel. Purely decorative. */
+export function Aurora() {
+  return (
+    <div className="aurora" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </div>
+  );
+}
+
 /** "nexora | Control Center" for the command bar and the sign-in page. */
 export function ConsoleLogo({ href = "#/" }) {
   return (

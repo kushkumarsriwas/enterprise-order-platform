@@ -89,7 +89,11 @@ export function ProductImage({ product, className = "", iconSize = 44 }) {
   }
   const tint = tintFor(product?.categoryName || product?.categoryId || product?.name);
   return (
-    <div className={`product-image placeholder ${className}`} style={{ "--tint": TINTS[tint], "--tint-dark": DARK_TINTS[tint] }} aria-hidden="true">
+    <div
+      className={`product-image placeholder ${className}`}
+      style={{ "--tint": TINTS[tint], "--tint-dark": DARK_TINTS[tint], "--icon": `${iconSize}px` }}
+      aria-hidden="true"
+    >
       <CategoryIcon name={product?.categoryName} size={iconSize} />
     </div>
   );
