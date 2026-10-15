@@ -28,7 +28,8 @@ public class LoginAuditService {
         repository.save(new LoginEvent(userId, username.length() > 120 ? username.substring(0, 120) : username,
                 portal, success, failureReason, client));
         if (!success) {
-            log.info("Failed {} sign-in for '{}' from {}: {}", portal, loggable(username), client.ipAddress(), failureReason);
+            log.info("Failed {} sign-in for '{}' from {}: {}", portal, loggable(username), loggable(client.ipAddress()),
+                    failureReason);
         }
     }
 
