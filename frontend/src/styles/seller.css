@@ -289,6 +289,19 @@
   color: var(--bad);
 }
 
+.sc-banner-info {
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.sc-banner-info svg {
+  color: var(--brand);
+}
+
+.sc-banner strong {
+  margin-right: 4px;
+}
+
 .sc-banner .btn {
   margin-left: auto;
 }

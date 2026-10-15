@@ -66,7 +66,9 @@ export default function App() {
   const [waking, setWaking] = useState(false);
   const { path } = route;
 
-  useEffect(() => setSlowStartHandler(setWaking), []);
+  useEffect(() => {
+    setSlowStartHandler(setWaking);
+  }, []);
   useEffect(() => {
     if (sessionExpired) {
       toast("Your session has ended. Please sign in again.", "bad");

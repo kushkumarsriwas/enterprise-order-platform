@@ -1,0 +1,33 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # The console is not a public site: keep it out of search engines and out of other sites' frames.
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+
+    # Same-origin API calls: the browser talks to nginx, nginx forwards to the gateway (no CORS needed).
+    location /api/ {
+        proxy_pass ${GATEWAY_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Origin "";
+        proxy_read_timeout 120s;
+    }
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location / {
+        add_header Cache-Control "no-store";
+        add_header X-Robots-Tag "noindex, nofollow" always;
+        add_header X-Frame-Options "DENY" always;
+        try_files $uri $uri/ /index.html;
+    }
+}

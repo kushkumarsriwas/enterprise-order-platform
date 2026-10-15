@@ -24,6 +24,7 @@ import {
   Star,
   Store,
   TrendingUp,
+  Megaphone,
   TriangleAlert,
   Users,
   Wallet,
@@ -120,6 +121,21 @@ const NAV = (c) => [
 ];
 
 const isActive = (item, path) => (item.exact ? path === item.path : path === item.path || path.startsWith(`${item.path}/`));
+
+/** Announcements from Nexora for stores (or everyone), e.g. holiday delivery times. Shows the latest live one. */
+function AnnouncementBanner() {
+  const announcements = useLoader(() => api("/api/announcements").catch(() => []), []);
+  const a = announcements.data?.[0];
+  if (!a) return null;
+  return (
+    <div className={`sc-banner ${a.level === "WARNING" ? "sc-banner-warn" : "sc-banner-info"}`} role="note">
+      <Megaphone />
+      <span>
+        <strong>{a.title}</strong> {a.message}
+      </span>
+    </div>
+  );
+}
 
 function StoreBanner({ settings, onChange }) {
   const toast = useToast();
@@ -276,6 +292,7 @@ export function SellerLayout({ route, navigate, children, settings }) {
           </div>
         </header>
         <StoreBanner settings={settings.data} onChange={settings.setData} />
+        <AnnouncementBanner />
         <main className="sc-main">
           <SellerContext.Provider value={{ reloadCounts: counts.reload, settings: settings.data, setSettings: settings.setData }}>
             {children}
