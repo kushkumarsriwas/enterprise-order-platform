@@ -142,4 +142,4 @@ services:
       - { path: /*, name: Referrer-Policy, value: no-referrer }
     envVars:
       - { key: VITE_API_BASE_URL, value: https://enterprise-gateway.onrender.com }
-      - { key: VITE_MARKETPLACE_URL, value: https://enterprise-frontend.onrender.com }
+      - { key: VITE_MARKETPLACE_URL, value: https://enterprise-frontend-wvds.onrender.com }
