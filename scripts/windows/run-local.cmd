@@ -3,17 +3,15 @@ setlocal EnableExtensions
 rem ===========================================================================
 rem  Builds and starts the WHOLE Nexora platform in Docker, and loads the demo the first time.
 rem  Usage (from anywhere):  scripts\windows\run-local.cmd
-rem  Needs Docker Desktop. Secrets live in .env (git-ignored); missing ones are generated here.
+rem  Needs Docker Desktop (started automatically when it is not running). Secrets live in .env (git-ignored);
+rem  missing ones are generated here.
 rem ===========================================================================
 cd /d "%~dp0..\.."
 
 echo.
 echo [1/6] Checking Docker...
-docker info >nul 2>&1
-if errorlevel 1 (
-  echo Docker Desktop is not running. Start Docker Desktop, wait until it says "Engine running", then run this again.
-  exit /b 1
-)
+call "%~dp0ensure-docker.cmd"
+if errorlevel 1 goto failed
 
 echo [2/6] Removing containers of older versions of this project (if any)...
 for %%C in (enterprise-gateway enterprise-auth enterprise-order enterprise-product-inventory enterprise-payment enterprise-notification enterprise-oracle enterprise-redis enterprise-redis-compose enterprise-postgres) do (
@@ -32,7 +30,7 @@ rem The administrator password and the service-to-service key are generated once
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$f='.env'; $c=@(Get-Content $f); $n=0; foreach($k in @('ADMIN_PASSWORD','INTERNAL_API_KEY')){ if(-not ($c | Where-Object { $_ -match ('^'+$k+'=\S') })){ if($k -eq 'ADMIN_PASSWORD'){ $v='Nexora-'+[guid]::NewGuid().ToString('N').Substring(0,12) } else { $v=[guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N') }; $c=@($c | Where-Object { $_ -notmatch ('^'+$k+'=') })+($k+'='+$v); $n++ } }; if($n -gt 0){ Set-Content -Path $f -Value $c -Encoding ascii; Write-Host ('      generated '+$n+' new secret(s) in .env') }"
 if errorlevel 1 (
   echo Could not update .env. Set ADMIN_PASSWORD and INTERNAL_API_KEY in .env by hand ^(see .env.example^) and run this again.
-  exit /b 1
+  goto failed
 )
 set "ADMIN_PASSWORD="
 for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do if /i "%%A"=="ADMIN_PASSWORD" set "ADMIN_PASSWORD=%%B"
@@ -54,7 +52,7 @@ if errorlevel 1 (
   echo Some containers did not become healthy. Current state:
   docker compose ps
   echo Logs of a service:  docker compose logs --tail 100 payment-service
-  exit /b 1
+  goto failed
 )
 
 if exist ".local\demo-loaded" (
@@ -97,3 +95,6 @@ echo   End-to-end test ............... scripts\windows\smoke-test.cmd
 echo   Stop everything ............... docker compose down     (add -v to delete the data as well)
 start "" http://localhost:3000
 exit /b 0
+
+:failed
+exit /b 1
