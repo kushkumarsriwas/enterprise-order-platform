@@ -10,11 +10,8 @@ rem  Usage:  scripts\windows\smoke-test.cmd
 rem ===========================================================================
 cd /d "%~dp0..\.."
 
-docker info >nul 2>&1
-if errorlevel 1 (
-  echo Docker Desktop is not running. Start it and run scripts\windows\run-local.cmd first.
-  exit /b 1
-)
+call "%~dp0ensure-docker.cmd"
+if errorlevel 1 goto failed
 set "ADMIN_PASSWORD="
 if exist ".env" for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do if /i "%%A"=="ADMIN_PASSWORD" set "ADMIN_PASSWORD=%%B"
 
@@ -22,6 +19,9 @@ docker run --rm --network enterprise-order-platform_default -e ADMIN_PASSWORD -e
 if errorlevel 1 (
   echo.
   echo Smoke test FAILED - see the output above. Logs of a service:  docker compose logs --tail 100 order-service
-  exit /b 1
+  goto failed
 )
 exit /b 0
+
+:failed
+exit /b 1
