@@ -16,14 +16,17 @@ if errorlevel 1 git commit -m "Update project files"
 git push origin --all
 if errorlevel 1 (
   echo Push failed. If GitHub asks you to sign in, complete the sign-in window and run this again.
-  exit /b 1
+  goto failed
 )
 git push origin --tags
 if errorlevel 1 (
   echo Pushing the tags failed - run this again.
-  exit /b 1
+  goto failed
 )
 echo.
 echo Pushed. Follow the pipeline here: https://github.com/kushkumarsriwas/enterprise-order-platform/actions
 start "" https://github.com/kushkumarsriwas/enterprise-order-platform/actions
 exit /b 0
+
+:failed
+exit /b 1
