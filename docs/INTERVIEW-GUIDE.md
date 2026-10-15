@@ -29,7 +29,7 @@ Use this to practise. Every answer points to real code, so you can open it and s
 * Used **polyglot persistence** with JPA/Hibernate — **MySQL** (accounts), **Oracle** (payments), **PostgreSQL**
   (catalogue, orders, notifications) — plus **Redis** caching, pessimistic and optimistic locking, and Criteria API
   queries for filtered, paginated reports.
-* Wrote **144 JUnit 5 / Mockito / MockMvc / Testcontainers tests** and a **139-check end-to-end test** that CI runs
+* Wrote **148 JUnit 5 / Mockito / MockMvc / Testcontainers tests** and a **139-check end-to-end test** that CI runs
   against the packaged services on PostgreSQL and Redis.
 * Containerised all services with **Docker** (multi-stage, non-root), orchestrated with **Docker Compose** and
   **Kubernetes** (probes, resource limits, rolling updates, HorizontalPodAutoscaler), with an **AWS EKS** overlay and
@@ -239,7 +239,7 @@ puts it in the MDC so it is on every log line, and it is in every error body. Se
 
 ### Testing and delivery
 
-**How did you test?** 144 JUnit tests: unit tests with Mockito (`OrderServiceTest`: checkout split, compensation,
+**How did you test?** 148 JUnit tests: unit tests with Mockito (`OrderServiceTest`: checkout split, compensation,
 payment outcomes; `PaymentStrategyTest`; `InventoryServiceTest`), MockMvc web tests (`ProductResourceControllerTest`),
 Spring Boot integration tests for every API including security and store isolation, Testcontainers tests on a real
 PostgreSQL, the concurrency test, and `scripts/smoke-test.mjs` — 139 checks through the gateway on the real services.
@@ -249,6 +249,17 @@ integration tests (with JaCoCo coverage in the job summary), and packages its JA
 format-checked and built; CodeQL scans the code; the Kubernetes manifests are rendered and validated with kubeconform;
 the end-to-end test runs the packaged JARs against PostgreSQL and Redis; then the eight Docker images are built and,
 on `main`, pushed to GitHub Container Registry. `cd.yml` deploys only after CI passes on `main`.
+
+**How is the live demo hosted, and what was hard about it?** On Render: the gateway and the five services as Docker
+web services, one PostgreSQL (a schema per service), Key Value for the cache, and the two web apps as static sites.
+Free instances sleep after 15 minutes without visitors. The live demo failed with 502s although every deploy was
+green; the logs showed the services were never started again, and the response header `x-render-routing: no-deploy`
+pointed to the cause: only a request from outside Render wakes a sleeping instance, so the gateway's calls could
+never wake a service. I proved it by waking two services from a browser while the gateway kept calling all four:
+only those two started. The fix is on the client side: while the marketplace or the Control Center is open and
+visible, the browser pings every service directly every four minutes (`VITE_WAKE_URLS`), the API client retries
+for up to three minutes while showing "Waking Nexora up", the gateway's `/docs` page wakes the services before it
+opens Swagger UI, and the demo loader does the same. On a paid plan the instances never sleep and none of this runs.
 
 **Docker and Kubernetes — what did you configure?** Multi-stage Dockerfiles (Maven build → slim JRE, non-root user,
 memory flags). Compose runs 12 containers with health checks and start-up order. In `k8s/`: a namespace, a ConfigMap,

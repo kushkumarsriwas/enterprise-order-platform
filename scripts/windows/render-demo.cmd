@@ -18,6 +18,9 @@ if "%~1"=="" (
 set "DB_URL=%~1"
 set "GATEWAY=%~2"
 if "%GATEWAY%"=="" set "GATEWAY=https://enterprise-gateway.onrender.com"
+rem Free Render services are woken only by requests from outside Render (not by the gateway): the loader wakes
+rem each one at its own address and keeps them awake while the demo loads
+if not defined WAKE_URLS if /i "%GATEWAY%"=="https://enterprise-gateway.onrender.com" set "WAKE_URLS=%GATEWAY%,https://enterprise-auth.onrender.com,https://enterprise-product-inventory.onrender.com,https://enterprise-order.onrender.com,https://enterprise-payment.onrender.com,https://enterprise-notification.onrender.com"
 
 call "%~dp0ensure-docker.cmd"
 if errorlevel 1 goto failed
@@ -34,8 +37,8 @@ if errorlevel 1 (
   goto failed
 )
 
-echo [2/3] Loading the demo through the API (sleeping services are woken first; 15-30 minutes on the free plan)...
-docker run --rm -e ADMIN_PASSWORD -v "%CD%\scripts:/scripts:ro" node:22-alpine node /scripts/demo-data.mjs %GATEWAY%
+echo [2/3] Waking the services ^(about 2 minutes^), then loading the demo through the API ^(15-30 minutes on the free plan^)...
+docker run --rm -e ADMIN_PASSWORD -e WAKE_URLS -v "%CD%\scripts:/scripts:ro" node:22-alpine node /scripts/demo-data.mjs %GATEWAY%
 if errorlevel 1 (
   echo Loading the demo FAILED - see the output above. Run this again to start over.
   goto failed
