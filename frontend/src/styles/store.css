@@ -41,6 +41,7 @@
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 /* frosted glass: the page shows through, softly blurred, as it scrolls under the header */
@@ -598,18 +599,6 @@
     color-mix(in srgb, var(--tint-dark) 70%, #000000) 100%
   );
   color: var(--ink-2);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .product-image.placeholder {
-    background: radial-gradient(
-      120% 90% at 50% 20%,
-      color-mix(in srgb, var(--tint-dark) 80%, #ffffff) 0%,
-      var(--tint-dark) 60%,
-      color-mix(in srgb, var(--tint-dark) 70%, #000000) 100%
-    );
-    color: var(--ink-2);
-  }
 }
 
 .price {
@@ -2505,15 +2494,6 @@
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.1),
     0 34px 70px -22px rgba(0, 0, 0, 0.8);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) .hero-pick {
-    background: linear-gradient(160deg, #1d2a45, #131c2e);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.1),
-      0 34px 70px -22px rgba(0, 0, 0, 0.8);
-  }
 }
 
 /* the form side: a lit card on a soft background */

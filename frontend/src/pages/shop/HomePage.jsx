@@ -83,8 +83,8 @@ export function HomePage() {
             </a>
           </div>
           <div className="hero-facts">
-            <Fact value={stores.data?.totalElements} label="independent stores" />
-            {productCount > 0 && <Fact value={productCount} label="products on sale" />}
+            <Fact value={stores.data?.totalElements} label={stores.data?.totalElements === 1 ? "independent store" : "independent stores"} />
+            {productCount > 0 && <Fact value={productCount} label={productCount === 1 ? "product on sale" : "products on sale"} />}
             <Fact value={7} label="emirates, free delivery" />
           </div>
         </div>
