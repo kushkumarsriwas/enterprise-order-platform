@@ -187,6 +187,17 @@ demo the first time, and prints the addresses:
 
 `scripts\windows\smoke-test.cmd` runs the end-to-end test against it; `docker compose down` stops everything.
 
+### Save changes to GitHub, and the live demo
+```bat
+scripts\windows\publish.cmd
+```
+commits what you changed and pushes every branch. GitHub Actions tests it, and Render deploys `main` by itself once
+the tests pass. To load the demo on the live site again (it replaces its stores, customers and orders, about 20
+minutes on the free plan), pass the External Database URL from Render (enterprise-postgres > Connect > External):
+```bat
+scripts\windows\render-demo.cmd "External Database URL"
+```
+
 ### Any OS
 ```bash
 cp .env.example .env                   # then set ADMIN_PASSWORD and INTERNAL_API_KEY
