@@ -228,7 +228,8 @@ public class InventoryAnalyticsService {
                         money(decimal(r[3])))).toList();
         List<SpendRow> byMonth = receipts.spendByMonth(sellerId, start, end).stream()
                 .map(r -> new SpendRow(Month.of(((Number) r[1]).intValue()).getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-                        + " " + r[0], 0, 0, money(decimal(r[2])))).toList();
+                        + " " + r[0], ((Number) r[2]).longValue(), ((Number) r[3]).longValue(), money(decimal(r[4]))))
+                .toList();
         BigDecimal spend = bySupplier.stream().map(SpendRow::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal turnover = valueAtCost.signum() == 0 ? BigDecimal.ZERO

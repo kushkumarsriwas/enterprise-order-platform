@@ -101,7 +101,8 @@ public class ReviewService {
         String productName = order.getItems().stream().filter(i -> i.getProductId().equals(request.productId()))
                 .map(OrderItem::getProductName).findFirst().orElse("Product");
         Review review = reviewRepository.save(new Review(request.productId(), productName, order.getSellerId(),
-                order.getSellerName(), order.getId(), customer.id(), customer.username(), request.rating(),
+                order.getSellerName(), order.getId(), customer.id(),
+                publicName(order.getRecipientName(), customer.username()), request.rating(),
                 blankToNull(request.comment())));
         events.publishEvent(new RatingChanged(request.productId()));
         notifications.toUser(CurrentUser.token(), order.getSellerId(), "NEW_REVIEW",
@@ -109,6 +110,21 @@ public class ReviewService {
                 customer.username() + ": " + (review.getComment() == null ? "(no comment)" : review.getComment()));
         log.info("{} rated product {} with {} star(s)", customer.username(), request.productId(), request.rating());
         return ReviewResponse.from(review);
+    }
+
+    /**
+     * The name printed under a public review: first name and the initial of the last name of the person the order
+     * was delivered to ("Aisha Al Mansoori" -> "Aisha M."), so reviews read like people without exposing full names.
+     */
+    static String publicName(String fullName, String fallback) {
+        if (fullName == null || fullName.isBlank()) {
+            return fallback;
+        }
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0];
+        }
+        return parts[0] + " " + Character.toUpperCase(parts[parts.length - 1].charAt(0)) + ".";
     }
 
     // ------------------------------------------------------------------ seller

@@ -32,11 +32,13 @@ public final class OrderDtos {
                                  @Size(max = 60) String region,
                                  @Size(max = 60) String country) {
 
+        /** "Recipient, line 1, line 2, city, emirate, country (phone)"; the emirate is left out when it is the city. */
         public String formatted() {
             List<String> parts = new ArrayList<>();
             for (String part : new String[]{recipient, line1, line2, city, region,
                     country == null || country.isBlank() ? "United Arab Emirates" : country}) {
-                if (part != null && !part.isBlank()) {
+                if (part != null && !part.isBlank()
+                        && (parts.isEmpty() || !parts.getLast().equalsIgnoreCase(part.trim()))) {
                     parts.add(part.trim());
                 }
             }
