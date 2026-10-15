@@ -16,7 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * URL rules (defense in depth - controllers also use @PreAuthorize):
- * the marketplace catalogue is public, Seller Central needs SELLER, the admin console needs ADMIN,
+ * reading the marketplace catalogue is public, writing /api/products and Seller Central need SELLER, the admin console needs ADMIN,
  * service-to-service /internal endpoints need the shared service key (and are not routed by the gateway).
  */
 @Configuration
@@ -36,6 +36,9 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint).accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/products").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/*").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/*").hasRole("SELLER")
                         .requestMatchers("/api/seller/**", "/api/inventory/**").hasRole("SELLER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/internal/**").authenticated()
