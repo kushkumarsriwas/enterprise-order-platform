@@ -143,7 +143,7 @@ const STORES = [
       { sku: "ANE-EAR-01", name: "Wireless noise-cancelling earbuds", brand: "Sonora", category: "Electronics", price: 349, compareAt: 429, cost: 190, stock: 42, supplier: "gulfdist", description: "Active noise cancelling, 30 hours with the charging case and an IPX4 rating for the gym." },
       { sku: "ANE-PWR-20", name: "20,000 mAh power bank with USB-C fast charge", brand: "Voltix", category: "Electronics", price: 149, cost: 72, stock: 65, supplier: "shenzhen", description: "Charges a phone four times; 22.5 W fast charging and a small display that shows what is left." },
       { sku: "ANE-CHG-65", name: "65 W GaN wall charger, three ports", brand: "Voltix", category: "Electronics", price: 119, compareAt: 139, cost: 58, stock: 38, supplier: "shenzhen", description: "Charges a laptop, a phone and earbuds at once. UK plug." },
-      { sku: "ANE-SPK-02", name: "Portable Bluetooth speaker, waterproof", brand: "Sonora", category: "Electronics", price: 229, cost: 128, stock: 4, reorderPoint: 6, supplier: "gulfdist", description: "Rich sound for the beach or the majlis; 18 hours of play and an IP67 rating." },
+      { sku: "ANE-SPK-02", name: "Portable Bluetooth speaker, waterproof", brand: "Sonora", category: "Electronics", price: 229, cost: 128, stock: 4, reorderPoint: 6, supplier: "gulfdist", description: "Rich sound for the beach or the balcony; 18 hours of play and an IP67 rating." },
       { sku: "ANE-CAB-3M", name: "Braided USB-C to USB-C cable, 3 m", brand: "Voltix", category: "Electronics", price: 39, cost: 12, stock: 220, reorderPoint: 40, reorderQuantity: 200, supplier: "shenzhen", description: "100 W, nylon braided, tested for 20,000 bends." },
       { sku: "ANE-KBD-01", name: "Bilingual Arabic-English wireless keyboard", brand: "Typewell", category: "Computers & Office", price: 179, cost: 95, stock: 27, supplier: "gulfdist", description: "Laser-etched Arabic and English keys, quiet switches and a battery that lasts a year." },
       { sku: "ANE-MSE-02", name: "Ergonomic vertical mouse", brand: "Typewell", category: "Computers & Office", price: 129, compareAt: 159, cost: 61, stock: 31, supplier: "gulfdist", description: "Holds your hand in a natural handshake position. Silent clicks, three DPI levels." },
@@ -159,7 +159,7 @@ const STORES = [
     storeName: "Sahara Home & Living",
     city: "Sharjah",
     phone: "+971 6 544 7700",
-    storeDescription: "Handpicked homeware: Arabic coffee sets, linen, lanterns and everything for a welcoming home.",
+    storeDescription: "Handpicked homeware: coffee sets, linen, lighting and everything for a welcoming home.",
     tradeLicenseNumber: "SEDD-20841",
     vatNumber: "100512348900003",
     warehouses: [{ code: "SHJ-IND", name: "Industrial Area 13 store room", city: "Sharjah", address: "Warehouse 8, Industrial Area 13" }],
@@ -168,14 +168,14 @@ const STORES = [
       { key: "textiles", name: "Al Waha Textiles", contactName: "Rashid Omar", email: "sales@alwaha.example", phone: "+971 4 266 9001", city: "Dubai", leadTimeDays: 10, paymentTermsDays: 45 },
     ],
     products: [
-      { sku: "SHL-DLH-SET", name: "Brass dallah with six finjan cups", brand: "Sahara", category: "Home & Kitchen", price: 245, compareAt: 299, cost: 120, stock: 18, supplier: "karak", description: "Traditional Arabic coffee pot in hand-finished brass, with six porcelain cups." },
-      { sku: "SHL-LAN-L", name: "Moroccan lantern, large", brand: "Sahara", category: "Home & Kitchen", price: 185, cost: 84, stock: 22, supplier: "karak", description: "Pierced metal lantern that throws patterned light; for candles or an LED bulb." },
+      { sku: "SHL-CPT-SET", name: "Brass coffee pot with six cups", brand: "Sahara", category: "Home & Kitchen", price: 245, compareAt: 299, cost: 120, stock: 18, supplier: "karak", description: "Hand-finished brass coffee pot with six matching porcelain cups." },
+      { sku: "SHL-LAN-L", name: "Metal table lantern, large", brand: "Sahara", category: "Home & Kitchen", price: 185, cost: 84, stock: 22, supplier: "karak", description: "Pierced metal lantern that throws patterned light; for candles or an LED bulb." },
       { sku: "SHL-LIN-K", name: "Stonewashed linen bedding set, king", brand: "Oasis Linen", category: "Home & Kitchen", price: 499, compareAt: 590, cost: 260, stock: 12, supplier: "textiles", description: "Duvet cover, fitted sheet and two pillowcases in breathable stonewashed linen." },
       { sku: "SHL-RUG-160", name: "Hand-woven kilim rug, 160 x 230 cm", brand: "Sahara", category: "Home & Kitchen", price: 899, cost: 520, stock: 5, reorderPoint: 3, supplier: "textiles", description: "Flat-woven wool in desert tones. Every rug is slightly different." },
       { sku: "SHL-MUG-4", name: "Stoneware mugs, set of 4", brand: "Karak Studio", category: "Home & Kitchen", price: 95, cost: 38, stock: 48, supplier: "karak", description: "Reactive glaze in sand and teal; dishwasher and microwave safe." },
-      { sku: "SHL-DIF-01", name: "Bakhoor burner, electric", brand: "Sahara", category: "Home & Kitchen", price: 135, cost: 61, stock: 30, supplier: "karak", description: "Warms bakhoor without charcoal; two heat settings and an auto-off timer." },
+      { sku: "SHL-DIF-01", name: "Electric aroma diffuser", brand: "Sahara", category: "Home & Kitchen", price: 135, cost: 61, stock: 30, supplier: "karak", description: "Ultrasonic diffuser for essential oils; two mist settings and an auto-off timer." },
       { sku: "SHL-TWL-6", name: "Turkish cotton towel bundle, 6 pieces", brand: "Oasis Linen", category: "Home & Kitchen", price: 219, cost: 102, stock: 3, reorderPoint: 8, supplier: "textiles", description: "Two bath, two hand and two face towels in long-staple cotton." },
-      { sku: "SHL-CUS-2", name: "Embroidered floor cushions, pair", brand: "Sahara", category: "Home & Kitchen", price: 329, compareAt: 379, cost: 170, stock: 14, supplier: "textiles", description: "Majlis-style cushions with hand embroidery; removable covers." },
+      { sku: "SHL-CUS-2", name: "Embroidered floor cushions, pair", brand: "Sahara", category: "Home & Kitchen", price: 329, compareAt: 379, cost: 170, stock: 14, supplier: "textiles", description: "Large floor cushions with hand embroidery; removable covers." },
     ],
   },
   {
@@ -194,7 +194,7 @@ const STORES = [
     products: [
       { sku: "OAB-OUD-12", name: "Cambodian oud oil, 3 ml", brand: "Oud & Amber", category: "Beauty & Personal Care", price: 450, cost: 210, stock: 16, supplier: "attar", description: "Aged oud oil with a smoky, sweet finish. One drop lasts the day." },
       { sku: "OAB-PRF-50", name: "Amber and rose eau de parfum, 50 ml", brand: "Oud & Amber", category: "Beauty & Personal Care", price: 295, compareAt: 340, cost: 118, stock: 34, supplier: "attar", description: "Taif rose over warm amber and a touch of saffron." },
-      { sku: "OAB-BKH-250", name: "Bakhoor chips, 250 g", brand: "Oud & Amber", category: "Beauty & Personal Care", price: 85, cost: 31, stock: 75, supplier: "attar", description: "Agarwood chips soaked in perfume oils for the home." },
+      { sku: "OAB-CDL-250", name: "Amber and vanilla soy candle, 250 g", brand: "Oud & Amber", category: "Beauty & Personal Care", price: 85, cost: 31, stock: 75, supplier: "attar", description: "Hand-poured soy wax candle; about 50 hours of burn time." },
       { sku: "OAB-SKN-SER", name: "Date seed facial serum, 30 ml", brand: "Nakheel Skin", category: "Beauty & Personal Care", price: 159, cost: 54, stock: 41, supplier: "attar", description: "Lightweight serum with date seed oil and niacinamide for daily hydration." },
       { sku: "OAB-SKN-SPF", name: "Mineral sunscreen SPF 50, 50 ml", brand: "Nakheel Skin", category: "Beauty & Personal Care", price: 119, cost: 44, stock: 6, reorderPoint: 10, supplier: "attar", description: "Zinc oxide sunscreen that does not leave a white cast; reef-friendly." },
       { sku: "OAB-GFT-SET", name: "Discovery set of five perfume oils", brand: "Oud & Amber", category: "Beauty & Personal Care", price: 199, cost: 77, stock: 25, supplier: "attar", description: "Five 2 ml roll-ons to find your signature scent; gift boxed." },
@@ -387,7 +387,7 @@ async function main() {
   await api(`/api/seller/inventory/${product(alnoor, "ANE-EAR-01").id}/bin`, { method: "PUT", token: alnoor.token, body: { warehouseId: main.id, binLocation: "B-01-3" } });
   await api("/api/seller/inventory/adjustments", { method: "POST", token: alnoor.token, expect: [200, 201], body: { productId: product(alnoor, "ANE-CHG-65").id, warehouseId: main.id, quantityChange: -2, reason: "DAMAGED", note: "Cracked casing, returned by courier" } });
   await api("/api/seller/inventory/adjustments", { method: "POST", token: sahara.token, expect: [200, 201], body: { productId: product(sahara, "SHL-MUG-4").id, quantityChange: -1, reason: "DAMAGED", note: "Broken in the store room" } });
-  await api("/api/seller/inventory/adjustments", { method: "POST", token: oud.token, expect: [200, 201], body: { productId: product(oud, "OAB-BKH-250").id, quantityChange: -3, reason: "INTERNAL_USE", note: "Used for the shop" } });
+  await api("/api/seller/inventory/adjustments", { method: "POST", token: oud.token, expect: [200, 201], body: { productId: product(oud, "OAB-CDL-250").id, quantityChange: -3, reason: "INTERNAL_USE", note: "Used for the shop" } });
   let count = await api("/api/seller/stock-counts", { method: "POST", token: alnoor.token, expect: [200, 201], body: { warehouseId: main.id, categoryId: categoryId["Computers & Office"], note: "Monthly count, computers aisle" } });
   count = await api(`/api/seller/stock-counts/${count.id}`, { token: alnoor.token });
   // two differences: units missing from one shelf, one extra unit found on another
@@ -425,7 +425,7 @@ async function main() {
     result.orders.forEach((o) => paid.push(o));
     return result;
   };
-  keep(await placeOrder(aisha, [[product(alnoor, "ANE-EAR-01"), 1], [product(sahara, "SHL-DLH-SET"), 1], [product(oud, "OAB-PRF-50"), 2]], GOOD_CARD, "earbuds, a dallah set and perfume from three stores"));
+  keep(await placeOrder(aisha, [[product(alnoor, "ANE-EAR-01"), 1], [product(sahara, "SHL-CPT-SET"), 1], [product(oud, "OAB-PRF-50"), 2]], GOOD_CARD, "earbuds, a coffee set and perfume from three stores"));
   keep(await placeOrder(rahul, [[product(alnoor, "ANE-MON-27"), 1], [product(alnoor, "ANE-HUB-07"), 1], [product(alnoor, "ANE-KBD-01"), 1]], GOOD_CARD, "a home-office setup"));
   keep(await placeOrder(fatima, [[product(oud, "OAB-OUD-12"), 1], [product(oud, "OAB-SKN-SER"), 2], [product(oud, "OAB-GFT-SET"), 1]], { method: "UPI", upiId: "fatima.khan@adcb" }, "oud and skincare by bank transfer"));
   keep(await placeOrder(omar, [[product(falcon, "FSH-PAD-PRO"), 1], [product(falcon, "FSH-PAD-BALL"), 4]], { method: "COD" }, "a padel racket, cash on delivery"));
@@ -433,8 +433,8 @@ async function main() {
   keep(await placeOrder(hamad, [[product(falcon, "FSH-CAM-CHR"), 1], [product(falcon, "FSH-BOT-1L"), 2], [product(alnoor, "ANE-SPK-02"), 1]], GOOD_CARD, "camping gear and a speaker"));
   keep(await placeOrder(aisha, [[product(alnoor, "ANE-PWR-20"), 1], [product(alnoor, "ANE-CAB-3M"), 2]], { method: "COD" }, "a power bank and cables, cash on delivery"));
   keep(await placeOrder(rahul, [[product(falcon, "FSH-RUN-HYD"), 1], [product(falcon, "FSH-BIK-LGT"), 1], [product(oud, "OAB-SKN-SPF"), 1]], GOOD_CARD, "running gear and sunscreen"));
-  keep(await placeOrder(fatima, [[product(sahara, "SHL-CUS-2"), 1], [product(sahara, "SHL-DIF-01"), 1]], GOOD_CARD, "floor cushions and a bakhoor burner"));
-  keep(await placeOrder(maria, [[product(alnoor, "ANE-MSE-02"), 1], [product(falcon, "FSH-YOG-MAT"), 1], [product(oud, "OAB-BKH-250"), 2]], { method: "UPI", upiId: "maria.santos@enbd" }, "a mouse, a yoga mat and bakhoor"));
+  keep(await placeOrder(fatima, [[product(sahara, "SHL-CUS-2"), 1], [product(sahara, "SHL-DIF-01"), 1]], GOOD_CARD, "floor cushions and an aroma diffuser"));
+  keep(await placeOrder(maria, [[product(alnoor, "ANE-MSE-02"), 1], [product(falcon, "FSH-YOG-MAT"), 1], [product(oud, "OAB-CDL-250"), 2]], { method: "UPI", upiId: "maria.santos@enbd" }, "a mouse, a yoga mat and candles"));
   keep(await placeOrder(omar, [[product(oud, "OAB-PRF-50"), 1], [product(sahara, "SHL-RUG-160"), 1]], GOOD_CARD, "perfume and a kilim rug"));
   keep(await placeOrder(hamad, [[product(alnoor, "ANE-EAR-01"), 2], [product(alnoor, "ANE-CHG-65"), 1]], GOOD_CARD, "two pairs of earbuds and a charger"));
   // a declined card, then a successful retry on the same orders

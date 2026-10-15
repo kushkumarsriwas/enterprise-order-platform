@@ -27,8 +27,11 @@ if errorlevel 1 goto failed
 
 echo.
 echo This replaces every store, customer and order on %GATEWAY% with the demo.
+rem Unattended runs set RENDER_DEMO_CONFIRMED=yes instead of answering the question
+if /i "%RENDER_DEMO_CONFIRMED%"=="yes" goto confirmed
 choice /c YN /m "Continue"
 if errorlevel 2 goto cancelled
+:confirmed
 
 echo [1/3] Removing the current marketplace data...
 docker run --rm -i postgres:18 psql "%DB_URL%" -v ON_ERROR_STOP=1 -q < scripts\demo-reset.sql
