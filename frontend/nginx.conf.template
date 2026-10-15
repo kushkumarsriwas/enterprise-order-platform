@@ -17,7 +17,10 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # index.html is checked on every visit (a quick 304 when nothing changed), so a new release shows up at once;
+    # the hashed files under /assets/ never change and are cached for a year.
     location / {
+        add_header Cache-Control "no-cache";
         try_files $uri $uri/ /index.html;
     }
 }

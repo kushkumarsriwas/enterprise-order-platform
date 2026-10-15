@@ -74,20 +74,8 @@ export function useClickOutside(ref, onOutside, enabled = true) {
   }, [ref, onOutside, enabled]);
 }
 
-export function useMediaQuery(query) {
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const list = window.matchMedia(query);
-    const onChange = () => setMatches(list.matches);
-    list.addEventListener("change", onChange);
-    return () => list.removeEventListener("change", onChange);
-  }, [query]);
-  return matches;
-}
-
-/** Light / dark theme: follows the device until the administrator picks one in the command bar. */
+/** Light / dark theme: light unless the administrator picks dark in the command bar (the choice is remembered). */
 export function useTheme() {
-  const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
   const [choice, setChoice] = useState(() => {
     try {
       return localStorage.getItem("nexora_theme");
@@ -95,7 +83,7 @@ export function useTheme() {
       return null;
     }
   });
-  const dark = choice ? choice === "dark" : prefersDark;
+  const dark = choice === "dark";
   useEffect(() => {
     if (choice) document.documentElement.dataset.theme = choice;
     else delete document.documentElement.dataset.theme;

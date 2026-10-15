@@ -13,13 +13,6 @@
   --sc-topbar-h: 62px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) {
-    --sc-side-bg: #0a1426;
-    --sc-side-line: rgba(255, 255, 255, 0.08);
-  }
-}
-
 :root[data-theme="dark"] {
   --sc-side-bg: #0a1426;
   --sc-side-line: rgba(255, 255, 255, 0.08);
@@ -67,8 +60,10 @@
 }
 
 .sc-brand .logo-suffix {
+  padding: 3px 7px;
   background: rgba(255, 255, 255, 0.12);
   color: var(--sc-side-strong);
+  font-size: 11px;
 }
 
 .sc-store {

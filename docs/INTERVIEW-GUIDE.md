@@ -276,8 +276,8 @@ e-mails wait in the outbox. Next steps would be Resilience4j circuit breakers an
 **What did you build on the front end?** Three React 19 applications: the marketplace and Seller Central (one app,
 lazy-loaded so shoppers never download the Seller Central code) and the Control Center as a separate app with its own
 nginx container, `noindex` and `X-Frame-Options: DENY`. Filters live in the URL so every view can be bookmarked and
-shared, charts use a colour-blind-safe palette with legends and tooltips, everything has a dark mode and works on a
-phone. The look is one design system in CSS variables (cobalt blue for actions, tangerine for deals, Sora and Figtree
+shared, charts use a colour-blind-safe palette with legends and tooltips, everything is light by default with a dark
+mode one click away, and works on a phone. The look is one design system in CSS variables (cobalt blue for actions, tangerine for deals, Sora and Figtree
 bundled with the app). The first look, the home page hero and the three sign-in pages, is a dark panel with slowly
 moving coloured light and a product showcase that leans towards the mouse (a small `useTilt` hook sets two CSS
 variables; the 3D effect is pure CSS). Under the pointer, cards lift with one soft easing curve; real feedback stays
