@@ -1,0 +1,56 @@
+# Oracle Database 23 Free: the payment service (payments, refunds, payouts, expenses and budgets).
+# Needs about 1.5 GB of memory; the first start takes several minutes.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oracle-data
+  namespace: enterprise-platform
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oracle
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: oracle }
+  template:
+    metadata:
+      labels: { app: oracle, tier: database }
+    spec:
+      containers:
+        - name: oracle
+          image: gvenzl/oracle-free:23-slim
+          ports: [{ containerPort: 1521 }]
+          env:
+            - { name: APP_USER, value: payment }
+            - { name: APP_USER_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: ORACLE_APP_PASSWORD } } }
+            - { name: ORACLE_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: ORACLE_PASSWORD } } }
+          readinessProbe:
+            exec: { command: ["healthcheck.sh"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 60
+          resources:
+            requests: { memory: 1536Mi, cpu: 100m }
+            limits: { memory: 1536Mi }
+          volumeMounts: [{ name: data, mountPath: /opt/oracle/oradata }]
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: oracle-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oracle
+  namespace: enterprise-platform
+spec:
+  selector: { app: oracle }
+  ports: [{ port: 1521, targetPort: 1521 }]

@@ -1,10 +1,44 @@
-# kubectl apply -k k8s/      (images are built by: docker compose build)
+# Nexora on Kubernetes (Docker Desktop, Minikube or EKS):
+#   kubectl apply -k k8s                 (secrets come from k8s/config/secrets.env, see secrets.env.example)
+#   kubectl -n enterprise-platform get pods,services
+#   kubectl -n enterprise-platform scale deployment order-service --replicas=3
+# Images are built by "docker compose build" (enterprise/<name>:3.0.0); deploy/aws uses images from a registry (AWS EKS).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: enterprise-platform
+
 resources:
   - namespace.yaml
-  - config.yaml
-  - databases.yaml
-  - services.yaml
-  - frontend.yaml
+  - config/configmap.yaml
+  - databases/postgres.yaml
+  - databases/mysql.yaml
+  - databases/oracle.yaml
+  - databases/redis.yaml
+  - auth/deployment.yaml
+  - auth/service.yaml
+  - products/deployment.yaml
+  - products/service.yaml
+  - orders/deployment.yaml
+  - orders/service.yaml
+  - orders/hpa.yaml
+  - payments/deployment.yaml
+  - payments/service.yaml
+  - notifications/deployment.yaml
+  - notifications/service.yaml
+  - gateway/deployment.yaml
+  - gateway/service.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - admin/deployment.yaml
+  - admin/service.yaml
+
+# The Secret is generated from a file that never goes to git
+secretGenerator:
+  - name: platform-secrets
+    envs: [config/secrets.env]
+generatorOptions:
+  disableNameSuffixHash: true
+
+labels:
+  - pairs: { app.kubernetes.io/part-of: nexora }
+    includeSelectors: false

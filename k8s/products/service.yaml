@@ -1,0 +1,9 @@
+# Reached only inside the cluster (by the gateway and the other services) at http://product-service:8082
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: enterprise-platform
+spec:
+  selector: { app: product-service }
+  ports: [{ name: http, port: 8082, targetPort: http }]
