@@ -1,0 +1,15 @@
+# EBS gp3 volumes for the database PersistentVolumeClaims (needs the aws-ebs-csi-driver add-on, see
+# docs/DEPLOY-AWS.md). Marked as the default class because newer EKS versions no longer mark gp2 as default.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true

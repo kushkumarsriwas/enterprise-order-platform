@@ -1,5 +1,5 @@
-# Oracle Database 23 Free: the payment service (payments, refunds, payouts, expenses and budgets).
-# Needs about 1.5 GB of memory; the first start takes several minutes.
+# Oracle Database 23 Free: the payment service (payments, refunds, expenses and budgets).
+# Needs about 1.5 GB of memory and 2-3 GB of disk; the first start takes several minutes.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,7 +9,7 @@ spec:
   accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 2Gi
+      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment

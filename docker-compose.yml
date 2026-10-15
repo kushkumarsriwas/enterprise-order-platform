@@ -211,8 +211,8 @@ services:
     restart: unless-stopped
     environment:
       GATEWAY_URL: http://api-gateway:8080
-      # where the console's links to the marketplace point
-      MARKETPLACE_URL: http://localhost:3000
+      # where the console's links to the marketplace point (on a server: http://<its address>:3000, set in .env)
+      MARKETPLACE_URL: ${MARKETPLACE_URL:-http://localhost:3000}
     ports: ["3001:80"]
     depends_on:
       api-gateway: { condition: service_healthy }
