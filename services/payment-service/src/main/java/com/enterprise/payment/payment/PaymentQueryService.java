@@ -163,20 +163,8 @@ public class PaymentQueryService {
                 long count = ((Number) row[2]).longValue();
                 BigDecimal amount = money(row[3]);
                 switch (status) {
-                    case SUCCESS, PENDING -> {
-                        t.payments += count;
-                        t.gross = t.gross.add(amount);
-                        t.fees = t.fees.add(money(row[4]));
-                        t.net = t.net.add(money(row[5]));
-                        if (status == PaymentStatus.SUCCESS) {
-                            t.collected = t.collected.add(amount);
-                        } else {
-                            t.awaiting = t.awaiting.add(amount);
-                        }
-                        t.byMethod.merge(method.name(), new MethodTotal(method.name(), count, amount),
-                                (a, b) -> new MethodTotal(a.method(), a.payments() + b.payments(),
-                                        a.amount().add(b.amount())));
-                    }
+                    case SUCCESS -> t.addPayment(method, count, amount, money(row[4]), money(row[5]), true);
+                    case PENDING -> t.addPayment(method, count, amount, money(row[4]), money(row[5]), false);
                     case REFUNDED -> {
                         t.refunds += count;
                         t.refunded = t.refunded.add(amount);
@@ -188,6 +176,22 @@ public class PaymentQueryService {
                 }
             }
             return t;
+        }
+
+        /** A captured payment, or a cash-on-delivery one that is collected later ({@code collectedNow} false). */
+        void addPayment(PaymentMethod method, long count, BigDecimal amount, BigDecimal fee, BigDecimal netAmount,
+                        boolean collectedNow) {
+            payments += count;
+            gross = gross.add(amount);
+            fees = fees.add(fee);
+            net = net.add(netAmount);
+            if (collectedNow) {
+                collected = collected.add(amount);
+            } else {
+                awaiting = awaiting.add(amount);
+            }
+            byMethod.merge(method.name(), new MethodTotal(method.name(), count, amount),
+                    (a, b) -> new MethodTotal(a.method(), a.payments() + b.payments(), a.amount().add(b.amount())));
         }
 
         BigDecimal successRate() {

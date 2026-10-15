@@ -282,7 +282,7 @@ async function main() {
     const existing = await api("/api/seller/products?size=1", { token: account.token });
     if (!account.created && existing.totalElements > 0) {
       console.log(`\nThe demo stores already exist (${store.storeName} has products). Nothing to do.`);
-      console.log(`Sign in with any demo account and the password ${PASSWORD}.`);
+      console.log("Sign in with any demo account (the password is in README.md).");
       return;
     }
     stores.push({ ...store, token: account.token, id: account.user.id, supplierIds: {}, productIds: {}, products: [] });
@@ -687,7 +687,7 @@ async function main() {
 
   clearInterval(keepAwake);
   console.log(`\nDone: ${calls} API calls.`);
-  console.log(`Sign in with any of these and the password ${PASSWORD}:`);
+  console.log("Demo accounts (the password is in README.md):");
   console.log(`  Seller Central  ${STORES.map((s) => s.username).join(", ")}`);
   console.log(`  Customers       ${CUSTOMERS.map((c) => c.username).join(", ")}`);
 }

@@ -163,7 +163,7 @@ public class InventoryService {
             productCache.evictProduct(productId);
             alertIfCrossedReorderPoint(product, quantity);
         }
-        log.info("Reserved stock for order {} ({} product(s))", request.orderRef(), created.size());
+        log.info("Reserved stock for order {} ({} product(s))", loggable(request.orderRef()), created.size());
         return toResponse(request.orderRef(), created);
     }
 
@@ -182,11 +182,11 @@ public class InventoryService {
                     reservation.changeStatus(ReservationStatus.COMMITTED);
                     productCache.evictProduct(reservation.getProductId());
                 }
-                case RELEASED, EXPIRED -> throw ApiException.conflict(
+                default -> throw ApiException.conflict(
                         "Reservation for order " + orderRef + " is no longer active (" + reservation.getStatus() + ")");
             }
         }
-        log.info("Committed stock for order {}", orderRef);
+        log.info("Committed stock for order {}", loggable(orderRef));
         return toResponse(orderRef, reservations);
     }
 
@@ -204,14 +204,15 @@ public class InventoryService {
                             reservation.getQuantity(), orderRef, "Order cancelled before payment", actor());
                 }
                 case COMMITTED -> ledger.returnShipped(ledger.lock(productId), orderRef, actor());
-                case RELEASED, EXPIRED -> {
+                default -> {
+                    // released or expired earlier: nothing to give back
                     continue;
                 }
             }
             reservation.changeStatus(ReservationStatus.RELEASED);
             productCache.evictProduct(productId);
         }
-        log.info("Released stock for order {}", orderRef);
+        log.info("Released stock for order {}", loggable(orderRef));
         return toResponse(orderRef, reservations);
     }
 
@@ -509,5 +510,10 @@ public class InventoryService {
         } catch (ApiException ex) {
             return "system";
         }
+    }
+
+    /** Request values are logged without line breaks, so they cannot forge extra log lines. */
+    private static String loggable(String value) {
+        return value == null ? null : value.replaceAll("\\R", "_");
     }
 }
