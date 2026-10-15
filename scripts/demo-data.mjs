@@ -18,9 +18,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const log = (text) => console.log(`  ${text}`);
 const step = (text) => console.log(`\n== ${text}`);
 
-/** One API call; waits while the platform wakes up (502/503) and fails loudly on anything unexpected. */
+/** One API call; waits while a service wakes up or restarts (502/503/504, up to 8 minutes) and fails loudly on anything else. */
 async function api(path, { method = "GET", token, body, expect = [200, 201, 204] } = {}) {
-  for (let attempt = 0; attempt < 40; attempt++) {
+  const started = Date.now();
+  const retry = () => Date.now() - started < 8 * 60000;
+  for (;;) {
     calls++;
     let response;
     try {
@@ -30,14 +32,14 @@ async function api(path, { method = "GET", token, body, expect = [200, 201, 204]
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch (error) {
-      if (attempt < 39) {
-        await sleep(3000);
+      if (retry()) {
+        await sleep(5000);
         continue;
       }
       throw new Error(`${method} ${path}: ${error.message}`);
     }
-    if ((response.status === 502 || response.status === 503) && attempt < 39) {
-      await sleep(3000);
+    if ([502, 503, 504].includes(response.status) && retry()) {
+      await sleep(5000);
       continue;
     }
     const text = await response.text();
@@ -49,7 +51,29 @@ async function api(path, { method = "GET", token, body, expect = [200, 201, 204]
     }
     return data;
   }
-  throw new Error(`${method} ${path}: the platform did not answer`);
+}
+
+/**
+ * Free hosting (Render) puts idle services to sleep and a sleeping service needs a few minutes to start. Wake all five
+ * at once through the gateway (each answers its API description at /api-docs/<name>) before the first real call.
+ */
+async function wakeUp() {
+  await Promise.all(
+    ["auth", "inventory", "orders", "payments", "notifications"].map(async (name) => {
+      const started = Date.now();
+      for (;;) {
+        try {
+          const response = await fetch(`${GATEWAY}/api-docs/${name}`);
+          if (response.status < 500) return;
+        } catch {
+          // not reachable yet
+        }
+        if (Date.now() - started > 10 * 60000) throw new Error(`the ${name} service did not start within 10 minutes`);
+        await sleep(5000);
+      }
+    }),
+  );
+  log("all five services are up");
 }
 
 const daysFromNow = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
@@ -212,6 +236,7 @@ async function placeOrder(customer, lines, payment, label) {
 async function main() {
   console.log(`Nexora demo data -> ${GATEWAY}`);
   step("Waiting for the platform");
+  await wakeUp();
   const categories = await api("/api/categories");
   const categoryId = Object.fromEntries(categories.map((c) => [c.name, c.id]));
   log(`${categories.length} marketplace departments`);
