@@ -249,5 +249,8 @@ export function KeyValues({ items }) {
   );
 }
 
-/** Link to the marketplace (separate web application), e.g. a store's public page. */
-export const MARKETPLACE_URL = (import.meta.env.VITE_MARKETPLACE_URL || "http://localhost:5173").replace(/\/$/, "");
+/**
+ * Link to the marketplace (separate web application), e.g. a store's public page: set when the container starts
+ * (/config.js), else at build time (VITE_MARKETPLACE_URL), else the marketplace's dev server.
+ */
+export const MARKETPLACE_URL = (window.NEXORA_CONFIG?.marketplaceUrl || import.meta.env.VITE_MARKETPLACE_URL || "http://localhost:5173").replace(/\/$/, "");

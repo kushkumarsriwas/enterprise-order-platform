@@ -1,0 +1,55 @@
+# PostgreSQL 18: one database "enterprise" with a schema per service (products and inventory, orders, notifications).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: enterprise-platform
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: postgres }
+  template:
+    metadata:
+      labels: { app: postgres, tier: database }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18
+          ports: [{ containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_DB, value: enterprise }
+            - { name: POSTGRES_USER, value: postgres }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: POSTGRES_PASSWORD } } }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "postgres"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 60
+          resources:
+            requests: { memory: 256Mi, cpu: 100m }
+            limits: { memory: 256Mi }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql }]
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: postgres-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: enterprise-platform
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432, targetPort: 5432 }]

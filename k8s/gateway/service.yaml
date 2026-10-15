@@ -1,0 +1,10 @@
+# NodePort 30080 on Docker Desktop / Minikube; the AWS overlay turns it into a load balancer.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: enterprise-platform
+spec:
+  type: NodePort
+  selector: { app: api-gateway }
+  ports: [{ name: http, port: 8080, targetPort: http, nodePort: 30080 }]

@@ -1,0 +1,29 @@
+# Nexora Control Center, the administrator's console: a separate web application.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-frontend
+  namespace: enterprise-platform
+  labels: { app: admin-frontend, tier: web }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: admin-frontend }
+  template:
+    metadata:
+      labels: { app: admin-frontend, tier: web }
+    spec:
+      containers:
+        - name: admin-frontend
+          image: enterprise/admin-frontend:3.0.0
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: http, containerPort: 80 }]
+          env:
+            - { name: GATEWAY_URL, value: "http://api-gateway:8080" }
+            # where the console's links to the marketplace point (on EKS: the frontend's load balancer address)
+            - { name: MARKETPLACE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: MARKETPLACE_URL } } }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+          resources:
+            requests: { memory: 32Mi, cpu: 20m }
+            limits: { memory: 64Mi }

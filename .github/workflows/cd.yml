@@ -1,0 +1,104 @@
+# Continuous deployment: starts when the CI workflow has passed on main (or by hand from the Actions tab).
+#
+#   render  Render rebuilds the API gateway, the storefront and the Control Center through their deploy hooks
+#           (the five backend services use Render's auto-deploy). Repository secrets: RENDER_GATEWAY_DEPLOY_HOOK,
+#           RENDER_FRONTEND_DEPLOY_HOOK, RENDER_ADMIN_DEPLOY_HOOK. A hook that is not set is skipped.
+#   eks     Optional: deploys the images CI pushed to GitHub Container Registry to an AWS EKS cluster with
+#           deploy/aws. Runs only when the AWS secrets exist (see docs/DEPLOY-AWS.md): AWS_ACCESS_KEY_ID,
+#           AWS_SECRET_ACCESS_KEY, AWS_REGION, EKS_CLUSTER_NAME and K8S_SECRETS_ENV (the content of secrets.env).
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Deploy ${{ matrix.target }} to Render
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [gateway, frontend, admin]
+    steps:
+      - name: Trigger the Render deploy hook
+        env:
+          GATEWAY_HOOK: ${{ secrets.RENDER_GATEWAY_DEPLOY_HOOK }}
+          FRONTEND_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
+          ADMIN_HOOK: ${{ secrets.RENDER_ADMIN_DEPLOY_HOOK }}
+        run: |
+          case "${{ matrix.target }}" in
+            gateway) HOOK="$GATEWAY_HOOK" ;;
+            frontend) HOOK="$FRONTEND_HOOK" ;;
+            admin) HOOK="$ADMIN_HOOK" ;;
+          esac
+          if [ -z "$HOOK" ]; then
+            echo "::notice::No Render deploy hook for ${{ matrix.target }} (repository secret not set) - skipped"
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "$HOOK" > /dev/null
+          echo "Render is deploying ${{ matrix.target }}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  eks:
+    name: Deploy to AWS EKS
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+      # the commit CI tested and built the images from
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+      NAMESPACE: enterprise-platform
+    steps:
+      - name: Check that AWS is configured
+        id: aws
+        env:
+          KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ -n "$KEY" ] && [ -n "$EKS_CLUSTER_NAME" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::AWS secrets are not set - the EKS deployment is skipped (see docs/DEPLOY-AWS.md)"; fi
+      - uses: actions/checkout@v5
+        if: steps.aws.outputs.enabled == 'true'
+        with:
+          ref: ${{ env.IMAGE_TAG }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: steps.aws.outputs.enabled == 'true'
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Connect kubectl to the cluster
+        if: steps.aws.outputs.enabled == 'true'
+        run: aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
+      - name: Apply the manifests with the images of this commit (deploy/aws)
+        if: steps.aws.outputs.enabled == 'true'
+        env:
+          SECRETS_ENV: ${{ secrets.K8S_SECRETS_ENV }}
+        run: |
+          # pin every image to the tested commit instead of "latest", so a rollout is reproducible and reversible
+          sed -i "s/newTag: latest/newTag: $IMAGE_TAG/" deploy/aws/kustomization.yaml
+          printf '%s\n' "$SECRETS_ENV" > k8s/config/secrets.env
+          kubectl apply -k deploy/aws
+          rm -f k8s/config/secrets.env
+      - name: Wait for the rollout
+        if: steps.aws.outputs.enabled == 'true'
+        run: |
+          for app in auth-service product-service order-service payment-service notification-service api-gateway frontend admin-frontend; do
+            kubectl -n "$NAMESPACE" rollout status "deployment/$app" --timeout=10m
+          done
+          kubectl -n "$NAMESPACE" get pods,services | tee -a "$GITHUB_STEP_SUMMARY"

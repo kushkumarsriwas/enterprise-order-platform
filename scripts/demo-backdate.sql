@@ -8,6 +8,14 @@
 -- Orders waiting for payment or for shipping keep today's date. Every checkout is moved by one random age and all
 -- of its timestamps (status history, payments, stock movements, reservations, reviews, notifications and e-mails)
 -- move with it consistently; order numbers (ORD-yymmdd-xxxxxx) are renumbered to match the new date everywhere.
+--
+-- Where the data lives: on Render (and in a plain local run) every service uses this PostgreSQL database. In docker
+-- compose the payments are in Oracle and the accounts in MySQL, so for those two this script writes the same changes
+-- as SQL files instead (/tmp/demo-backdate-oracle.sql and /tmp/demo-backdate-mysql.sql in the postgres container),
+-- which scripts\windows\run-local.cmd then runs with sqlplus and mysql.
+
+SELECT to_regclass('payment_service.payments') IS NOT NULL AS payments_here,
+       to_regclass('auth_service.users') IS NOT NULL AS accounts_here \gset
 
 BEGIN;
 SELECT setseed(0.2026);
@@ -101,6 +109,7 @@ FROM (SELECT r2.id, least(d.new_delivered + (0.5 + random() * 3) * interval '1 d
 WHERE r.id = t.id;
 
 -- ---------------------------------------------------------------- payments of those orders
+\if :payments_here
 UPDATE payment_service.payments p
 SET created_at = least(d.new_created + CASE WHEN p.payment_status = 'FAILED' THEN interval '1 minute' ELSE interval '2 minutes' END, now()),
     updated_at = least(CASE
@@ -112,6 +121,39 @@ SET created_at = least(d.new_created + CASE WHEN p.payment_status = 'FAILED' THE
     provider_reference = replace(p.provider_reference, d.old_number, d.new_number)
 FROM demo_orders d
 WHERE p.order_id = d.id;
+\else
+-- The same change for the payments in Oracle (sqlplus): one UPDATE per order, with the times worked out here.
+CREATE FUNCTION pg_temp.oracle_time(at timestamptz) RETURNS text LANGUAGE sql AS
+$$ SELECT 'TIMESTAMP ''' || to_char(least(at, now()) AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') || ' +00:00''' $$;
+\pset format unaligned
+\pset tuples_only on
+\o /tmp/demo-backdate-oracle.sql
+SELECT line FROM (
+  SELECT 0 AS part, 0 AS id, 'WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK' AS line
+  UNION ALL SELECT 1, 0, 'SET DEFINE OFF'
+  UNION ALL SELECT 2, 0, 'SET FEEDBACK OFF'
+  UNION ALL
+  SELECT 3, d.id,
+         'UPDATE payments SET created_at = CASE WHEN payment_status = ''FAILED'' THEN '
+         || pg_temp.oracle_time(d.new_created + interval '1 minute')
+         || ' ELSE ' || pg_temp.oracle_time(d.new_created + interval '2 minutes') || ' END, updated_at = CASE'
+         || ' WHEN payment_status IN (''REFUNDED'', ''CANCELLED'') THEN ' || pg_temp.oracle_time(d.new_created + interval '40 minutes')
+         || CASE WHEN d.new_delivered IS NULL THEN ''
+                 ELSE ' WHEN payment_method = ''COD'' THEN ' || pg_temp.oracle_time(d.new_delivered) END
+         || ' ELSE ' || pg_temp.oracle_time(d.new_created + interval '2 minutes') || ' END'
+         || ', order_number = ''' || d.new_number || ''''
+         || ', transaction_reference = REPLACE(transaction_reference, ''' || d.old_number || ''', ''' || d.new_number || ''')'
+         || ', provider_reference = REPLACE(provider_reference, ''' || d.old_number || ''', ''' || d.new_number || ''')'
+         || ' WHERE order_id = ' || d.id || ';'
+  FROM demo_orders d
+  UNION ALL SELECT 4, 0, 'COMMIT;'
+  UNION ALL SELECT 5, 0, 'EXIT'
+) statements
+ORDER BY part, id;
+\o
+\pset format aligned
+\pset tuples_only off
+\endif
 
 -- ---------------------------------------------------------------- stock reserved, sold and returned for those orders
 UPDATE inventory_service.stock_movements m
@@ -250,11 +292,32 @@ UPDATE inventory_service.stock_movements SET created_at = now() - (2 + random() 
 WHERE type = 'ADJUSTMENT';
 
 -- ---------------------------------------------------------------- accounts: stores opened half a year ago, customers before their first order
+\if :accounts_here
 UPDATE auth_service.users SET created_at = now() - interval '190 days' WHERE role = 'SELLER';
 UPDATE auth_service.users u
 SET created_at = f.first_order - interval '9 days'
 FROM (SELECT user_id, min(new_created) AS first_order FROM demo_orders GROUP BY user_id) f
 WHERE u.id = f.user_id AND u.role = 'CUSTOMER';
+\else
+-- The same change for the accounts in MySQL.
+\pset format unaligned
+\pset tuples_only on
+\o /tmp/demo-backdate-mysql.sql
+SELECT line FROM (
+  SELECT 0 AS part, 0 AS id,
+         'UPDATE users SET created_at = ''' || to_char((now() - interval '190 days') AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
+         || ''' WHERE role = ''SELLER'';' AS line
+  UNION ALL
+  SELECT 1, f.user_id,
+         'UPDATE users SET created_at = ''' || to_char((f.first_order - interval '9 days') AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
+         || ''' WHERE id = ' || f.user_id || ' AND role = ''CUSTOMER'';'
+  FROM (SELECT user_id, min(new_created) AS first_order FROM demo_orders GROUP BY user_id) f
+) statements
+ORDER BY part, id;
+\o
+\pset format aligned
+\pset tuples_only off
+\endif
 
 -- ---------------------------------------------------------------- the stock ledger in its new time order
 -- Every physical movement stores the warehouse balance after it; recompute that running balance in the new order.

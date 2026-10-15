@@ -18,6 +18,15 @@ server {
         proxy_read_timeout 120s;
     }
 
+    # Settings read when the container starts, so one image works everywhere (compose, Kubernetes, EKS):
+    # the console's links to the marketplace point at MARKETPLACE_URL.
+    location = /config.js {
+        default_type application/javascript;
+        add_header Cache-Control "no-store";
+        add_header X-Content-Type-Options "nosniff" always;
+        return 200 'window.NEXORA_CONFIG = { marketplaceUrl: "${MARKETPLACE_URL}" };\n';
+    }
+
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";

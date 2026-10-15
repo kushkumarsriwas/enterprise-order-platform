@@ -1,0 +1,52 @@
+# Nexora on AWS EKS: the same manifests as k8s/, with images from GitHub Container Registry (pushed by CI on
+# every push to main) and an AWS load balancer in front of each web application. The API gateway stays inside
+# the cluster: the browser reaches the API through the web applications' own /api proxy (no CORS needed).
+#   kubectl apply -k deploy/aws                    (k8s/config/secrets.env must exist, see secrets.env.example)
+#   kubectl -n enterprise-platform get service frontend admin-frontend    (EXTERNAL-IP = the public addresses)
+# Full walkthrough: docs/DEPLOY-AWS.md
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../k8s
+  - storageclass.yaml
+
+images:
+  - { name: enterprise/auth-service, newName: ghcr.io/kushkumarsriwas/eop-auth-service, newTag: latest }
+  - { name: enterprise/product-service, newName: ghcr.io/kushkumarsriwas/eop-product-service, newTag: latest }
+  - { name: enterprise/order-service, newName: ghcr.io/kushkumarsriwas/eop-order-service, newTag: latest }
+  - { name: enterprise/payment-service, newName: ghcr.io/kushkumarsriwas/eop-payment-service, newTag: latest }
+  - { name: enterprise/notification-service, newName: ghcr.io/kushkumarsriwas/eop-notification-service, newTag: latest }
+  - { name: enterprise/api-gateway, newName: ghcr.io/kushkumarsriwas/eop-api-gateway, newTag: latest }
+  - { name: enterprise/frontend, newName: ghcr.io/kushkumarsriwas/eop-frontend, newTag: latest }
+  - { name: enterprise/admin-frontend, newName: ghcr.io/kushkumarsriwas/eop-admin-frontend, newTag: latest }
+
+patches:
+  # always pull, so "kubectl rollout restart" picks up the newest image of a tag
+  - target: { kind: Deployment, labelSelector: "tier in (backend,edge,web)" }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always
+  # the two web applications get public load balancers
+  - target: { kind: Service, name: frontend }
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer
+      - op: remove
+        path: /spec/ports/0/nodePort
+  - target: { kind: Service, name: admin-frontend }
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer
+      - op: remove
+        path: /spec/ports/0/nodePort
+  # the gateway is only reached from inside the cluster
+  - target: { kind: Service, name: api-gateway }
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: ClusterIP
+      - op: remove
+        path: /spec/ports/0/nodePort

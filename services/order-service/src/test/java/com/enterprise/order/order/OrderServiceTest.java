@@ -96,7 +96,7 @@ class OrderServiceTest {
         assertThat(checkout.grandTotal()).isEqualByComparingTo("5120.00");
         assertThat(checkout.orders().get(0).recipientName()).isEqualTo("Kush Kumar");
         assertThat(checkout.orders().get(0).shippingAddress())
-                .isEqualTo("Kush Kumar, Marina Walk, Tower 3, Apt 1204, Dubai, Dubai, United Arab Emirates (+971 50 123 4567)");
+                .isEqualTo("Kush Kumar, Marina Walk, Tower 3, Apt 1204, Dubai, United Arab Emirates (+971 50 123 4567)");
         assertThat(checkout.orders().get(0).items().get(0).categoryName()).isEqualTo("Electronics");
         // VAT is included in the price: 5000 x 5 / 105
         assertThat(checkout.orders().get(0).vatAmount()).isEqualByComparingTo("238.10");

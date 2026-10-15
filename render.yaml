@@ -4,9 +4,12 @@
 # entered in the dashboard (JDBC URL, passwords) and never committed to git.
 #
 # How a deploy works:
-#   git push -> GitHub Actions (tests + e2e) -> deploy hooks for gateway & frontend
+#   git push -> GitHub Actions CI (tests, e2e, images) -> CD (cd.yml) calls the deploy hooks of the gateway,
+#   the storefront and the Control Center (repository secrets RENDER_*_DEPLOY_HOOK)
 #   the five backend services use Render auto-deploy on every push to main
 #   Every container sets SPRING_PROFILES_ACTIVE=render automatically when RENDER=true (see Dockerfiles).
+#   On Render every service uses the one PostgreSQL database (a schema each); the shared service-to-service key is
+#   derived from its password unless INTERNAL_API_KEY is set on every service.
 
 databases:
   - name: enterprise-postgres
@@ -36,6 +39,8 @@ services:
       - { key: SPRING_DATASOURCE_PASSWORD, sync: false }
       - { key: JWT_EXPIRATION, value: "86400000" }
       - { key: PRODUCT_SERVICE_URL, value: https://enterprise-product-inventory.onrender.com }
+      # the one platform administrator (Control Center): 12 or more characters, entered in the dashboard
+      - { key: ADMIN_PASSWORD, sync: false }
 
   - type: web
     name: enterprise-product-inventory
@@ -122,3 +127,19 @@ services:
     staticPublishPath: dist
     envVars:
       - { key: VITE_API_BASE_URL, value: https://enterprise-gateway.onrender.com }
+
+  # Nexora Control Center: the administrator's console, its own static site (not linked from the marketplace)
+  - type: web
+    name: enterprise-admin
+    runtime: static
+    autoDeploy: false   # deployed by GitHub Actions after the tests pass
+    rootDir: admin
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    headers:
+      - { path: /*, name: X-Robots-Tag, value: "noindex, nofollow" }
+      - { path: /*, name: X-Frame-Options, value: DENY }
+      - { path: /*, name: Referrer-Policy, value: no-referrer }
+    envVars:
+      - { key: VITE_API_BASE_URL, value: https://enterprise-gateway.onrender.com }
+      - { key: VITE_MARKETPLACE_URL, value: https://enterprise-frontend.onrender.com }
