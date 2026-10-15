@@ -1,12 +1,13 @@
 @echo off
 setlocal EnableExtensions
 rem ===========================================================================
-rem  Optional: loads the demo (4 stores, 6 customers, five months of orders) into the live Render deployment,
-rem  the same way run-local.cmd does locally. Run it once; it does nothing when the demo stores already exist.
+rem  Loads the demo (4 stores, 6 customers, five months of orders) into the live Render deployment, the same way
+rem  run-local.cmd does locally. It first REPLACES the live marketplace data: every store, customer and order is
+rem  removed (the departments and the administrator stay), so it can be run again at any time.
 rem  Usage:  scripts\windows\render-demo.cmd "External Database URL" [gateway URL]
 rem    External Database URL: Render dashboard > enterprise-postgres > Connect > External (keep it secret).
 rem    Gateway URL: default https://enterprise-gateway.onrender.com
-rem  To also publish the welcome announcement, first:  set ADMIN_PASSWORD=the password set on enterprise-auth
+rem  To also publish the welcome announcement, first:  set "ADMIN_PASSWORD=the password set on enterprise-auth"
 rem ===========================================================================
 cd /d "%~dp0..\.."
 if "%~1"=="" (
@@ -21,32 +22,37 @@ if "%GATEWAY%"=="" set "GATEWAY=https://enterprise-gateway.onrender.com"
 call "%~dp0ensure-docker.cmd"
 if errorlevel 1 goto failed
 
-echo Checking whether the demo is already on %GATEWAY% (the free services can take a minute to wake up)...
-docker run --rm -e GATEWAY="%GATEWAY%" node:22-alpine node -e "(async () => { for (let i = 0; i < 12; i++) { try { const r = await fetch(process.env.GATEWAY + '/api/sellers?search=Al%%20Noor'); if (r.ok) { const d = await r.json(); process.exit(d.totalElements > 0 ? 0 : 1); } } catch (e) {} await new Promise((s) => setTimeout(s, 15000)); } process.exit(2); })()"
-if errorlevel 2 (
-  echo The gateway did not answer. Open %GATEWAY%/actuator/health in a browser, wait until it shows UP, then run this again.
+echo.
+echo This replaces every store, customer and order on %GATEWAY% with the demo.
+choice /c YN /m "Continue"
+if errorlevel 2 goto cancelled
+
+echo [1/3] Removing the current marketplace data...
+docker run --rm -i postgres:18 psql "%DB_URL%" -v ON_ERROR_STOP=1 -q < scripts\demo-reset.sql
+if errorlevel 1 (
+  echo Removing the old data FAILED - see the output above.
   goto failed
-)
-if not errorlevel 1 (
-  echo The demo stores already exist on Render - nothing to do.
-  goto done
 )
 
-echo Loading the demo through the API (10-20 minutes on the free plan)...
+echo [2/3] Loading the demo through the API (sleeping services are woken first; 15-30 minutes on the free plan)...
 docker run --rm -e ADMIN_PASSWORD -v "%CD%\scripts:/scripts:ro" node:22-alpine node /scripts/demo-data.mjs %GATEWAY%
 if errorlevel 1 (
-  echo Loading the demo FAILED - see the output above.
+  echo Loading the demo FAILED - see the output above. Run this again to start over.
   goto failed
 )
-echo Spreading the orders over the last five months...
+
+echo [3/3] Spreading the orders over the last five months...
 docker run --rm -i postgres:18 psql "%DB_URL%" -v ON_ERROR_STOP=1 -q < scripts\demo-backdate.sql
 if errorlevel 1 (
   echo Moving the orders back in time FAILED - the demo works, with every order dated today.
   goto failed
 )
 echo.
-echo Done. The cached home page shows the new dates within 10 minutes. Demo accounts use the password Demo-2026.
-:done
+echo Done. Demo accounts use the password Demo-2026; the cached home page shows the new dates within 10 minutes.
+exit /b 0
+
+:cancelled
+echo Nothing was changed.
 exit /b 0
 
 :failed
