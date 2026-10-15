@@ -33,6 +33,13 @@ public final class ExcelReportWriter {
             cell(titleRow, 0, report.title(), styles.title);
             cell(summary.createRow(1), 0, report.subtitle(), styles.muted);
             int rowIndex = 3;
+            for (Report.Block block : report.blocks() == null ? List.<Report.Block>of() : report.blocks()) {
+                cell(summary.createRow(rowIndex++), 0, block.title(), styles.bold);
+                for (String line : block.lines()) {
+                    cell(summary.createRow(rowIndex++), 0, line, styles.muted);
+                }
+                rowIndex++;
+            }
             for (Report.Metric metric : report.summary()) {
                 Row row = summary.createRow(rowIndex++);
                 cell(row, 0, metric.label(), styles.bold);

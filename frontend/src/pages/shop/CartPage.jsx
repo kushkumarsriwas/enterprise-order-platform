@@ -1,234 +1,199 @@
-import { useState } from "react";
-import { CheckCircle2, ShoppingCart, Trash2, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CircleAlert, Info, ShoppingCart, Store, Trash2 } from "lucide-react";
 import { api } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
-import { formatMoney } from "../../format.js";
-import PaymentForm from "../../components/PaymentForm.jsx";
-import { Alert, Empty, Field, ProductArt, Qty } from "../../components/ui.jsx";
+import { useCart } from "../../cart.js";
+import { Price, ProductImage } from "../../components/brand.jsx";
+import { QuantityStepper } from "../../components/commerce.jsx";
+import { Button, Empty, IconButton, Notice } from "../../components/ui.jsx";
+import { formatMoney, formatNumber, plural } from "../../format.js";
+import { useTitle } from "../../hooks.jsx";
+import { WrongAccount } from "../NotFound.jsx";
 
 /**
- * Cart -> checkout -> payment. The server splits the cart into one order per store, re-prices everything
- * and reserves the stock; then all orders are paid with one payment step.
+ * Checks every cart line against the marketplace: current price, stock and whether the product is still on sale.
+ * Returns a map productId -> fresh product (or null when it is gone).
  */
-export default function CartPage({ user, cart, navigate, toast, refreshCounts }) {
-  const { refresh } = useAuth();
-  const [address, setAddress] = useState(() => localStorageGet("nexora_address"));
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [checkout, setCheckout] = useState(null);
-  const [results, setResults] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
+export function useCartCheck(items) {
+  const [fresh, setFresh] = useState({});
+  const ids = items.map((item) => item.productId).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    if (!ids) return undefined;
+    Promise.all(
+      ids.split(",").map((id) =>
+        api(`/api/products/${id}`, { auth: false })
+          .then((product) => [id, product])
+          .catch((error) => [id, error.status === 404 ? null : undefined]),
+      ),
+    ).then((entries) => {
+      if (!cancelled) setFresh(Object.fromEntries(entries.filter(([, product]) => product !== undefined)));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ids]);
+  return fresh;
+}
 
-  const placeOrder = async (event) => {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    setFieldErrors({});
-    try {
-      const response = await api("/api/orders", {
-        method: "POST",
-        body: { items: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity })), shippingAddress: address.trim(), phone: phone.trim() },
-      });
-      localStorageSet("nexora_address", address.trim());
-      cart.clear();
-      setCheckout(response);
-      if (!user.phone && phone.trim()) refresh().catch(() => {});
-    } catch (err) {
-      setError(err.message);
-      setFieldErrors(err.details || {});
-    } finally {
-      setBusy(false);
-    }
-  };
+/** Problems that block checkout for one line: gone, sold out, or more than the store has. */
+export function lineProblem(item, product) {
+  if (product === null) return "No longer on sale";
+  if (!product) return null;
+  if (!product.inStock) return "Sold out";
+  if (item.quantity > product.availableQuantity) return `Only ${formatNumber(product.availableQuantity)} available`;
+  return null;
+}
 
-  /** Pays the given orders of this checkout with one payment method; earlier successful results are kept. */
-  const payOrders = async (orderIds, payment) => {
-    setBusy(true);
-    setError("");
-    try {
-      const outcome = await api("/api/orders/pay", { method: "POST", body: { orderIds, payment } });
-      setResults((previous) => [...(previous || []).filter((r) => !orderIds.includes(r.orderId)), ...outcome]);
-      refreshCounts();
-      if (outcome.every((r) => r.success)) toast.show(payment.method === "COD" ? "Order confirmed. Pay the courier on delivery." : "Payment successful");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  };
+export function CartPage({ navigate }) {
+  const { isSeller } = useAuth();
+  const cart = useCart();
+  const fresh = useCartCheck(cart.items);
+  useTitle("Cart");
 
-  // ---------------------------------------------------------------- after checkout: pay / results
-  if (checkout) {
-    const failed = results?.filter((r) => !r.success) || [];
+  // keep cart prices in line with the stores' current prices
+  useEffect(() => {
+    cart.items.forEach((item) => {
+      const product = fresh[item.productId];
+      if (product && (Number(product.price) !== Number(item.price) || product.availableQuantity !== item.available || product.imageUrl !== item.imageUrl)) {
+        cart.refresh(product);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fresh]);
+
+  if (isSeller) return <WrongAccount expected="customer" navigate={navigate} />;
+
+  if (cart.items.length === 0) {
     return (
-      <div className="page" style={{ maxWidth: 860 }}>
-        <div>
-          <h1>{results ? (failed.length ? "Some payments did not go through" : "Thank you, your order is confirmed") : "Payment"}</h1>
-          <p className="muted">
-            {results && !failed.length
-              ? "The seller has been notified and will ship your order. Track it under My orders."
-              : checkout.orders.length > 1
-                ? `Your cart was split into ${checkout.orders.length} orders, one per store. Each store ships its own order.`
-                : "Your order has been created."}{" "}
-            {!results && "The items are reserved for you for 30 minutes."}
-          </p>
-        </div>
-        <div className="card stack">
-          {checkout.orders.map((order) => {
-            const result = results?.find((r) => r.orderId === order.id);
-            return (
-              <div className="result-line" key={order.id}>
-                {result ? result.success ? <CheckCircle2 size={18} className="pos" /> : <XCircle size={18} className="neg" /> : null}
-                <div className="grow">
-                  <strong>{order.merchantName}</strong>
-                  <div className="muted small">
-                    {order.orderNumber} - {order.items.reduce((n, i) => n + i.quantity, 0)} item(s)
-                    {result && !result.success ? ` - ${result.message}` : ""}
-                  </div>
-                </div>
-                <strong className="num">{formatMoney(order.totalAmount, order.currency)}</strong>
-              </div>
-            );
-          })}
-          <div className="summary-line total">
-            <span>Total</span>
-            <span>{formatMoney(checkout.grandTotal, checkout.currency)}</span>
-          </div>
-        </div>
-        {!results || failed.length ? (
-          <div className="card stack">
-            <h3>{failed.length ? "Try another payment method" : "Choose how to pay"}</h3>
-            <PaymentForm
-              amount={(failed.length ? checkout.orders.filter((o) => failed.some((f) => f.orderId === o.id)) : checkout.orders).reduce(
-                (sum, o) => sum + Number(o.totalAmount),
-                0
-              )}
-              busy={busy}
-              error={error}
-              onClearError={() => setError("")}
-              onSubmit={(payment) => payOrders(failed.length ? failed.map((f) => f.orderId) : checkout.orders.map((o) => o.id), payment)}
-            />
-          </div>
-        ) : null}
-        <div className="row">
-          <button className="btn btn-primary" onClick={() => navigate("/orders")}>
-            View my orders
-          </button>
-          <button className="btn" onClick={() => navigate("/shop")}>
-            Continue shopping
-          </button>
-        </div>
+      <div className="panel">
+        <Empty
+          icon={ShoppingCart}
+          title="Your cart is empty"
+          action={
+            <div className="row row-wrap" style={{ justifyContent: "center" }}>
+              <Button variant="primary" onClick={() => navigate("/search?deals=true")}>
+                See today's deals
+              </Button>
+              <Button onClick={() => navigate("/")}>Browse departments</Button>
+            </div>
+          }
+        >
+          Products you add from any store collect here. You check out once and every store ships its part.
+        </Empty>
       </div>
     );
   }
 
-  // ---------------------------------------------------------------- the cart
-  if (cart.items.length === 0)
-    return (
-      <Empty icon={ShoppingCart} title="Your cart is empty" action={<button className="btn btn-primary" onClick={() => navigate("/shop")}>Browse the marketplace</button>}>
-        Add products from any store. You can check out items from several stores at once.
-      </Empty>
-    );
+  const problems = cart.items.filter((item) => lineProblem(item, fresh[item.productId]));
+  const vat = (cart.total * 5) / 105;
+  const stores = cart.groups.length;
 
   return (
-    <div className="stack" style={{ gap: 18 }}>
-      <div>
-        <h1>Your cart</h1>
-        <p className="muted">
-          {cart.count} item{cart.count === 1 ? "" : "s"} from {cart.groups.length} store{cart.groups.length === 1 ? "" : "s"}. Each store ships its own order.
-        </p>
+    <div className="stack-lg">
+      <div className="page-title">
+        <div>
+          <h1>Your cart</h1>
+          <p>
+            {plural(cart.count, "item")} from {plural(stores, "store")}
+          </p>
+        </div>
       </div>
-      <div className="two-col">
-        <div className="stack">
+      <div className="cart-layout">
+        <div>
           {cart.groups.map((group) => (
-            <section className="card cart-group" key={group.merchantId}>
-              <div className="cart-group-head">
-                <span>
-                  Sold by{" "}
-                  <a className="link" href={`#/store/${group.merchantId}`}>
-                    {group.merchantName}
-                  </a>
-                </span>
-                <span className="muted small num">Subtotal {formatMoney(group.subtotal)}</span>
-              </div>
-              {group.items.map((item) => (
-                <div className="cart-line" key={item.productId}>
-                  <ProductArt name={item.name} imageUrl={item.imageUrl} categoryId={item.categoryId} size="sm" />
-                  <div style={{ minWidth: 0 }}>
-                    <a className="link clamp" href={`#/product/${item.productId}`} style={{ color: "var(--text)" }}>
-                      {item.name}
+            <section key={group.sellerId} className="cart-store" aria-label={`Items from ${group.sellerName}`}>
+              <div className="cart-store-head">
+                <span className="row" style={{ gap: 8 }}>
+                  <Store size={16} />
+                  <span>
+                    Sold and shipped by{" "}
+                    <a href={`#/store/${group.sellerId}`} className="strong">
+                      {group.sellerName}
                     </a>
-                    <div className="muted small num">{formatMoney(item.price, item.currency)} each</div>
+                  </span>
+                </span>
+                <span className="num strong">{formatMoney(group.subtotal)}</span>
+              </div>
+              {group.items.map((item) => {
+                const product = fresh[item.productId];
+                const problem = lineProblem(item, product);
+                const max = Math.max(1, Math.min(product?.availableQuantity ?? item.available ?? 100, 100));
+                return (
+                  <div key={item.productId} className="cart-line">
+                    <a href={`#/product/${item.productId}`} aria-label={item.name}>
+                      <ProductImage product={{ ...item, id: item.productId }} iconSize={28} />
+                    </a>
+                    <div className="stack-sm" style={{ gap: 4 }}>
+                      {item.brand && <span className="card-brand">{item.brand}</span>}
+                      <a href={`#/product/${item.productId}`} className="strong clamp-2" style={{ color: "var(--ink)" }}>
+                        {item.name}
+                      </a>
+                      <Price price={item.price} compareAtPrice={item.compareAtPrice} currency={item.currency} size="sm" />
+                      {problem ? (
+                        <span className="stock-note out">
+                          <CircleAlert size={13} /> {problem}
+                        </span>
+                      ) : product?.fewLeft ? (
+                        <span className="stock-note">Only {formatNumber(product.availableQuantity)} left</span>
+                      ) : null}
+                    </div>
+                    <div className="stack-sm" style={{ alignItems: "flex-end", gap: 10 }}>
+                      {product === null ? (
+                        <Button size="sm" icon={Trash2} onClick={() => cart.remove(item.productId)}>
+                          Remove
+                        </Button>
+                      ) : (
+                        <div className="row" style={{ gap: 6 }}>
+                          <QuantityStepper value={Math.min(item.quantity, max)} max={max} onChange={(quantity) => cart.update(item.productId, quantity)} />
+                          <IconButton icon={Trash2} label={`Remove ${item.name}`} onClick={() => cart.remove(item.productId)} />
+                        </div>
+                      )}
+                      <span className="num strong">{formatMoney(item.quantity * Number(item.price), item.currency)}</span>
+                    </div>
                   </div>
-                  <Qty small value={item.quantity} max={Math.min(item.available || 100, 100)} onChange={(n) => cart.update(item.productId, n)} />
-                  <strong className="num line-total">{formatMoney(item.quantity * Number(item.price), item.currency)}</strong>
-                  <button className="icon-btn danger" onClick={() => cart.remove(item.productId)} aria-label={`Remove ${item.name}`}>
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </section>
           ))}
         </div>
 
-        <form className="card stack sticky" onSubmit={placeOrder}>
-          <h3>Order summary</h3>
-          <div className="summary-line">
-            <span className="muted">Items ({cart.count})</span>
+        <aside className="summary-box" aria-label="Order summary">
+          <h2 style={{ fontSize: "var(--text-lg)" }}>Summary</h2>
+          <div className="summary-row">
+            <span>Items ({formatNumber(cart.count)})</span>
             <span className="num">{formatMoney(cart.total)}</span>
           </div>
-          <div className="summary-line">
-            <span className="muted">Delivery</span>
-            <span>Free</span>
+          <div className="summary-row">
+            <span>Delivery</span>
+            <span className="good strong">Free</span>
           </div>
-          <div className="summary-line total">
+          <div className="summary-row total">
             <span>Total</span>
             <span className="num">{formatMoney(cart.total)}</span>
           </div>
-          {user ? (
-            <>
-              <Field label="Delivery address" error={fieldErrors.shippingAddress} hint="Building, street, area and emirate">
-                <textarea rows={3} value={address} onChange={(e) => setAddress(e.target.value)} minLength={10} maxLength={500} required />
-              </Field>
-              <Field label="Mobile number for the courier" error={fieldErrors.phone}>
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 123 4567" />
-              </Field>
-              <Alert onClose={() => setError("")}>{error}</Alert>
-              <button className="btn btn-primary btn-block btn-lg" disabled={busy}>
-                {busy ? "Placing order..." : "Place order and pay"}
-              </button>
-              <p className="muted small">Prices and stock are checked again when you place the order.</p>
-            </>
-          ) : (
-            <>
-              <p className="muted">Sign in or create a customer account to check out. Your cart is kept.</p>
-              <a className="btn btn-primary btn-block btn-lg" href="#/login?next=%2Fcart">
-                Sign in to check out
-              </a>
-              <a className="btn btn-block" href="#/register?next=%2Fcart">
-                Create an account
-              </a>
-            </>
+          <div className="summary-row tiny muted" style={{ marginTop: -6 }}>
+            <span>Includes VAT (5%)</span>
+            <span className="num">{formatMoney(vat)}</span>
+          </div>
+          {stores > 1 && (
+            <Notice tone="info" icon={Info}>
+              Your cart has products from {stores} stores, so you will get {stores} orders, each shipped and invoiced by its store. You pay once.
+            </Notice>
           )}
-        </form>
+          {problems.length > 0 && (
+            <Notice tone="warn" icon={CircleAlert}>
+              {problems.length === 1 ? "One item needs" : `${problems.length} items need`} your attention before checkout.
+            </Notice>
+          )}
+          <Button variant="primary" size="lg" block disabled={problems.length > 0} onClick={() => navigate("/checkout")}>
+            Go to checkout
+          </Button>
+          <Button variant="ghost" block onClick={() => navigate("/")}>
+            Continue shopping
+          </Button>
+        </aside>
       </div>
     </div>
   );
-}
-
-function localStorageGet(key) {
-  try {
-    return localStorage.getItem(key) || "";
-  } catch {
-    return "";
-  }
-}
-
-function localStorageSet(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    /* ignore */
-  }
 }

@@ -21,6 +21,7 @@ function writeUser(user) {
   }
 }
 
+/** Signed-in customer or seller. The platform administrator signs in on the separate Control Center. */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => (tokenStore.get() ? readUser() : null));
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -49,12 +50,11 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
-      role: user?.role,
-      isAdmin: user?.role === "ADMIN",
-      isMerchant: user?.role === "MERCHANT",
+      isSeller: user?.role === "SELLER",
       isCustomer: user?.role === "CUSTOMER",
       sessionExpired,
-      /** accountType CUSTOMER or MERCHANT: each portal only accepts its own kind of account. */
+      clearExpired: () => setSessionExpired(false),
+      /** accountType CUSTOMER or SELLER: each sign-in page only accepts its own kind of account. */
       login: async (username, password, accountType) =>
         store(await api("/api/auth/login", { method: "POST", body: { username, password, accountType }, auth: false })),
       register: async (form) => store(await api("/api/auth/register", { method: "POST", body: form, auth: false })),
@@ -66,11 +66,10 @@ export function AuthProvider({ children }) {
       },
       logout,
     }),
-    [user, sessionExpired, store, logout]
+    [user, sessionExpired, store, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// eslint-disable-next-line react/only-export-components
 export const useAuth = () => useContext(AuthContext);

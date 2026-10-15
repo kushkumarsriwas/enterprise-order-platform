@@ -24,7 +24,8 @@ import java.util.List;
 @Entity
 @Table(name = "orders", indexes = {
         @Index(name = "idx_orders_user_created", columnList = "user_id, created_at"),
-        @Index(name = "idx_orders_merchant_status", columnList = "merchant_id, status, created_at"),
+        @Index(name = "idx_orders_seller_status", columnList = "seller_id, status, created_at"),
+        @Index(name = "idx_orders_number", columnList = "order_number"),
         @Index(name = "idx_orders_status_created", columnList = "status, created_at")
 })
 public class Order {
@@ -48,11 +49,22 @@ public class Order {
     @Column(name = "customer_phone", length = 30)
     private String customerPhone;
 
-    @Column(name = "merchant_id", nullable = false)
-    private Long merchantId;
+    /** Who receives the parcel (from the delivery address). */
+    @Column(name = "recipient_name", length = 120)
+    private String recipientName;
 
-    @Column(name = "merchant_name", nullable = false, length = 80)
-    private String merchantName;
+    /** City and emirate of the delivery address (sales by region). */
+    @Column(name = "shipping_city", length = 60)
+    private String shippingCity;
+
+    @Column(name = "shipping_region", length = 60)
+    private String shippingRegion;
+
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
+
+    @Column(name = "seller_name", nullable = false, length = 80)
+    private String sellerName;
 
     @Column(length = 60)
     private String carrier;
@@ -82,6 +94,10 @@ public class Order {
 
     @Column(name = "payment_in_progress", nullable = false)
     private boolean paymentInProgress;
+
+    /** When the current payment attempt started; an attempt that never reported back goes stale. */
+    @Column(name = "payment_started_at")
+    private Instant paymentStartedAt;
 
     @Column(nullable = false, length = 3)
     private String currency;
@@ -116,14 +132,14 @@ public class Order {
     }
 
     public Order(String orderNumber, Long userId, String customerUsername, String customerEmail, String customerPhone,
-                 Long merchantId, String merchantName, String currency, String shippingAddress) {
+                 Long sellerId, String sellerName, String currency, String shippingAddress) {
         this.orderNumber = orderNumber;
         this.userId = userId;
         this.customerUsername = customerUsername;
         this.customerEmail = customerEmail;
         this.customerPhone = customerPhone;
-        this.merchantId = merchantId;
-        this.merchantName = merchantName;
+        this.sellerId = sellerId;
+        this.sellerName = sellerName;
         this.currency = currency;
         this.shippingAddress = shippingAddress;
         this.status = OrderStatus.PENDING;
@@ -142,6 +158,12 @@ public class Order {
         updatedAt = Instant.now();
     }
 
+    public void deliverTo(String recipientName, String city, String region) {
+        this.recipientName = recipientName;
+        this.shippingCity = city;
+        this.shippingRegion = region;
+    }
+
     public void addItem(OrderItem item) {
         item.attachTo(this);
         items.add(item);
@@ -157,11 +179,27 @@ public class Order {
         this.status = next;
     }
 
+    /** The payment service is about to charge this order: blocks a second, concurrent payment attempt. */
+    public void startPaymentAttempt() {
+        this.paymentInProgress = true;
+        this.paymentStartedAt = Instant.now();
+    }
+
+    public void endPaymentAttempt() {
+        this.paymentInProgress = false;
+        this.paymentStartedAt = null;
+    }
+
+    /** True while a payment attempt is running and has not gone stale (the payment service never reported back). */
+    public boolean hasActivePaymentAttempt(java.time.Duration staleAfter) {
+        return paymentInProgress && paymentStartedAt != null && paymentStartedAt.plus(staleAfter).isAfter(Instant.now());
+    }
+
     public void confirmPayment(Long paymentId, String method, PaymentState state, String actor, String note) {
         this.paymentId = paymentId;
         this.paymentMethod = method;
         this.paymentState = state;
-        this.paymentInProgress = false;
+        endPaymentAttempt();
         changeStatus(OrderStatus.CONFIRMED, actor, note);
     }
 
@@ -169,7 +207,13 @@ public class Order {
         changeStatus(OrderStatus.CANCELLED, actor, reason);
         this.cancelReason = reason;
         this.paymentState = newPaymentState;
-        this.paymentInProgress = false;
+        endPaymentAttempt();
+    }
+
+    /** Remembers which payment was refunded or voided when a paid order could not be confirmed. */
+    public void recordPayment(Long paymentId, String method) {
+        this.paymentId = paymentId;
+        this.paymentMethod = method;
     }
 
     public void ship(String carrier, String trackingNumber, String actor, String note) {
@@ -188,16 +232,16 @@ public class Order {
         return this.userId.equals(userId);
     }
 
-    public boolean isSoldBy(Long merchantId) {
-        return this.merchantId.equals(merchantId);
+    public boolean isSoldBy(Long sellerId) {
+        return this.sellerId.equals(sellerId);
     }
 
-    public java.math.BigDecimal getTotalCost() {
-        return items.stream().map(OrderItem::getLineCost).reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+    public BigDecimal getTotalCost() {
+        return items.stream().map(OrderItem::getLineCost).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public void setPaymentInProgress(boolean paymentInProgress) {
-        this.paymentInProgress = paymentInProgress;
+    public int getUnits() {
+        return items.stream().mapToInt(OrderItem::getQuantity).sum();
     }
 
     public void setPaymentState(PaymentState paymentState) {
@@ -228,12 +272,30 @@ public class Order {
         return customerPhone;
     }
 
-    public Long getMerchantId() {
-        return merchantId;
+    public Long getSellerId() {
+        return sellerId;
     }
 
-    public String getMerchantName() {
-        return merchantName;
+    public String getSellerName() {
+        return sellerName;
+    }
+
+    public String getRecipientName() {
+        return recipientName;
+    }
+
+    public String getShippingCity() {
+        return shippingCity;
+    }
+
+    public String getShippingRegion() {
+        return shippingRegion;
+    }
+
+    /** When the order was confirmed (paid or cash on delivery accepted), from the status history. */
+    public Instant getConfirmedAt() {
+        return history.stream().filter(h -> h.getToStatus() == OrderStatus.CONFIRMED)
+                .map(OrderStatusHistory::getChangedAt).findFirst().orElse(null);
     }
 
     public String getCarrier() {
@@ -270,6 +332,10 @@ public class Order {
 
     public boolean isPaymentInProgress() {
         return paymentInProgress;
+    }
+
+    public Instant getPaymentStartedAt() {
+        return paymentStartedAt;
     }
 
     public String getCurrency() {

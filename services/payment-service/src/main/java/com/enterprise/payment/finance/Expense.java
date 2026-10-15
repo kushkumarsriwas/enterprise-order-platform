@@ -18,15 +18,15 @@ import java.time.LocalDate;
 
 /** A business expense of a seller (rent, salaries, marketing...). */
 @Entity
-@Table(name = "expenses", indexes = @Index(name = "idx_expenses_merchant_date", columnList = "merchant_id, expense_date"))
+@Table(name = "expenses", indexes = @Index(name = "idx_expenses_seller_date", columnList = "seller_id, expense_date"))
 public class Expense {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "merchant_id", nullable = false)
-    private Long merchantId;
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -67,9 +67,9 @@ public class Expense {
     protected Expense() {
     }
 
-    public Expense(Long merchantId, ExpenseCategory category, BigDecimal amount, String currency, String description,
+    public Expense(Long sellerId, ExpenseCategory category, BigDecimal amount, String currency, String description,
                    String vendor, String reference, LocalDate expenseDate, String createdBy) {
-        this.merchantId = merchantId;
+        this.sellerId = sellerId;
         this.category = category;
         this.amount = amount;
         this.currency = currency;
@@ -105,8 +105,8 @@ public class Expense {
         return id;
     }
 
-    public Long getMerchantId() {
-        return merchantId;
+    public Long getSellerId() {
+        return sellerId;
     }
 
     public ExpenseCategory getCategory() {

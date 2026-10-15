@@ -32,14 +32,14 @@ public class BudgetService {
     }
 
     @Transactional(readOnly = true)
-    public BudgetOverview overview(Long merchantId, YearMonth month) {
+    public BudgetOverview overview(Long sellerId, YearMonth month) {
         Map<ExpenseCategory, BigDecimal> spent = new EnumMap<>(ExpenseCategory.class);
-        for (Object[] row : expenses.totalsByCategory(merchantId, month.atDay(1), month.atEndOfMonth())) {
+        for (Object[] row : expenses.totalsByCategory(sellerId, month.atDay(1), month.atEndOfMonth())) {
             spent.put((ExpenseCategory) row[0], Money.of(row[2]));
         }
         List<BudgetLine> lines = new ArrayList<>();
         BigDecimal totalBudget = BigDecimal.ZERO;
-        for (Budget budget : budgets.findByMerchantIdAndBudgetMonth(merchantId, month.toString())) {
+        for (Budget budget : budgets.findBySellerIdAndBudgetMonth(sellerId, month.toString())) {
             BigDecimal used = spent.getOrDefault(budget.getCategory(), Money.of(0));
             BigDecimal percent = Money.percent(used, budget.getAmount());
             String status = percent.compareTo(FULL_PERCENT) > 0 ? "OVER"
@@ -64,43 +64,43 @@ public class BudgetService {
 
     /** Creates the budget or changes its amount (one budget per month and category). */
     @Transactional
-    public BudgetOverview set(Long merchantId, BudgetRequest request) {
+    public BudgetOverview set(Long sellerId, BudgetRequest request) {
         YearMonth month = month(request.month());
         BigDecimal amount = Money.of(request.amount());
-        budgets.findByMerchantIdAndBudgetMonthAndCategory(merchantId, month.toString(), request.category())
+        budgets.findBySellerIdAndBudgetMonthAndCategory(sellerId, month.toString(), request.category())
                 .ifPresentOrElse(existing -> existing.changeAmount(amount),
-                        () -> budgets.save(new Budget(merchantId, month.toString(), request.category(), amount)));
-        return overview(merchantId, month);
+                        () -> budgets.save(new Budget(sellerId, month.toString(), request.category(), amount)));
+        return overview(sellerId, month);
     }
 
     @Transactional
-    public BudgetOverview delete(Long merchantId, Long id) {
-        Budget budget = budgets.findByIdAndMerchantId(id, merchantId)
+    public BudgetOverview delete(Long sellerId, Long id) {
+        Budget budget = budgets.findByIdAndSellerId(id, sellerId)
                 .orElseThrow(() -> ApiException.notFound("Budget " + id + " not found"));
         budgets.delete(budget);
         budgets.flush();
-        return overview(merchantId, month(budget.getBudgetMonth()));
+        return overview(sellerId, month(budget.getBudgetMonth()));
     }
 
     /** Copies last month's budgets to a new month; categories that already have a budget are kept. */
     @Transactional
-    public BudgetOverview copy(Long merchantId, CopyBudgetsRequest request) {
+    public BudgetOverview copy(Long sellerId, CopyBudgetsRequest request) {
         YearMonth from = month(request.fromMonth());
         YearMonth to = month(request.toMonth());
         if (from.equals(to)) {
             throw ApiException.badRequest("Choose two different months");
         }
-        List<Budget> source = budgets.findByMerchantIdAndBudgetMonth(merchantId, from.toString());
+        List<Budget> source = budgets.findBySellerIdAndBudgetMonth(sellerId, from.toString());
         if (source.isEmpty()) {
             throw ApiException.badRequest("There are no budgets in " + from + " to copy");
         }
         for (Budget budget : source) {
-            if (budgets.findByMerchantIdAndBudgetMonthAndCategory(merchantId, to.toString(), budget.getCategory())
+            if (budgets.findBySellerIdAndBudgetMonthAndCategory(sellerId, to.toString(), budget.getCategory())
                     .isEmpty()) {
-                budgets.save(new Budget(merchantId, to.toString(), budget.getCategory(), budget.getAmount()));
+                budgets.save(new Budget(sellerId, to.toString(), budget.getCategory(), budget.getAmount()));
             }
         }
-        return overview(merchantId, to);
+        return overview(sellerId, to);
     }
 
     static YearMonth month(String value) {

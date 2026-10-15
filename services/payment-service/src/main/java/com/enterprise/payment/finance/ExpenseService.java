@@ -6,19 +6,16 @@ import com.enterprise.payment.finance.FinanceDtos.ExpenseRequest;
 import com.enterprise.payment.finance.FinanceDtos.ExpenseResponse;
 import com.enterprise.payment.security.AuthenticatedUser;
 import com.enterprise.payment.security.CurrentUser;
-import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,65 +35,61 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ExpenseResponse> list(Long merchantId, LocalDate from, LocalDate to, ExpenseCategory category,
-                                              String search, int page, int size) {
-        Specification<Expense> spec = (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("merchantId"), merchantId));
-            if (from != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("expenseDate"), from));
-            }
-            if (to != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("expenseDate"), to));
-            }
-            if (category != null) {
-                predicates.add(cb.equal(root.get("category"), category));
-            }
-            if (search != null && !search.isBlank()) {
-                // explicit escape character: user input like "50%" is matched literally on every database
-                String like = "%" + search.trim().toLowerCase(Locale.ROOT).replace("\\", "\\\\")
-                        .replace("%", "\\%").replace("_", "\\_") + "%";
-                predicates.add(cb.or(cb.like(cb.lower(root.get("description")), like, '\\'),
-                        cb.like(cb.lower(root.get("vendor")), like, '\\'),
-                        cb.like(cb.lower(root.get("reference")), like, '\\')));
-            }
-            return cb.and(predicates.toArray(Predicate[]::new));
+    public PageResponse<ExpenseResponse> list(Long sellerId, ExpenseFilter filter, String sort, int page, int size) {
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), sort(sort));
+        return PageResponse.from(expenses.findAll(filter.toSpecification(sellerId), pageable), ExpenseResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExpenseResponse> export(Long sellerId, ExpenseFilter filter, String sort) {
+        return expenses.findAll(filter.toSpecification(sellerId), PageRequest.of(0, 5000, sort(sort)))
+                .map(ExpenseResponse::from).getContent();
+    }
+
+    /** newest (default), oldest, amount_desc, amount_asc. */
+    static Sort sort(String sort) {
+        Sort newest = Sort.by(Sort.Direction.DESC, "expenseDate").and(Sort.by(Sort.Direction.DESC, "id"));
+        if (sort == null) {
+            return newest;
+        }
+        return switch (sort.toLowerCase(Locale.ROOT)) {
+            case "oldest" -> Sort.by(Sort.Direction.ASC, "expenseDate").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "amount_desc" -> Sort.by(Sort.Direction.DESC, "amount").and(newest);
+            case "amount_asc" -> Sort.by(Sort.Direction.ASC, "amount").and(newest);
+            default -> newest;
         };
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
-                Sort.by(Sort.Direction.DESC, "expenseDate").and(Sort.by(Sort.Direction.DESC, "id")));
-        return PageResponse.from(expenses.findAll(spec, pageable), ExpenseResponse::from);
     }
 
     @Transactional
-    public ExpenseResponse create(AuthenticatedUser merchant, ExpenseRequest request) {
+    public ExpenseResponse create(AuthenticatedUser seller, ExpenseRequest request) {
         validateDate(request.expenseDate());
-        Expense expense = expenses.save(new Expense(merchant.id(), request.category(), Money.of(request.amount()),
+        Expense expense = expenses.save(new Expense(seller.id(), request.category(), Money.of(request.amount()),
                 "AED", request.description().trim(), trimToNull(request.vendor()), trimToNull(request.reference()),
-                request.expenseDate(), merchant.username()));
-        checkBudget(merchant, expense, BigDecimal.ZERO);
+                request.expenseDate(), seller.username()));
+        checkBudget(seller, expense, BigDecimal.ZERO);
         return ExpenseResponse.from(expense);
     }
 
     @Transactional
-    public ExpenseResponse update(AuthenticatedUser merchant, Long id, ExpenseRequest request) {
+    public ExpenseResponse update(AuthenticatedUser seller, Long id, ExpenseRequest request) {
         validateDate(request.expenseDate());
-        Expense expense = find(merchant.id(), id);
+        Expense expense = find(seller.id(), id);
         boolean sameBucket = expense.getCategory() == request.category()
                 && YearMonth.from(expense.getExpenseDate()).equals(YearMonth.from(request.expenseDate()));
         BigDecimal previousAmount = expense.getAmount();
         expense.update(request.category(), Money.of(request.amount()), request.description().trim(),
                 trimToNull(request.vendor()), trimToNull(request.reference()), request.expenseDate());
-        checkBudget(merchant, expense, sameBucket ? previousAmount : BigDecimal.ZERO);
+        checkBudget(seller, expense, sameBucket ? previousAmount : BigDecimal.ZERO);
         return ExpenseResponse.from(expense);
     }
 
     @Transactional
-    public void delete(Long merchantId, Long id) {
-        expenses.delete(find(merchantId, id));
+    public void delete(Long sellerId, Long id) {
+        expenses.delete(find(sellerId, id));
     }
 
-    private Expense find(Long merchantId, Long id) {
-        return expenses.findByIdAndMerchantId(id, merchantId)
+    private Expense find(Long sellerId, Long id) {
+        return expenses.findByIdAndSellerId(id, sellerId)
                 .orElseThrow(() -> ApiException.notFound("Expense " + id + " not found"));
     }
 
@@ -104,11 +97,11 @@ public class ExpenseService {
      * Compares the category's spending for the month before and after this expense and raises an alert when it
      * crosses 80% or 100% of the budget. {@code alreadyCounted} is the old amount when an expense is edited.
      */
-    private void checkBudget(AuthenticatedUser merchant, Expense expense, BigDecimal alreadyCounted) {
+    private void checkBudget(AuthenticatedUser seller, Expense expense, BigDecimal alreadyCounted) {
         YearMonth month = YearMonth.from(expense.getExpenseDate());
-        budgets.findByMerchantIdAndBudgetMonthAndCategory(merchant.id(), month.toString(), expense.getCategory())
+        budgets.findBySellerIdAndBudgetMonthAndCategory(seller.id(), month.toString(), expense.getCategory())
                 .ifPresent(budget -> {
-                    BigDecimal after = expenses.total(merchant.id(), expense.getCategory(), month.atDay(1),
+                    BigDecimal after = expenses.total(seller.id(), expense.getCategory(), month.atDay(1),
                             month.atEndOfMonth());
                     BigDecimal before = after.subtract(expense.getAmount()).add(alreadyCounted);
                     BigDecimal limit = budget.getAmount();
@@ -124,7 +117,7 @@ public class ExpenseService {
                     String message = Money.format(after) + " spent of the " + Money.format(limit) + " budget for "
                             + month.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + month.getYear()
                             + " (" + Money.percent(after, limit) + "%).";
-                    events.publishEvent(new BudgetAlertEvent(merchant.id(), title, message, CurrentUser.token()));
+                    events.publishEvent(new BudgetAlertEvent(seller.id(), title, message, CurrentUser.token()));
                 });
     }
 

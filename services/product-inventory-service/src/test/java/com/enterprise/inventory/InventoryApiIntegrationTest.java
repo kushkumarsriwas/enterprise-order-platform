@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.enterprise.inventory.stock.InventoryService;
 import com.enterprise.inventory.stock.StockDtos.ReserveItem;
 import com.enterprise.inventory.stock.StockDtos.ReserveRequest;
+import com.enterprise.inventory.security.InternalApiKey;
 import com.enterprise.inventory.support.TestTokens;
 import com.jayway.jsonpath.JsonPath;
 import java.io.ByteArrayOutputStream;
@@ -50,6 +51,8 @@ import org.springframework.test.web.servlet.request.AbstractMockHttpServletReque
 @ActiveProfiles("test")
 @Import(TestTokens.class)
 class InventoryApiIntegrationTest {
+
+    private static final String KEY = "test-internal-key";
 
     @Autowired
     private MockMvc mockMvc;
@@ -168,14 +171,14 @@ class InventoryApiIntegrationTest {
         call(put("/api/seller/store/settings"), s, "{\"vacationMode\":false}").andExpect(status().isOk());
         call(get("/api/products/" + product), null, null).andExpect(status().isOk());
 
-        call(put("/internal/sellers/102/suspension"), "Bearer " + TestTokens.customer(5), "{\"suspended\":true}")
+        call(put("/internal/sellers/102/suspension").header(InternalApiKey.HEADER, KEY), "Bearer " + TestTokens.customer(5), "{\"suspended\":true}")
                 .andExpect(status().isForbidden());
-        call(put("/internal/sellers/102/suspension"), "Bearer " + TestTokens.admin(), "{\"suspended\":true}")
+        call(put("/internal/sellers/102/suspension").header(InternalApiKey.HEADER, KEY), "Bearer " + TestTokens.admin(), "{\"suspended\":true}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.products").value(2));
         call(get("/api/products/" + product), null, null).andExpect(status().isNotFound());
         call(get("/api/seller/products/" + product), s, null)
                 .andExpect(jsonPath("$.product.storeSuspended").value(true));
-        call(put("/internal/sellers/102/suspension"), "Bearer " + TestTokens.admin(), "{\"suspended\":false}")
+        call(put("/internal/sellers/102/suspension").header(InternalApiKey.HEADER, KEY), "Bearer " + TestTokens.admin(), "{\"suspended\":false}")
                 .andExpect(status().isOk());
         call(get("/api/products/" + product), null, null).andExpect(status().isOk());
     }
@@ -388,12 +391,12 @@ class InventoryApiIntegrationTest {
                 + ",\"quantity\":5,\"unitCost\":60}").andExpect(status().isCreated());
         String customer = "Bearer " + TestTokens.customer(7);
 
-        call(post("/internal/inventory/reservations"), customer, "{\"orderRef\":\"ORD-SAGA\",\"items\":[{\"productId\":"
+        call(post("/internal/inventory/reservations").header(InternalApiKey.HEADER, KEY), customer, "{\"orderRef\":\"ORD-SAGA\",\"items\":[{\"productId\":"
                 + product + ",\"quantity\":4}]}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lines[0].sellerId").value(170))
                 .andExpect(jsonPath("$.lines[0].categoryName").value("Electronics"));
-        call(post("/internal/inventory/reservations/ORD-SAGA/commit"), customer, null).andExpect(status().isOk());
+        call(post("/internal/inventory/reservations/ORD-SAGA/commit").header(InternalApiKey.HEADER, KEY), customer, null).andExpect(status().isOk());
         // 3 from MAIN (default) + 1 from DXB
         call(get("/api/inventory/" + product), s, null)
                 .andExpect(jsonPath("$.onHandQuantity").value(4))
@@ -401,7 +404,7 @@ class InventoryApiIntegrationTest {
                 .andExpect(jsonPath("$.warehouses[?(@.code == 'DXB')].onHand").value(4));
         call(get("/api/seller/products/" + product), s, null).andExpect(jsonPath("$.product.unitsSold").value(4));
 
-        call(post("/internal/inventory/reservations/ORD-SAGA/release"), customer, null).andExpect(status().isOk());
+        call(post("/internal/inventory/reservations/ORD-SAGA/release").header(InternalApiKey.HEADER, KEY), customer, null).andExpect(status().isOk());
         call(get("/api/inventory/" + product), s, null)
                 .andExpect(jsonPath("$.availableQuantity").value(8))
                 .andExpect(jsonPath("$.warehouses[?(@.code == 'MAIN')].onHand").value(3));
@@ -411,9 +414,17 @@ class InventoryApiIntegrationTest {
     }
 
     @Test
+    void internalEndpointsNeedTheServiceKey() throws Exception {
+        call(post("/internal/products/lookup"), "Bearer " + TestTokens.customer(3), "{\"productIds\":[1]}")
+                .andExpect(status().isForbidden());
+        call(put("/internal/products/1/rating").header(InternalApiKey.HEADER, "wrong"), "Bearer " + TestTokens.customer(3),
+                "{\"average\":1.0,\"count\":1}").andExpect(status().isForbidden());
+    }
+
+    @Test
     void ratingsFromTheOrderServiceAppearOnTheProduct() throws Exception {
         long product = createProduct(seller(175), "RATE-1", 3, true);
-        call(put("/internal/products/" + product + "/rating"), "Bearer " + TestTokens.customer(3),
+        call(put("/internal/products/" + product + "/rating").header(InternalApiKey.HEADER, KEY), "Bearer " + TestTokens.customer(3),
                 "{\"average\":4.5,\"count\":2}").andExpect(status().isNoContent());
         call(get("/api/products/" + product), null, null)
                 .andExpect(jsonPath("$.ratingAverage").value(4.5))

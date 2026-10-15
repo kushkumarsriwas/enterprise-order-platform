@@ -1,14 +1,18 @@
 package com.enterprise.payment.processor;
 
-import com.enterprise.payment.payment.PaymentMethod;
-
 /**
- * Strategy pattern: one implementation per payment method. Adding a new method (e.g. Apple Pay)
- * means adding one class - the payment service itself does not change (Open/Closed principle).
+ * The payment provider (acquirer / bank) behind the platform. Programming to this interface means the
+ * mock used today can be replaced by a real gateway without touching the payment service (Dependency Inversion):
+ * <pre>
+ * PaymentProcessor
+ *   |- MockPaymentProcessor        simulated bank: SUCCESS / FAILED (default)
+ *   \- FutureRealPaymentProcessor  where a real gateway is integrated (app.payments.provider=real)
+ * </pre>
  */
 public interface PaymentProcessor {
 
-    PaymentMethod method();
+    /** Configuration name of the provider: "mock" or "real". */
+    String name();
 
-    ProcessorResult process(PaymentCommand command);
+    PaymentResult process(PaymentRequest request);
 }

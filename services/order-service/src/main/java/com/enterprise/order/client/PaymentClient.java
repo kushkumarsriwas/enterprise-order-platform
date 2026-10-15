@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+/** Calls the payment service when an order changes after payment: refunds (cancellation) and cash collection. */
 @Component
 public class PaymentClient {
 
@@ -18,38 +19,20 @@ public class PaymentClient {
         this.client = factory.create(NAME, url);
     }
 
-    public PaymentResult charge(ChargeRequest request) {
-        return RemoteCalls.call(NAME, () -> client.post().uri("/internal/payments")
-                .body(request).retrieve().body(PaymentResult.class));
-    }
-
     public PaymentResult refund(Long orderId, String reason) {
         return RemoteCalls.call(NAME, () -> client.post().uri("/internal/payments/order/{orderId}/refund", orderId)
                 .body(Map.of("reason", reason == null ? "Order cancelled" : reason))
                 .retrieve().body(PaymentResult.class));
     }
 
+    /** Cash on delivery: the courier collected the money, so the pending payment becomes successful. */
     public PaymentResult capture(Long orderId) {
         return RemoteCalls.call(NAME, () -> client.post().uri("/internal/payments/order/{orderId}/capture", orderId)
                 .retrieve().body(PaymentResult.class));
     }
 
-    public record ChargeRequest(Long orderId, String orderNumber, Long userId, Long merchantId, BigDecimal amount,
-                                String currency,
-                                String method, String cardNumber, String cardHolder, String expiry, String cvv,
-                                String upiId) {
-    }
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record PaymentResult(Long id, String transactionRef, Long orderId, BigDecimal amount, String method,
                                 String status, String maskedInstrument, String failureReason) {
-
-        public boolean isSuccessful() {
-            return "SUCCESS".equals(status);
-        }
-
-        public boolean isPayOnDelivery() {
-            return "PENDING".equals(status) && "COD".equals(method);
-        }
     }
 }

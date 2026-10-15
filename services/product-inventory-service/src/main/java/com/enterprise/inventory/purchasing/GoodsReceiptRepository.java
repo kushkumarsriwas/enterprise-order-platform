@@ -25,9 +25,9 @@ public interface GoodsReceiptRepository extends JpaRepository<GoodsReceipt, Long
             order by sum(r.totalAmount) desc""")
     List<Object[]> spendBySupplier(Long sellerId, Instant from, Instant to);
 
-    /** Purchase spend per month: year, month, amount. */
+    /** Purchase spend per month: year, month, goods receipts, units, amount. */
     @Query("""
-            select year(r.receivedAt), month(r.receivedAt), sum(r.totalAmount)
+            select year(r.receivedAt), month(r.receivedAt), count(r), coalesce(sum(r.totalUnits), 0), sum(r.totalAmount)
             from GoodsReceipt r
             where r.sellerId = :sellerId and r.receivedAt >= :from and r.receivedAt < :to
             group by year(r.receivedAt), month(r.receivedAt)

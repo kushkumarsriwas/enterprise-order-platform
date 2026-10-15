@@ -13,6 +13,7 @@ import com.enterprise.inventory.catalog.CatalogDtos.ProductResponse;
 import com.enterprise.inventory.common.ApiException;
 import com.enterprise.inventory.common.PageResponse;
 import com.enterprise.inventory.config.SecurityConfig;
+import com.enterprise.inventory.security.InternalApiKey;
 import com.enterprise.inventory.security.RestAuthenticationHandlers;
 import com.enterprise.inventory.support.TestTokens;
 import java.math.BigDecimal;
@@ -27,7 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /** Web layer only (MockMvc): request mapping, query parameters, JSON shape, error handling, public access. */
 @WebMvcTest(ProductController.class)
-@Import({SecurityConfig.class, RestAuthenticationHandlers.class, TestTokens.class})
+@Import({SecurityConfig.class, RestAuthenticationHandlers.class, InternalApiKey.class, TestTokens.class})
 class ProductControllerTest {
 
     @Autowired

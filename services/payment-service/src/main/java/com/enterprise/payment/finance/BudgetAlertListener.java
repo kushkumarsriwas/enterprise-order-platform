@@ -17,6 +17,6 @@ class BudgetAlertListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     void onBudgetAlert(BudgetAlertEvent event) {
-        notifications.toUser(event.bearerToken(), event.merchantId(), "BUDGET_ALERT", event.title(), event.message());
+        notifications.toUser(event.bearerToken(), event.sellerId(), "BUDGET_ALERT", event.title(), event.message());
     }
 }
