@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { download } from "../api.js";
-import { useClickOutside, useToast } from "../hooks.jsx";
+import { useClickOutside, useCountUp, useToast } from "../hooks.jsx";
 import { formatNumber, initials, label } from "../format.js";
 
 export function Button({ variant = "secondary", size, block, icon: Icon, loading, children, className = "", ...props }) {
@@ -30,10 +30,15 @@ export function Button({ variant = "secondary", size, block, icon: Icon, loading
 }
 
 export function IconButton({ icon: Icon, label: text, count, className = "", ...props }) {
+  // a new count re-mounts the icon and the badge, so the icon rings and the badge pops (see motion.css)
   return (
     <button type="button" className={`icon-btn ${className}`} aria-label={text} title={text} {...props}>
-      <Icon />
-      {count > 0 && <span className="dot-count">{count > 99 ? "99+" : count}</span>}
+      <Icon key={count > 0 ? `n${count}` : "none"} className={count > 0 ? "ring-on" : undefined} />
+      {count > 0 && (
+        <span key={count} className="dot-count">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
     </button>
   );
 }
@@ -165,9 +170,9 @@ const STATUS_TONES = {
   OVER: ["red", "Over budget"],
   NO_BUDGET: ["neutral", "No budget"],
   // customers
-  NEW: ["teal", "New"],
+  NEW: ["brand", "New"],
   REPEAT: ["blue", "Repeat"],
-  VIP: ["bloom", "VIP"],
+  VIP: ["accent", "VIP"],
   AT_RISK: ["amber", "At risk"],
   // accounts
   ACTIVE: ["green", "Active"],
@@ -216,6 +221,7 @@ export function Avatar({ name, large }) {
 }
 
 export function Stat({ label: text, value, icon: Icon, delta, deltaLabel = "vs previous period", hint, attention, upIsGood = true }) {
+  const shown = useCountUp(value);
   const hasDelta = delta !== null && delta !== undefined;
   const up = hasDelta && Number(delta) >= 0;
   const good = up === upIsGood;
@@ -226,14 +232,14 @@ export function Stat({ label: text, value, icon: Icon, delta, deltaLabel = "vs p
         {text}
       </div>
       <div className="stat-value" title={typeof value === "string" ? value : undefined}>
-        {typeof value === "string" && /^-?AED /.test(value) ? (
+        {typeof shown === "string" && /^-?AED /.test(shown) ? (
           <>
-            {value.startsWith("-") ? "-" : ""}
+            {shown.startsWith("-") ? "-" : ""}
             <span className="cur">AED</span>
-            {value.replace(/^-?AED /, "")}
+            {shown.replace(/^-?AED /, "")}
           </>
         ) : (
-          value
+          shown
         )}
       </div>
       {(hasDelta || hint) && (

@@ -3,16 +3,20 @@ import { Baby, BookOpen, Car, Dumbbell, HeartPulse, Laptop, Package, Shirt, Shop
 import { imageUrl } from "../api.js";
 import { formatAmount } from "../format.js";
 
-/** The Nexora mark: an eight-point star (two turned squares) around a bloom dot. */
+/** The Nexora mark: a lowercase n on a rounded tile, with an accent dot. */
 export function Mark({ size = 30 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" className="mark">
-      <g transform="translate(32 32)">
-        <rect x="-19" y="-19" width="38" height="38" rx="5" fill="var(--mark-fill, var(--brand))" />
-        <rect x="-19" y="-19" width="38" height="38" rx="5" fill="var(--mark-fill, var(--brand))" transform="rotate(45)" />
-        <circle r="8.5" fill="var(--mark-center, var(--surface))" />
-        <circle r="4" fill="var(--mark-dot, var(--accent))" />
-      </g>
+      <rect width="64" height="64" rx="16" fill="var(--mark-fill, var(--brand))" />
+      <path
+        d="M21 46V25h13a10 10 0 0 1 10 10v11"
+        fill="none"
+        stroke="var(--mark-ink, #ffffff)"
+        strokeWidth="7.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="47" cy="17" r="5" fill="var(--mark-dot, var(--accent))" />
     </svg>
   );
 }
@@ -63,8 +67,8 @@ export function CategoryIcon({ icon, name, size = 20 }) {
 }
 
 /** Six calm tints for products without a photo, picked from the category so a department looks consistent. */
-const TINTS = ["#e3f1ef", "#f9e6ee", "#e6eefb", "#fbefdb", "#ece9fb", "#e6f4e6"];
-const DARK_TINTS = ["#143532", "#3a1e2a", "#1b2a40", "#3a2d14", "#26223f", "#1b3220"];
+const TINTS = ["#e3ecfd", "#fde4ec", "#e0f2fe", "#fdefdc", "#ece9fb", "#fde8dc"];
+const DARK_TINTS = ["#1a2a4a", "#3a1e2a", "#12304a", "#3a2d14", "#26223f", "#3b2216"];
 
 export function tintFor(key = "") {
   let hash = 0;
@@ -107,26 +111,5 @@ export function Price({ price, compareAtPrice, currency = "AED", size = "md" }) 
         </s>
       )}
     </span>
-  );
-}
-
-/** The star lattice that sits behind the home page hero (the one decorative pattern in the product). */
-export function StarLattice() {
-  return (
-    <svg className="lattice" aria-hidden="true" width="100%" height="100%">
-      <defs>
-        <pattern id="nexora-lattice" width="56" height="56" patternUnits="userSpaceOnUse">
-          <g transform="translate(28 28)" fill="none" stroke="currentColor" strokeWidth="1">
-            <rect x="-11" y="-11" width="22" height="22" />
-            <rect x="-11" y="-11" width="22" height="22" transform="rotate(45)" />
-          </g>
-          <circle cx="0" cy="0" r="1.6" fill="currentColor" />
-          <circle cx="56" cy="0" r="1.6" fill="currentColor" />
-          <circle cx="0" cy="56" r="1.6" fill="currentColor" />
-          <circle cx="56" cy="56" r="1.6" fill="currentColor" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#nexora-lattice)" />
-    </svg>
   );
 }

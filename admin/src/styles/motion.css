@@ -1,0 +1,267 @@
+/*
+ * Motion in the Control Center: feedback and a little life, never in the way of the work. Everything sits behind
+ * prefers-reduced-motion: no-preference - people who ask for less motion get a still, fully working console.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* ---------- pages fade up once when they open */
+  .page-enter {
+    animation: page-in 0.32s var(--ease) both;
+  }
+
+  /* ---------- logo: the mark tilts and its dot pulses */
+  .console-logo .mark {
+    transition: transform 0.35s var(--ease-spring);
+  }
+
+  .console-logo:hover .mark {
+    transform: rotate(-8deg) scale(1.06);
+  }
+
+  .console-logo .mark circle {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .console-logo:hover .mark circle {
+    animation: dot-pulse 0.8s var(--ease) infinite alternate;
+  }
+
+  /* ---------- icons: lift on hover, ring when a count arrives, the theme icon spins in */
+  .icon-btn svg {
+    transition: transform 0.2s var(--ease-spring);
+  }
+
+  .icon-btn:hover svg {
+    transform: translateY(-1px) scale(1.1);
+  }
+
+  .icon-btn svg.ring-on {
+    transform-origin: 50% 10%;
+    animation: ring 1s ease 0.25s 2;
+  }
+
+  .dot-count {
+    animation: pop 0.35s var(--ease-spring);
+  }
+
+  .icon-btn svg.theme-icon {
+    animation: spin-in 0.5s var(--ease-spring);
+  }
+
+  /* ---------- navigation: icons slide, waiting work pulses */
+  .cc-nav a svg {
+    transition: transform 0.25s var(--ease-spring);
+  }
+
+  .cc-nav a:hover svg {
+    transform: translateX(2px) scale(1.12);
+  }
+
+  .cc-count.hot {
+    animation: pulse-ring 2.2s ease-out infinite;
+  }
+
+  /* ---------- buttons press in, primary buttons lift, their icons nudge */
+  .btn {
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s,
+      box-shadow 0.2s var(--ease),
+      transform 0.15s var(--ease);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--brand) 70%, transparent);
+  }
+
+  .btn:hover:not(:disabled) > svg:not(.spin) {
+    animation: nudge 0.45s var(--ease);
+  }
+
+  /* ---------- figures lift under the pointer */
+  .stat {
+    transition:
+      transform 0.25s var(--ease),
+      box-shadow 0.25s var(--ease);
+  }
+
+  .stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2);
+  }
+
+  /* ---------- sign-in: soft light drifts behind the panel */
+  .cc-signin-side::before {
+    animation: drift-a 18s ease-in-out infinite alternate;
+  }
+
+  .cc-signin-side::after {
+    animation: drift-b 22s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes cart-bump {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(-7px) rotate(-14deg);
+  }
+  50% {
+    transform: translateY(0) rotate(8deg);
+  }
+  70% {
+    transform: translateY(-2px) rotate(-4deg);
+  }
+}
+
+@keyframes ring {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(16deg);
+  }
+  30% {
+    transform: rotate(-14deg);
+  }
+  45% {
+    transform: rotate(10deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  70% {
+    transform: rotate(9deg);
+  }
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateX(2px) scale(1.12);
+  }
+}
+
+@keyframes spin-in {
+  from {
+    opacity: 0;
+    transform: rotate(-140deg) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(160px, 90px) scale(1.25);
+  }
+}
+
+@keyframes drift-b {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-180px, -70px) scale(1.2);
+  }
+}
+
+@keyframes shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes dot-pulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.4);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgba(249, 115, 22, 0);
+  }
+}

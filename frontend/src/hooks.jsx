@@ -140,3 +140,49 @@ export function ToastProvider({ children }) {
 
 /** toast("Saved") / toast("Could not save", "bad") */
 export const useToast = () => useContext(ToastContext);
+
+const NUMBER = /-?\d[\d,]*(\.\d+)?/;
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/** The number inside a figure ("AED 12,480.50"), with the text around it and how it is formatted. */
+function parseFigure(value) {
+  const text = typeof value === "number" ? String(value) : value;
+  const match = typeof text === "string" ? NUMBER.exec(text) : null;
+  if (!match) return null;
+  const decimals = match[1] ? match[1].length - 1 : 0;
+  return {
+    target: parseFloat(match[0].replace(/,/g, "")),
+    before: text.slice(0, match.index),
+    after: text.slice(match.index + match[0].length),
+    format: new Intl.NumberFormat("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: match[0].includes(",") }),
+  };
+}
+
+/**
+ * Counts a figure up to its value when it first appears or changes, keeping the text around the number and its
+ * formatting. Anything without a number is returned as it is.
+ */
+export function useCountUp(value, duration = 900) {
+  const [frame, setFrame] = useState(() => {
+    const figure = parseFigure(value);
+    return figure && figure.target !== 0 && !reducedMotion() ? { value, text: `${figure.before}${figure.format.format(0)}${figure.after}` } : null;
+  });
+  const previous = useRef(null);
+  useEffect(() => {
+    const figure = parseFigure(value);
+    const from = previous.current ?? 0;
+    previous.current = figure ? figure.target : null;
+    if (!figure || from === figure.target || reducedMotion()) return undefined;
+    const started = performance.now();
+    let request;
+    const step = (now) => {
+      const progress = Math.min(1, (now - started) / duration);
+      const current = from + (figure.target - from) * (1 - Math.pow(1 - progress, 3));
+      setFrame(progress < 1 ? { value, text: `${figure.before}${figure.format.format(current)}${figure.after}` } : null);
+      if (progress < 1) request = requestAnimationFrame(step);
+    };
+    request = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(request);
+  }, [value, duration]);
+  return frame && frame.value === value ? frame.text : value;
+}

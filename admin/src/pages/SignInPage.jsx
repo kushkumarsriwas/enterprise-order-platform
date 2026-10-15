@@ -59,12 +59,6 @@ export function SignInPage() {
             </li>
           </ul>
         </div>
-        <svg className="cc-signin-star" viewBox="0 0 64 64" aria-hidden="true">
-          <g transform="translate(32 32)" fill="#ffffff">
-            <rect x="-19" y="-19" width="38" height="38" rx="5" />
-            <rect x="-19" y="-19" width="38" height="38" rx="5" transform="rotate(45)" />
-          </g>
-        </svg>
       </aside>
       <main className="cc-signin-main">
         <form className="cc-signin-card" onSubmit={submit} noValidate>

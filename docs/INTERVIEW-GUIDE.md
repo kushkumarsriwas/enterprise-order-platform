@@ -277,7 +277,10 @@ e-mails wait in the outbox. Next steps would be Resilience4j circuit breakers an
 lazy-loaded so shoppers never download the Seller Central code) and the Control Center as a separate app with its own
 nginx container, `noindex` and `X-Frame-Options: DENY`. Filters live in the URL so every view can be bookmarked and
 shared, charts use a colour-blind-safe palette with legends and tooltips, everything has a dark mode and works on a
-phone.
+phone. The look is one design system in CSS variables (cobalt blue for actions, tangerine for deals, Sora and Figtree
+bundled with the app). Motion is feedback, not decoration: the cart icon jumps when something is added, new
+notifications ring the bell, figures count up, charts draw in, and all of it switches off for people who ask their
+system for reduced motion.
 
 **What would you improve with more time?** Kafka with the outbox pattern for events, Resilience4j, Flyway migrations,
 OpenTelemetry tracing with Prometheus and Grafana, refresh tokens and MFA for the administrator, a real payment gateway

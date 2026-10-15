@@ -1,20 +1,20 @@
 /*
  * Nexora Control Center design tokens.
- * The console shares Nexora's lagoon teal for every primary action, so it reads as part of the same company, but
- * sits on cool graphite neutrals instead of the storefront's teal-tinted ones. Saffron is the colour of attention:
+ * The console shares Nexora's cobalt blue for every primary action, so it reads as part of the same company, and
+ * sits on cool graphite neutrals. Saffron is the colour of attention:
  * counts and items that wait for the administrator's decision. Status colours are always shown with a label or icon.
  */
 :root {
   color-scheme: light;
 
   /* brand (shared with the marketplace) */
-  --lagoon-900: #0a3f3c;
-  --lagoon-800: #0c524e;
-  --lagoon-700: #0f6b66;
-  --lagoon-500: #1b968f;
-  --lagoon-200: #b9e0dc;
-  --lagoon-100: #dcefed;
-  --lagoon-50: #eef7f6;
+  --cobalt-900: #0f2557;
+  --cobalt-800: #1e40af;
+  --cobalt-700: #1d4ed8;
+  --cobalt-500: #3b82f6;
+  --cobalt-200: #c3d5fb;
+  --cobalt-100: #dce7fd;
+  --cobalt-50: #eff4ff;
   --saffron-600: #b35500;
   --saffron-700: #8a4200;
   --saffron-400: #f2a531;
@@ -42,15 +42,15 @@
   --chrome-ink-2: #9eabba;
 
   /* roles */
-  --brand: var(--lagoon-700);
-  --brand-hover: var(--lagoon-800);
-  --brand-soft: var(--lagoon-50);
-  --brand-soft-2: var(--lagoon-100);
-  --brand-ink: var(--lagoon-800);
+  --brand: var(--cobalt-700);
+  --brand-hover: var(--cobalt-800);
+  --brand-soft: var(--cobalt-50);
+  --brand-soft-2: var(--cobalt-100);
+  --brand-ink: var(--cobalt-800);
   --accent: var(--saffron-600);
   --accent-ink: var(--saffron-700);
   --accent-soft: var(--saffron-100);
-  --focus: #1b968f;
+  --focus: #2563eb;
 
   /* status */
   --good: #1a7f4b;
@@ -65,18 +65,18 @@
   --violet-soft: #ebe8fb;
 
   /* chart series: the validated Nexora palette, checked against these surfaces too (fixed order, never cycled) */
-  --series-1: #0a9488;
+  --series-1: #2a78d6;
   --series-2: #eb6834;
-  --series-3: #2a78d6;
+  --series-3: #6250d6;
   --series-4: #d6457c;
   --series-5: #eda100;
-  --series-6: #6250d6;
+  --series-6: #0891b2;
   --chart-grid: #e6eaee;
   --chart-axis: #667283;
 
-  /* type: one family, the console is a working tool */
-  --font-display: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-body: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* type: the marketplace's families; Figtree carries the working screens, Sora the headings and figures */
+  --font-display: "Sora Variable", "Sora", "Figtree Variable", system-ui, sans-serif;
+  --font-body: "Figtree Variable", "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
@@ -104,6 +104,7 @@
   --bar-h: 56px;
   --nav-w: 236px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Dark: graphite night, stepped from the same hues (chosen, not inverted). */
@@ -122,17 +123,17 @@
     --chrome: #0a0f14;
     --chrome-2: #121922;
     --chrome-3: #1b2531;
-    --brand: #23a69d;
-    --brand-hover: #3bbcb2;
-    --brand-soft: #102a29;
-    --brand-soft-2: #153a37;
-    --brand-ink: #7fd6cd;
+    --brand: #6ea0ff;
+    --brand-hover: #8cb4ff;
+    --brand-soft: #14223d;
+    --brand-soft-2: #1b2d52;
+    --brand-ink: #a8c5ff;
     --accent: #f0a23a;
     --accent-ink: #f5b960;
     --accent-soft: #33240c;
     --on-accent: #231500;
-    --focus: #5fd1c6;
-    --on-brand: #04201e;
+    --focus: #8cb4ff;
+    --on-brand: #071634;
     --good: #4cc38a;
     --good-soft: #10301f;
     --warn: #f0b542;
@@ -143,12 +144,12 @@
     --info-soft: #0f2640;
     --violet: #a99cf2;
     --violet-soft: #221d44;
-    --series-1: #17a597;
+    --series-1: #3987e5;
     --series-2: #d95926;
-    --series-3: #3987e5;
+    --series-3: #9085e9;
     --series-4: #d55181;
     --series-5: #c98500;
-    --series-6: #9085e9;
+    --series-6: #1699b5;
     --chart-grid: #222c37;
     --chart-axis: #8692a0;
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -173,17 +174,17 @@
   --chrome: #0a0f14;
   --chrome-2: #121922;
   --chrome-3: #1b2531;
-  --brand: #23a69d;
-  --brand-hover: #3bbcb2;
-  --brand-soft: #102a29;
-  --brand-soft-2: #153a37;
-  --brand-ink: #7fd6cd;
+  --brand: #6ea0ff;
+  --brand-hover: #8cb4ff;
+  --brand-soft: #14223d;
+  --brand-soft-2: #1b2d52;
+  --brand-ink: #a8c5ff;
   --accent: #f0a23a;
   --accent-ink: #f5b960;
   --accent-soft: #33240c;
   --on-accent: #231500;
-  --focus: #5fd1c6;
-  --on-brand: #04201e;
+  --focus: #8cb4ff;
+  --on-brand: #071634;
   --good: #4cc38a;
   --good-soft: #10301f;
   --warn: #f0b542;
@@ -194,12 +195,12 @@
   --info-soft: #0f2640;
   --violet: #a99cf2;
   --violet-soft: #221d44;
-  --series-1: #17a597;
+  --series-1: #3987e5;
   --series-2: #d95926;
-  --series-3: #3987e5;
+  --series-3: #9085e9;
   --series-4: #d55181;
   --series-5: #c98500;
-  --series-6: #9085e9;
+  --series-6: #1699b5;
   --chart-grid: #222c37;
   --chart-axis: #8692a0;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);

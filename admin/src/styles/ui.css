@@ -407,7 +407,7 @@
   background: currentColor;
 }
 
-.badge-teal {
+.badge-brand {
   --b-bg: var(--brand-soft-2);
   --b-fg: var(--brand-ink);
 }
@@ -437,12 +437,12 @@
   --b-fg: var(--violet);
 }
 
-.badge-bloom {
+.badge-accent {
   --b-bg: var(--accent-soft);
   --b-fg: var(--accent-ink);
 }
 
-.badge-solid-bloom {
+.badge-solid-accent {
   --b-bg: var(--accent);
   --b-fg: #fff;
 }
@@ -972,7 +972,7 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(6, 24, 23, 0.48);
+  background: rgba(8, 14, 26, 0.48);
   animation: fade-in 0.15s ease;
 }
 

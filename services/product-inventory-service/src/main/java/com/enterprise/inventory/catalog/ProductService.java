@@ -86,7 +86,7 @@ public class ProductService {
         CriteriaQuery<Object[]> byCategory = cb.createQuery(Object[].class);
         Root<Product> c = byCategory.from(Product.class);
         Join<Product, Category> category = c.join("category", JoinType.INNER);
-        byCategory.multiselect(category.get("id"), category.get("name"), cb.count(c))
+        byCategory.select(cb.array(category.get("id"), category.get("name"), cb.count(c)))
                 .where(filters(cb, byCategory, c, anyCategory, true).toArray(Predicate[]::new))
                 .groupBy(category.get("id"), category.get("name"))
                 .orderBy(cb.desc(cb.count(c)));
@@ -101,7 +101,7 @@ public class ProductService {
         Root<Product> b = byBrand.from(Product.class);
         List<Predicate> brandWhere = filters(cb, byBrand, b, anyBrand, true);
         brandWhere.add(cb.isNotNull(b.get("brand")));
-        byBrand.multiselect(b.get("brand"), cb.count(b)).where(brandWhere.toArray(Predicate[]::new))
+        byBrand.select(cb.array(b.get("brand"), cb.count(b))).where(brandWhere.toArray(Predicate[]::new))
                 .groupBy(b.get("brand")).orderBy(cb.desc(cb.count(b)), cb.asc(b.get("brand")));
         List<FacetValue> brands = entityManager.createQuery(byBrand).setMaxResults(15).getResultList().stream()
                 .map(r -> new FacetValue((String) r[0], (String) r[0], ((Number) r[1]).longValue())).toList();
@@ -111,7 +111,7 @@ public class ProductService {
                 criteria.dealsOnly(), null);
         CriteriaQuery<Object[]> bySeller = cb.createQuery(Object[].class);
         Root<Product> s = bySeller.from(Product.class);
-        bySeller.multiselect(s.get("sellerId"), s.get("sellerName"), cb.count(s))
+        bySeller.select(cb.array(s.get("sellerId"), s.get("sellerName"), cb.count(s)))
                 .where(filters(cb, bySeller, s, anySeller, true).toArray(Predicate[]::new))
                 .groupBy(s.get("sellerId"), s.get("sellerName")).orderBy(cb.desc(cb.count(s)));
         List<FacetValue> sellers = entityManager.createQuery(bySeller).setMaxResults(15).getResultList().stream()
@@ -127,10 +127,10 @@ public class ProductService {
         Root<Inventory> inventory = stocked.from(Inventory.class);
         stocked.select(inventory.get("productId")).where(cb.equal(inventory.get("productId"), p.get("id")),
                 cb.gt(inventory.get("availableQuantity"), 0));
-        stats.multiselect(cb.count(p), cb.min(p.get("price")), cb.max(p.get("price")),
+        stats.select(cb.array(cb.count(p), cb.min(p.get("price")), cb.max(p.get("price")),
                         countIf(cb, cb.ge(rating, new BigDecimal("4"))), countIf(cb, cb.ge(rating, new BigDecimal("3"))),
                         countIf(cb, cb.ge(rating, new BigDecimal("2"))), countIf(cb, cb.ge(rating, new BigDecimal("1"))),
-                        countIf(cb, cb.gt(p.get("compareAtPrice"), p.get("price"))), countIf(cb, cb.exists(stocked)))
+                        countIf(cb, cb.gt(p.get("compareAtPrice"), p.get("price"))), countIf(cb, cb.exists(stocked))))
                 .where(filters(cb, stats, p, scope, true).toArray(Predicate[]::new));
         Object[] row = entityManager.createQuery(stats).getSingleResult();
         List<FacetValue> ratings = new ArrayList<>();

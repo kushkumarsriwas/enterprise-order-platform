@@ -28,7 +28,12 @@ public class LoginAuditService {
         repository.save(new LoginEvent(userId, username.length() > 120 ? username.substring(0, 120) : username,
                 portal, success, failureReason, client));
         if (!success) {
-            log.info("Failed {} sign-in for '{}' from {}: {}", portal, username, client.ipAddress(), failureReason);
+            log.info("Failed {} sign-in for '{}' from {}: {}", portal, loggable(username), client.ipAddress(), failureReason);
         }
+    }
+
+    /** Request values are logged without line breaks, so they cannot forge extra log lines. */
+    private static String loggable(String value) {
+        return value == null ? null : value.replaceAll("\\R", "_");
     }
 }

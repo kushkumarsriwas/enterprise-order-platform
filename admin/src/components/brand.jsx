@@ -1,15 +1,19 @@
 import { imageUrl } from "../api.js";
 
-/** The Nexora mark: an eight-point star (two turned squares). In the console its centre dot is saffron. */
+/** The Nexora mark: a lowercase n on a rounded tile, with an accent dot. */
 export function Mark({ size = 26 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" className="mark">
-      <g transform="translate(32 32)">
-        <rect x="-19" y="-19" width="38" height="38" rx="5" fill="var(--mark-fill, var(--brand))" />
-        <rect x="-19" y="-19" width="38" height="38" rx="5" fill="var(--mark-fill, var(--brand))" transform="rotate(45)" />
-        <circle r="8.5" fill="var(--mark-center, var(--surface))" />
-        <circle r="4" fill="var(--mark-dot, var(--saffron-400))" />
-      </g>
+      <rect width="64" height="64" rx="16" fill="var(--mark-fill, var(--brand))" />
+      <path
+        d="M21 46V25h13a10 10 0 0 1 10 10v11"
+        fill="none"
+        stroke="var(--mark-ink, #ffffff)"
+        strokeWidth="7.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="47" cy="17" r="5" fill="var(--mark-dot, var(--saffron-400))" />
     </svg>
   );
 }

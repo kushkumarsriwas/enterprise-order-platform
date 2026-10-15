@@ -98,7 +98,7 @@ export function ProductPage({ id, navigate }) {
 
           <div className="pdp-price">
             <div className="row" style={{ gap: 10, alignItems: "center" }}>
-              {p.discountPercent > 0 && <Badge tone="solid-bloom">-{p.discountPercent}%</Badge>}
+              {p.discountPercent > 0 && <Badge tone="solid-accent">-{p.discountPercent}%</Badge>}
               <Price price={p.price} compareAtPrice={p.compareAtPrice} currency={p.currency} size="lg" />
             </div>
             {saving > 0 && (
@@ -351,7 +351,7 @@ function Reviews({ product }) {
                       <Stars value={r.rating} />
                       <span className="strong small">{r.customerName}</span>
                       {r.verifiedPurchase && (
-                        <Badge tone="teal" icon={PackageCheck}>
+                        <Badge tone="brand" icon={PackageCheck}>
                           Verified purchase
                         </Badge>
                       )}
