@@ -1,6 +1,5 @@
 package com.enterprise.payment.payment;
 
-import com.enterprise.payment.payment.PaymentDtos.ChargeRequest;
 import com.enterprise.payment.payment.PaymentDtos.PaymentResponse;
 import com.enterprise.payment.payment.PaymentDtos.RefundRequest;
 import com.enterprise.payment.security.AuthenticatedUser;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Called by the order service (saga orchestrator). Not routed by the API gateway. */
+/** Called by the order service (internal key required; not routed by the API gateway). */
 @RestController
 @RequestMapping("/internal/payments")
 @Tag(name = "Internal - payments")
@@ -24,13 +23,6 @@ public class InternalPaymentController {
 
     public InternalPaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
-    }
-
-    @PostMapping
-    @Operation(summary = "Charge an order (idempotent per order)")
-    public PaymentResponse charge(@Valid @RequestBody ChargeRequest request,
-                                  @AuthenticationPrincipal AuthenticatedUser user) {
-        return paymentService.charge(request, user);
     }
 
     @PostMapping("/order/{orderId}/refund")

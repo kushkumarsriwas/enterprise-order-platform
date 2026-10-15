@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /**
- * Fire-and-forget notifications. Runs on a background thread so a slow or failing
- * notification service never blocks or breaks an order.
+ * Fire-and-forget notifications (in-app + e-mail). Runs on a background thread so a slow or failing notification
+ * service never blocks or breaks an order. Calls are authenticated with the internal service key; the user's
+ * token is forwarded when there is one (scheduled jobs have none).
  */
 @Component
 public class NotificationPublisher {
@@ -24,22 +25,29 @@ public class NotificationPublisher {
 
     @Async
     public void toUser(String bearerToken, Long userId, String type, String title, String message) {
-        send(bearerToken, new NotificationRequest(userId, "USER", type, title, message));
+        send(bearerToken, new NotificationRequest(userId, "USER", type, title, message, null));
+    }
+
+    /** Same as {@link #toUser} and also e-mailed to the given address (order confirmations, shipping updates). */
+    @Async
+    public void toUserWithEmail(String bearerToken, Long userId, String email, String type, String title,
+                                String message) {
+        send(bearerToken, new NotificationRequest(userId, "USER", type, title, message, email));
     }
 
     @Async
     public void toAdmins(String bearerToken, String type, String title, String message) {
-        send(bearerToken, new NotificationRequest(null, "ADMINS", type, title, message));
+        send(bearerToken, new NotificationRequest(null, "ADMINS", type, title, message, null));
     }
 
     private void send(String bearerToken, NotificationRequest request) {
-        if (bearerToken == null) {
-            log.debug("Skipping notification {} - no caller token (background job)", request.type());
-            return;
-        }
         try {
             client.post().uri("/internal/notifications")
-                    .headers(headers -> headers.setBearerAuth(bearerToken))
+                    .headers(headers -> {
+                        if (bearerToken != null) {
+                            headers.setBearerAuth(bearerToken);
+                        }
+                    })
                     .body(request)
                     .retrieve()
                     .toBodilessEntity();
@@ -48,6 +56,7 @@ public class NotificationPublisher {
         }
     }
 
-    record NotificationRequest(Long userId, String audience, String type, String title, String message) {
+    record NotificationRequest(Long userId, String audience, String type, String title, String message,
+                               String email) {
     }
 }

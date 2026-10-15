@@ -12,10 +12,10 @@ public final class AuthDtos {
     private AuthDtos() {
     }
 
-    /** Which portal the user signs up / logs in through. */
+    /** Which side of the marketplace the user signs up / signs in to. */
     public enum AccountType {
         CUSTOMER,
-        MERCHANT
+        SELLER
     }
 
     public record RegisterRequest(
@@ -32,7 +32,8 @@ public final class AuthDtos {
             @Size(max = 80) String storeName,
             @Size(max = 500) String storeDescription,
             @Size(max = 60) String city,
-            @Size(max = 40) String tradeLicenseNumber) {
+            @Size(max = 40) String tradeLicenseNumber,
+            @Pattern(regexp = "^$|^\\d{15}$", message = "must be the 15-digit TRN") String vatNumber) {
     }
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password, AccountType accountType) {

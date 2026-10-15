@@ -61,12 +61,12 @@ class GatewayIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).contains("/api/products");
         assertThat(LAST_HEADERS.get("x-correlation-id")).isNotBlank();
-        for (String path : new String[] {"/api/merchants", "/api/merchants/12", "/api/reviews?productId=3",
-                "/api/categories"}) {
+        for (String path : new String[] {"/api/sellers", "/api/sellers/12", "/api/reviews?productId=3",
+                "/api/categories", "/api/announcements"}) {
             assertThat(send(HttpRequest.newBuilder(uri(path)).GET()).statusCode()).as(path).isEqualTo(200);
         }
         assertThat(send(HttpRequest.newBuilder(uri("/api/reviews/mine")).GET()).statusCode()).isEqualTo(401);
-        assertThat(send(HttpRequest.newBuilder(uri("/api/merchants/12")).POST(HttpRequest.BodyPublishers.noBody()))
+        assertThat(send(HttpRequest.newBuilder(uri("/api/sellers/12")).POST(HttpRequest.BodyPublishers.noBody()))
                 .statusCode()).isEqualTo(401);
     }
 
@@ -74,26 +74,54 @@ class GatewayIntegrationTest {
     void everyApiPathIsRoutedToTheRightService() throws Exception {
         Map<String, String> expected = Map.ofEntries(
                 Map.entry("/api/users/me", "auth"),
-                Map.entry("/api/merchants/5", "auth"),
+                Map.entry("/api/sellers/5", "auth"),
+                Map.entry("/api/admin/users", "auth"),
+                Map.entry("/api/admin/users/9", "auth"),
+                Map.entry("/api/admin/security/logins", "auth"),
                 Map.entry("/api/products/9", "inventory"),
-                Map.entry("/api/merchant/products", "inventory"),
-                Map.entry("/api/merchant/inventory/summary", "inventory"),
-                Map.entry("/api/merchant/purchases", "inventory"),
-                Map.entry("/api/merchant/reports/inventory/pdf", "inventory"),
-                Map.entry("/api/orders/stats", "order"),
+                Map.entry("/api/inventory/9", "inventory"),
+                Map.entry("/api/seller/products", "inventory"),
+                Map.entry("/api/seller/inventory/summary", "inventory"),
+                Map.entry("/api/seller/warehouses", "inventory"),
+                Map.entry("/api/seller/transfers/3", "inventory"),
+                Map.entry("/api/seller/suppliers", "inventory"),
+                Map.entry("/api/seller/purchase-orders/2/pdf", "inventory"),
+                Map.entry("/api/seller/goods-receipts", "inventory"),
+                Map.entry("/api/seller/stock-counts/1/sheet", "inventory"),
+                Map.entry("/api/seller/replenishment", "inventory"),
+                Map.entry("/api/seller/store/settings", "inventory"),
+                Map.entry("/api/seller/reports/inventory/valuation/pdf", "inventory"),
+                Map.entry("/api/admin/catalog/products", "inventory"),
+                Map.entry("/api/admin/inventory/summary", "inventory"),
+                Map.entry("/api/orders/customer/7", "order"),
+                Map.entry("/api/orders/4/invoice", "order"),
                 Map.entry("/api/reviews/mine", "order"),
-                Map.entry("/api/merchant/orders/4", "order"),
-                Map.entry("/api/merchant/analytics", "order"),
-                Map.entry("/api/merchant/reviews", "order"),
-                Map.entry("/api/merchant/reports/sales/xlsx", "order"),
+                Map.entry("/api/seller/orders/4", "order"),
+                Map.entry("/api/seller/analytics", "order"),
+                Map.entry("/api/seller/customers", "order"),
+                Map.entry("/api/seller/reviews", "order"),
+                Map.entry("/api/seller/reports/sales/xlsx", "order"),
+                Map.entry("/api/admin/orders/4", "order"),
+                Map.entry("/api/admin/sales/overview", "order"),
+                Map.entry("/api/admin/customers/7/purchases", "order"),
+                Map.entry("/api/admin/reviews", "order"),
                 Map.entry("/api/payments", "payment"),
-                Map.entry("/api/merchant/payments/summary", "payment"),
-                Map.entry("/api/merchant/expenses", "payment"),
-                Map.entry("/api/merchant/budgets", "payment"),
-                Map.entry("/api/merchant/finance/profit-loss", "payment"),
-                Map.entry("/api/merchant/reports/profit-loss/pdf", "payment"),
+                Map.entry("/api/payments/12", "payment"),
+                Map.entry("/api/seller/payments/summary", "payment"),
+                Map.entry("/api/seller/expenses", "payment"),
+                Map.entry("/api/seller/budgets", "payment"),
+                Map.entry("/api/seller/finance/profit-loss", "payment"),
+                Map.entry("/api/seller/reports/profit-loss/pdf", "payment"),
+                Map.entry("/api/admin/payments/summary", "payment"),
+                Map.entry("/api/admin/sellers/5/earnings", "payment"),
+                Map.entry("/api/admin/sellers/5/profit-loss", "payment"),
                 Map.entry("/api/notifications/unread-count", "notification"),
-                Map.entry("/api/conversations/3/messages", "notification"));
+                Map.entry("/api/conversations/3/messages", "notification"),
+                Map.entry("/api/admin/conversations/3/messages", "notification"),
+                Map.entry("/api/admin/messages", "notification"),
+                Map.entry("/api/admin/notifications", "notification"),
+                Map.entry("/api/admin/emails", "notification"),
+                Map.entry("/api/admin/announcements", "notification"));
         String token = "Bearer " + token();
         for (Map.Entry<String, String> route : expected.entrySet()) {
             HttpResponse<String> response = send(HttpRequest.newBuilder(uri(route.getKey()))
@@ -103,7 +131,7 @@ class GatewayIntegrationTest {
                     .contains("\"service\":\"" + route.getValue() + "\"")
                     .contains("\"path\":\"" + route.getKey() + "\"");
         }
-        assertThat(send(HttpRequest.newBuilder(uri("/api/merchant/unknown")).header("Authorization", token).GET())
+        assertThat(send(HttpRequest.newBuilder(uri("/api/seller/unknown")).header("Authorization", token).GET())
                 .statusCode()).isEqualTo(404);
     }
 
@@ -120,8 +148,24 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    void theAdministratorConsoleSignsInWithoutATokenButIsRateLimited() throws Exception {
+        int status = 0;
+        for (int attempt = 1; attempt <= 6; attempt++) {
+            status = send(HttpRequest.newBuilder(uri("/api/admin/auth/login"))
+                    .header("Content-Type", "application/json")
+                    .header("X-Forwarded-For", "203.0.113.77")
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))).statusCode();
+            if (attempt <= 5) {
+                assertThat(status).as("attempt " + attempt).isEqualTo(200);
+            }
+        }
+        assertThat(status).isEqualTo(429);
+        assertThat(send(HttpRequest.newBuilder(uri("/api/admin/orders")).GET()).statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void internalEndpointsAreNotExposed() throws Exception {
-        HttpResponse<String> response = send(HttpRequest.newBuilder(uri("/internal/payments"))
+        HttpResponse<String> response = send(HttpRequest.newBuilder(uri("/internal/orders/1/payment-outcome"))
                 .header("Authorization", "Bearer " + token()).POST(HttpRequest.BodyPublishers.ofString("{}")));
         assertThat(response.statusCode()).isEqualTo(404);
     }
@@ -137,7 +181,20 @@ class GatewayIntegrationTest {
         assertThat(response.headers().firstValue("Access-Control-Allow-Origin"))
                 .hasValue("https://enterprise-frontend-wvds.onrender.com");
 
-        HttpResponse<String> download = send(HttpRequest.newBuilder(uri("/api/merchant/reports/sales/pdf"))
+        HttpResponse<String> admin = send(HttpRequest.newBuilder(uri("/api/admin/orders"))
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .header("Origin", "https://enterprise-admin.onrender.com")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", "authorization"));
+        assertThat(admin.headers().firstValue("Access-Control-Allow-Origin"))
+                .hasValue("https://enterprise-admin.onrender.com");
+        HttpResponse<String> stranger = send(HttpRequest.newBuilder(uri("/api/orders"))
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .header("Origin", "https://evil.example.com")
+                .header("Access-Control-Request-Method", "GET"));
+        assertThat(stranger.headers().firstValue("Access-Control-Allow-Origin")).isEmpty();
+
+        HttpResponse<String> download = send(HttpRequest.newBuilder(uri("/api/seller/reports/sales/pdf"))
                 .header("Origin", "https://enterprise-frontend-wvds.onrender.com")
                 .header("Authorization", "Bearer " + token()).GET());
         assertThat(download.headers().firstValue("Access-Control-Expose-Headers").orElse(""))

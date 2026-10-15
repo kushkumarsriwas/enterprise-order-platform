@@ -1,0 +1,210 @@
+/*
+ * Nexora design tokens.
+ * Lagoon teal is the brand and the colour of every primary action; bougainvillea marks deals and things
+ * that need attention. Text uses the ink scale, never a series or brand colour.
+ */
+:root {
+  color-scheme: light;
+
+  /* brand */
+  --lagoon-900: #0a3f3c;
+  --lagoon-800: #0c524e;
+  --lagoon-700: #0f6b66;
+  --lagoon-600: #12807a;
+  --lagoon-500: #1b968f;
+  --lagoon-200: #b9e0dc;
+  --lagoon-100: #dcefed;
+  --lagoon-50: #eef7f6;
+  --bloom-700: #a3255a;
+  --bloom-600: #c8336e;
+  --bloom-100: #fbe3ec;
+  --sand-100: #f4efe6;
+
+  /* surfaces and ink */
+  --bg: #f6f7f7;
+  --surface: #ffffff;
+  --surface-2: #f1f3f3;
+  --surface-3: #e7ebeb;
+  --line: #dde3e2;
+  --line-strong: #c7d0cf;
+  --ink: #142b29;
+  --ink-2: #3f5653;
+  --ink-3: #6a7d7a;
+  --on-brand: #ffffff;
+
+  /* roles */
+  --brand: var(--lagoon-700);
+  --brand-hover: var(--lagoon-800);
+  --brand-soft: var(--lagoon-50);
+  --brand-soft-2: var(--lagoon-100);
+  --brand-ink: var(--lagoon-800);
+  --accent: var(--bloom-600);
+  --accent-ink: var(--bloom-700);
+  --accent-soft: var(--bloom-100);
+  --focus: #1b968f;
+
+  /* status (always shown with a label or an icon) */
+  --good: #1a7f4b;
+  --good-soft: #e1f3e8;
+  --warn: #9a6200;
+  --warn-soft: #fdf0d5;
+  --bad: #b42318;
+  --bad-soft: #fde4e1;
+  --info: #24609e;
+  --info-soft: #e2eefa;
+  --violet: #5b48c9;
+  --violet-soft: #ebe8fb;
+
+  /* chart series (validated palette: colour-blind safe adjacent pairs) */
+  --series-1: #0a9488;
+  --series-2: #eb6834;
+  --series-3: #2a78d6;
+  --series-4: #d6457c;
+  --series-5: #eda100;
+  --series-6: #6250d6;
+  --chart-grid: #e6ebea;
+  --chart-axis: #6a7d7a;
+
+  /* type */
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "Instrument Sans Variable", system-ui, sans-serif;
+  --font-body: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-4xl: 3.5rem;
+
+  /* shape and depth */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(10, 40, 38, 0.06);
+  --shadow-2: 0 6px 20px rgba(10, 40, 38, 0.08), 0 1px 3px rgba(10, 40, 38, 0.06);
+  --shadow-3: 0 18px 50px rgba(10, 40, 38, 0.18);
+
+  /* surfaces with a fixed character (sell band, photos, toasts) */
+  --sand-bg: var(--sand-100);
+  --sand-ink: #4a4030;
+  --sand-ink-soft: #5a4e3a;
+  --sand-heading: #1d1810;
+  --img-blend: multiply;
+  --toast-good-icon: #6fd8a0;
+  --toast-bad-icon: #ff9d92;
+
+  --header-h: 68px;
+  --container: 1320px;
+  --sidebar-w: 252px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Dark: the same hues stepped for a deep-lagoon night surface (chosen, not inverted). */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #0b1615;
+    --surface: #111f1e;
+    --surface-2: #162826;
+    --surface-3: #1d3330;
+    --line: #23403c;
+    --line-strong: #2f524d;
+    --ink: #e6efed;
+    --ink-2: #b4c6c3;
+    --ink-3: #87a09c;
+    --brand: #23a69d;
+    --brand-hover: #3bbcb2;
+    --brand-soft: #12302d;
+    --brand-soft-2: #184440;
+    --brand-ink: #7fd6cd;
+    --accent: #ec5f95;
+    --accent-ink: #f48db4;
+    --accent-soft: #3a1726;
+    --focus: #5fd1c6;
+    --on-brand: #04201e;
+    --good: #4cc38a;
+    --good-soft: #10301f;
+    --warn: #f0b542;
+    --warn-soft: #33270b;
+    --bad: #f2776a;
+    --bad-soft: #3a1612;
+    --info: #74aef0;
+    --info-soft: #0f2640;
+    --violet: #a99cf2;
+    --violet-soft: #221d44;
+    --series-1: #17a597;
+    --series-2: #d95926;
+    --series-3: #3987e5;
+    --series-4: #d55181;
+    --series-5: #c98500;
+    --series-6: #9085e9;
+    --chart-grid: #1f3633;
+    --chart-axis: #87a09c;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+    --sand-bg: #2a2417;
+    --sand-ink: #d8c9ab;
+    --sand-ink-soft: #d8c9ab;
+    --sand-heading: #fff6e4;
+    --img-blend: normal;
+    --toast-good-icon: #1a7f4b;
+    --toast-bad-icon: #b42318;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b1615;
+  --surface: #111f1e;
+  --surface-2: #162826;
+  --surface-3: #1d3330;
+  --line: #23403c;
+  --line-strong: #2f524d;
+  --ink: #e6efed;
+  --ink-2: #b4c6c3;
+  --ink-3: #87a09c;
+  --brand: #23a69d;
+  --brand-hover: #3bbcb2;
+  --brand-soft: #12302d;
+  --brand-soft-2: #184440;
+  --brand-ink: #7fd6cd;
+  --accent: #ec5f95;
+  --accent-ink: #f48db4;
+  --accent-soft: #3a1726;
+  --focus: #5fd1c6;
+  --on-brand: #04201e;
+  --good: #4cc38a;
+  --good-soft: #10301f;
+  --warn: #f0b542;
+  --warn-soft: #33270b;
+  --bad: #f2776a;
+  --bad-soft: #3a1612;
+  --info: #74aef0;
+  --info-soft: #0f2640;
+  --violet: #a99cf2;
+  --violet-soft: #221d44;
+  --series-1: #17a597;
+  --series-2: #d95926;
+  --series-3: #3987e5;
+  --series-4: #d55181;
+  --series-5: #c98500;
+  --series-6: #9085e9;
+  --chart-grid: #1f3633;
+  --chart-axis: #87a09c;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+  --sand-bg: #2a2417;
+  --sand-ink: #d8c9ab;
+  --sand-ink-soft: #d8c9ab;
+  --sand-heading: #fff6e4;
+  --img-blend: normal;
+  --toast-good-icon: #1a7f4b;
+  --toast-bad-icon: #b42318;
+}

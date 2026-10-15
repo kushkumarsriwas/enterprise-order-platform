@@ -3,6 +3,7 @@ package com.enterprise.inventory.client;
 import com.enterprise.inventory.common.ApiException;
 import com.enterprise.inventory.common.CorrelationIdFilter;
 import com.enterprise.inventory.security.CurrentUser;
+import com.enterprise.inventory.security.InternalApiKey;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -18,20 +19,22 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Builds RestClients for calling other services: timeouts, token relay (the caller's JWT is forwarded),
- * correlation-id propagation and translation of downstream errors into {@link ApiException}s.
+ * Builds RestClients for calling other services: timeouts, the internal service key, token relay (the caller's
+ * JWT is forwarded), correlation-id propagation and translation of downstream errors into {@link ApiException}s.
  */
 @Component
 public class ServiceClientFactory {
 
     private final ObjectMapper objectMapper;
+    private final InternalApiKey internalApiKey;
     private final Duration connectTimeout;
     private final Duration readTimeout;
 
-    public ServiceClientFactory(ObjectMapper objectMapper,
+    public ServiceClientFactory(ObjectMapper objectMapper, InternalApiKey internalApiKey,
                                 @Value("${clients.connect-timeout:5s}") Duration connectTimeout,
                                 @Value("${clients.read-timeout:15s}") Duration readTimeout) {
         this.objectMapper = objectMapper;
+        this.internalApiKey = internalApiKey;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
     }
@@ -44,6 +47,7 @@ public class ServiceClientFactory {
                 .baseUrl(baseUrl)
                 .requestFactory(requestFactory)
                 .requestInterceptor((request, body, execution) -> {
+                    request.getHeaders().set(InternalApiKey.HEADER, internalApiKey.value());
                     String token = CurrentUser.token();
                     if (token != null && !request.getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
                         request.getHeaders().setBearerAuth(token);

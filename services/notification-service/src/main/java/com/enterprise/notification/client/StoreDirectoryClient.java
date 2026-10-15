@@ -21,13 +21,13 @@ public class StoreDirectoryClient {
     }
 
     /** The store's name; 404 when the store does not exist or is suspended. */
-    public String storeName(Long merchantId) {
-        Store store = RemoteCalls.call(NAME, () -> client.get().uri("/api/merchants/{merchantId}", merchantId)
+    public String storeName(Long sellerId) {
+        Store store = RemoteCalls.call(NAME, () -> client.get().uri("/api/sellers/{sellerId}", sellerId)
                 .retrieve().body(Store.class));
         return store.storeName();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Store(Long merchantId, String storeName) {
+    public record Store(Long sellerId, String storeName) {
     }
 }

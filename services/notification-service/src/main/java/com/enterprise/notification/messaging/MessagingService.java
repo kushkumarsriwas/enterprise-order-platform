@@ -2,7 +2,10 @@ package com.enterprise.notification.messaging;
 
 import com.enterprise.notification.client.StoreDirectoryClient;
 import com.enterprise.notification.common.ApiException;
+import com.enterprise.notification.common.Like;
 import com.enterprise.notification.common.PageResponse;
+import com.enterprise.notification.messaging.MessagingDtos.AdminConversationResponse;
+import com.enterprise.notification.messaging.MessagingDtos.AdminMessageResponse;
 import com.enterprise.notification.messaging.MessagingDtos.ConversationResponse;
 import com.enterprise.notification.messaging.MessagingDtos.ConversationStarted;
 import com.enterprise.notification.messaging.MessagingDtos.MessageResponse;
@@ -12,11 +15,15 @@ import com.enterprise.notification.notification.Audience;
 import com.enterprise.notification.notification.Notification;
 import com.enterprise.notification.notification.NotificationRepository;
 import com.enterprise.notification.security.AuthenticatedUser;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -51,13 +58,13 @@ public class MessagingService {
         if (!customer.isCustomer()) {
             throw ApiException.forbidden("Only customers can start a conversation with a seller");
         }
-        String storeName = conversations.findByCustomerIdAndMerchantId(customer.id(), request.merchantId())
-                .map(Conversation::getMerchantName)
-                .orElseGet(() -> stores.storeName(request.merchantId()));
+        String storeName = conversations.findByCustomerIdAndSellerId(customer.id(), request.sellerId())
+                .map(Conversation::getSellerName)
+                .orElseGet(() -> stores.storeName(request.sellerId()));
         return tx.execute(status -> {
-            Conversation conversation = conversations.findForUpdate(customer.id(), request.merchantId())
+            Conversation conversation = conversations.findForUpdate(customer.id(), request.sellerId())
                     .orElseGet(() -> conversations.saveAndFlush(new Conversation(customer.id(), customer.username(),
-                            request.merchantId(), storeName)));
+                            request.sellerId(), storeName)));
             Message message = append(conversation, customer, request.message(), request.productId(),
                     request.productName(), request.orderNumber());
             return new ConversationStarted(ConversationResponse.of(conversation, customer.id()),
@@ -79,7 +86,7 @@ public class MessagingService {
     public PageResponse<ConversationResponse> list(AuthenticatedUser user, int page, int size) {
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
                 Sort.by(Sort.Direction.DESC, "lastMessageAt").and(Sort.by(Sort.Direction.DESC, "id")));
-        Page<Conversation> result = user.isMerchant() ? conversations.findByMerchantId(user.id(), pageable)
+        Page<Conversation> result = user.isSeller() ? conversations.findBySellerId(user.id(), pageable)
                 : conversations.findByCustomerId(user.id(), pageable);
         return PageResponse.from(result, c -> ConversationResponse.of(c, user.id()));
     }
@@ -108,9 +115,94 @@ public class MessagingService {
         return ConversationResponse.of(conversation, user.id());
     }
 
+    /** A participant reports the conversation; the administrator is alerted and reviews it. */
+    @Transactional
+    public ConversationResponse report(AuthenticatedUser user, Long id, String reason) {
+        Conversation conversation = conversations.findForUpdate(id)
+                .filter(c -> c.hasParticipant(user.id()))
+                .orElseThrow(() -> notFound(id));
+        conversation.report(user.displayName(), reason.trim());
+        notifications.save(new Notification(null, Audience.ADMINS, "CONVERSATION_REPORTED",
+                truncate("Conversation reported: " + conversation.getCustomerName() + " / "
+                        + conversation.getSellerName(), 150), truncate(reason.trim(), 1000)));
+        log.info("Conversation {} reported by {}", id, user.username());
+        return ConversationResponse.of(conversation, user.id());
+    }
+
+    // ------------------------------------------------------------------ administrator (read-only oversight)
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminConversationResponse> adminSearch(Long customerId, Long sellerId, Boolean reported,
+                                                               String query, int page, int size) {
+        Specification<Conversation> spec = (root, criteria, cb) -> {
+            List<Predicate> where = new ArrayList<>();
+            if (customerId != null) {
+                where.add(cb.equal(root.get("customerId"), customerId));
+            }
+            if (sellerId != null) {
+                where.add(cb.equal(root.get("sellerId"), sellerId));
+            }
+            if (reported != null) {
+                where.add(cb.equal(root.get("reported"), reported));
+            }
+            if (query != null && !query.isBlank()) {
+                String pattern = Like.contains(query);
+                where.add(cb.or(cb.like(cb.lower(root.get("customerName")), pattern, Like.ESCAPE),
+                        cb.like(cb.lower(root.get("sellerName")), pattern, Like.ESCAPE),
+                        cb.like(cb.lower(cb.coalesce(root.<String>get("lastMessagePreview"), "")), pattern,
+                                Like.ESCAPE)));
+            }
+            return cb.and(where.toArray(Predicate[]::new));
+        };
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
+                Sort.by(Sort.Direction.DESC, "lastMessageAt").and(Sort.by(Sort.Direction.DESC, "id")));
+        return PageResponse.from(conversations.findAll(spec, pageable), AdminConversationResponse::of);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminConversationResponse adminGet(Long id) {
+        return conversations.findById(id).map(AdminConversationResponse::of).orElseThrow(() -> notFound(id));
+    }
+
+    /** The whole thread, oldest first, as the administrator reads it. */
+    @Transactional(readOnly = true)
+    public PageResponse<AdminMessageResponse> adminMessages(Long id, int page, int size) {
+        conversations.findById(id).orElseThrow(() -> notFound(id));
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 200),
+                Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by(Sort.Direction.ASC, "id")));
+        return PageResponse.from(messages.findByConversationId(id, pageable), AdminMessageResponse::of);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminMessageResponse> adminSearchMessages(String query, int page, int size) {
+        if (query == null || query.isBlank()) {
+            throw ApiException.badRequest("Enter a word to search for");
+        }
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        return PageResponse.from(messages.search(Like.contains(query), pageable), AdminMessageResponse::of);
+    }
+
+    @Transactional
+    public AdminConversationResponse resolveReport(Long id) {
+        Conversation conversation = conversations.findForUpdate(id).orElseThrow(() -> notFound(id));
+        conversation.resolveReport();
+        return AdminConversationResponse.of(conversation);
+    }
+
+    @Transactional(readOnly = true)
+    public MessagingStats stats() {
+        return new MessagingStats(conversations.count(), conversations.countByReportedTrue(), messages.count(),
+                messages.countByCreatedAtAfter(java.time.Instant.now().minus(java.time.Duration.ofDays(1))));
+    }
+
+    public record MessagingStats(long conversations, long reportedConversations, long messages,
+                                 long messagesLast24Hours) {
+    }
+
     @Transactional(readOnly = true)
     public long unread(AuthenticatedUser user) {
-        Long count = user.isMerchant() ? conversations.unreadForMerchant(user.id())
+        Long count = user.isSeller() ? conversations.unreadForSeller(user.id())
                 : conversations.unreadForCustomer(user.id());
         return count == null ? 0 : count;
     }
@@ -119,15 +211,15 @@ public class MessagingService {
                            String productName, String orderNumber) {
         boolean fromCustomer = conversation.isCustomer(sender.id());
         String body = text.trim();
-        Message message = messages.save(new Message(conversation, sender.id(), fromCustomer ? "CUSTOMER" : "MERCHANT",
-                fromCustomer ? conversation.getCustomerName() : conversation.getMerchantName(), body, productId,
+        Message message = messages.save(new Message(conversation, sender.id(), fromCustomer ? "CUSTOMER" : "SELLER",
+                fromCustomer ? conversation.getCustomerName() : conversation.getSellerName(), body, productId,
                 blankToNull(productName), blankToNull(orderNumber)));
-        int unreadBefore = fromCustomer ? conversation.getMerchantUnread() : conversation.getCustomerUnread();
+        int unreadBefore = fromCustomer ? conversation.getSellerUnread() : conversation.getCustomerUnread();
         conversation.recordMessage(preview(body), fromCustomer);
         // one notification per burst of messages, not one per message
         if (unreadBefore == 0) {
-            Long recipient = fromCustomer ? conversation.getMerchantId() : conversation.getCustomerId();
-            String from = fromCustomer ? conversation.getCustomerName() : conversation.getMerchantName();
+            Long recipient = fromCustomer ? conversation.getSellerId() : conversation.getCustomerId();
+            String from = fromCustomer ? conversation.getCustomerName() : conversation.getSellerName();
             String about = message.getProductName() != null ? " about " + message.getProductName()
                     : message.getOrderNumber() != null ? " about order " + message.getOrderNumber() : "";
             notifications.save(new Notification(recipient, Audience.USER, "NEW_MESSAGE",

@@ -1,35 +1,26 @@
 package com.enterprise.order.review;
 
-import com.enterprise.order.client.NotificationPublisher;
-import com.enterprise.order.common.ApiException;
 import com.enterprise.order.common.PageResponse;
-import com.enterprise.order.order.Order;
-import com.enterprise.order.order.OrderItem;
-import com.enterprise.order.order.OrderRepository;
-import com.enterprise.order.order.OrderStatus;
+import com.enterprise.order.review.ReviewDtos.AwaitingReview;
+import com.enterprise.order.review.ReviewDtos.CreateReview;
+import com.enterprise.order.review.ReviewDtos.ProductReviews;
+import com.enterprise.order.review.ReviewDtos.ReplyRequest;
+import com.enterprise.order.review.ReviewDtos.ReviewResponse;
+import com.enterprise.order.review.ReviewDtos.StoreReviews;
 import com.enterprise.order.security.AuthenticatedUser;
-import com.enterprise.order.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -39,95 +30,86 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Reviews")
 public class ReviewController {
 
-    private final ReviewRepository reviewRepository;
-    private final OrderRepository orderRepository;
-    private final NotificationPublisher notifications;
+    private final ReviewService reviewService;
 
-    public ReviewController(ReviewRepository reviewRepository, OrderRepository orderRepository,
-                            NotificationPublisher notifications) {
-        this.reviewRepository = reviewRepository;
-        this.orderRepository = orderRepository;
-        this.notifications = notifications;
+    public ReviewController(ReviewService reviewService) {
+        this.reviewService = reviewService;
     }
 
     @GetMapping("/api/reviews")
-    @Transactional(readOnly = true)
-    @Operation(summary = "Reviews of a product with the average rating (public)")
-    public ProductReviews forProduct(@RequestParam Long productId, @RequestParam(defaultValue = "0") int page,
+    @Operation(summary = "Reviews of a product with the rating summary (public; filter by stars, sort)")
+    public ProductReviews forProduct(@RequestParam Long productId, @RequestParam(required = false) Integer rating,
+                                     @RequestParam(defaultValue = "newest") String sort,
+                                     @RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "10") int size) {
-        Object[] summary = reviewRepository.ratingSummary(productId).get(0);
-        Map<Integer, Long> distribution = new TreeMap<>();
-        for (int stars = 1; stars <= 5; stars++) {
-            distribution.put(stars, 0L);
-        }
-        reviewRepository.ratingDistribution(productId)
-                .forEach(row -> distribution.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue()));
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50),
-                Sort.by(Sort.Direction.DESC, "createdAt"));
-        return new ProductReviews(productId,
-                BigDecimal.valueOf(((Number) summary[0]).doubleValue()).setScale(1, RoundingMode.HALF_UP),
-                ((Number) summary[1]).longValue(), distribution,
-                PageResponse.from(reviewRepository.findByProductId(productId, pageable), ReviewResponse::from));
+        return reviewService.forProduct(productId, rating, sort, page, size);
     }
 
     @GetMapping("/api/reviews/mine")
-    @Transactional(readOnly = true)
     @Operation(summary = "Reviews I have written")
-    public List<ReviewResponse> mine(@AuthenticationPrincipal AuthenticatedUser user) {
-        return reviewRepository.findByCustomerId(user.id()).stream().map(ReviewResponse::from).toList();
+    public PageResponse<ReviewResponse> mine(@RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "20") int size,
+                                             @AuthenticationPrincipal AuthenticatedUser user) {
+        return reviewService.mine(user, page, size);
+    }
+
+    @GetMapping("/api/reviews/pending")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Delivered products I have not rated yet")
+    public List<AwaitingReview> pending(@AuthenticationPrincipal AuthenticatedUser user) {
+        return reviewService.awaitingReview(user);
     }
 
     @PostMapping("/api/reviews")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('CUSTOMER')")
-    @Transactional
     @Operation(summary = "Review a product from one of my delivered orders (verified purchase)")
-    public ReviewResponse create(@Valid @RequestBody CreateReview request, @AuthenticationPrincipal AuthenticatedUser user) {
-        if (!orderRepository.hasDeliveredItem(request.orderId(), user.id(), request.productId(), OrderStatus.DELIVERED)) {
-            throw ApiException.forbidden("You can review a product after the order containing it has been delivered");
-        }
-        if (reviewRepository.existsByCustomerIdAndProductId(user.id(), request.productId())) {
-            throw ApiException.conflict("You have already reviewed this product");
-        }
-        Order order = orderRepository.findWithItemsById(request.orderId()).orElseThrow();
-        String productName = order.getItems().stream().filter(i -> i.getProductId().equals(request.productId()))
-                .map(OrderItem::getProductName).findFirst().orElse("Product");
-        Review review = reviewRepository.save(new Review(request.productId(), productName, order.getMerchantId(),
-                order.getId(), user.id(), user.username(), request.rating(),
-                request.comment() == null || request.comment().isBlank() ? null : request.comment().trim()));
-        notifications.toUser(CurrentUser.token(), order.getMerchantId(), "NEW_REVIEW",
-                request.rating() + "-star review for " + productName,
-                user.username() + ": " + (review.getComment() == null ? "(no comment)" : review.getComment()));
-        return ReviewResponse.from(review);
+    public ReviewResponse create(@Valid @RequestBody CreateReview request,
+                                 @AuthenticationPrincipal AuthenticatedUser user) {
+        return reviewService.create(user, request);
     }
 
-    @GetMapping("/api/merchant/reviews")
-    @PreAuthorize("hasRole('MERCHANT')")
-    @Transactional(readOnly = true)
-    @Operation(summary = "Reviews of my products")
-    public PageResponse<ReviewResponse> forMerchant(@RequestParam(defaultValue = "0") int page,
-                                                    @RequestParam(defaultValue = "20") int size,
-                                                    @AuthenticationPrincipal AuthenticatedUser merchant) {
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
-                Sort.by(Sort.Direction.DESC, "createdAt"));
-        return PageResponse.from(reviewRepository.findByMerchantId(merchant.id(), pageable), ReviewResponse::from);
+    @GetMapping("/api/seller/reviews")
+    @PreAuthorize("hasRole('SELLER')")
+    @Operation(summary = "Reviews of my products with rating summary (filter: stars, replied, product, text)")
+    public StoreReviews forSeller(@RequestParam(required = false) Integer rating,
+                                  @RequestParam(required = false) Boolean replied,
+                                  @RequestParam(required = false) Long productId,
+                                  @RequestParam(required = false) String q,
+                                  @RequestParam(defaultValue = "newest") String sort,
+                                  @RequestParam(defaultValue = "0") int page,
+                                  @RequestParam(defaultValue = "20") int size,
+                                  @AuthenticationPrincipal AuthenticatedUser seller) {
+        return reviewService.forStore(seller.id(), rating, replied, productId, q, sort, page, size);
     }
 
-    public record CreateReview(@NotNull Long orderId, @NotNull Long productId, @NotNull @Min(1) @Max(5) Integer rating,
-                               @Size(max = 1000) String comment) {
+    @PutMapping("/api/seller/reviews/{id}/reply")
+    @PreAuthorize("hasRole('SELLER')")
+    @Operation(summary = "Publicly answer a review of one of my products")
+    public ReviewResponse reply(@PathVariable Long id, @Valid @RequestBody ReplyRequest request,
+                                @AuthenticationPrincipal AuthenticatedUser seller) {
+        return reviewService.reply(seller, id, request.reply());
     }
 
-    public record ReviewResponse(Long id, Long productId, String productName, Long orderId, String customerName,
-                                 int rating, String comment, Instant createdAt) {
-
-        static ReviewResponse from(Review review) {
-            return new ReviewResponse(review.getId(), review.getProductId(), review.getProductName(),
-                    review.getOrderId(), review.getCustomerName(), review.getRating(), review.getComment(),
-                    review.getCreatedAt());
-        }
+    @GetMapping("/api/admin/reviews")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "All reviews on the marketplace (filter: store, stars, replied, product, text)")
+    public StoreReviews all(@RequestParam(required = false) Long sellerId,
+                            @RequestParam(required = false) Integer rating,
+                            @RequestParam(required = false) Boolean replied,
+                            @RequestParam(required = false) Long productId,
+                            @RequestParam(required = false) String q,
+                            @RequestParam(defaultValue = "newest") String sort,
+                            @RequestParam(defaultValue = "0") int page,
+                            @RequestParam(defaultValue = "20") int size) {
+        return reviewService.all(sellerId, rating, replied, productId, q, sort, page, size);
     }
 
-    public record ProductReviews(Long productId, BigDecimal averageRating, long reviewCount,
-                                 Map<Integer, Long> distribution, PageResponse<ReviewResponse> reviews) {
+    @DeleteMapping("/api/admin/reviews/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Remove a review that breaks the guidelines (the product rating is recalculated)")
+    public ResponseEntity<Void> remove(@PathVariable Long id, @RequestParam(required = false) String reason) {
+        reviewService.remove(id, reason);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,6 +1,7 @@
 package com.enterprise.auth.user;
 
 import com.enterprise.auth.common.ApiException;
+import com.enterprise.auth.common.Like;
 import com.enterprise.auth.common.PageResponse;
 import com.enterprise.auth.user.UserResponse.StoreResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,33 +15,33 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Public store directory of the marketplace. */
+/** Public store directory of the marketplace ("Visit the store"). */
 @RestController
-@RequestMapping("/api/merchants")
+@RequestMapping("/api/sellers")
 @Tag(name = "Stores")
 public class StoreController {
 
-    private final MerchantProfileRepository merchantRepository;
+    private final SellerProfileRepository sellerRepository;
 
-    public StoreController(MerchantProfileRepository merchantRepository) {
-        this.merchantRepository = merchantRepository;
+    public StoreController(SellerProfileRepository sellerRepository) {
+        this.sellerRepository = sellerRepository;
     }
 
     @GetMapping
     @Transactional(readOnly = true)
-    @Operation(summary = "Active stores on the marketplace (public)")
+    @Operation(summary = "Stores on the marketplace, searchable by name or city (public)")
     public PageResponse<StoreResponse> list(@RequestParam(defaultValue = "") String search,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "24") int size) {
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by("storeName"));
-        return PageResponse.from(merchantRepository.searchActive(search.trim(), pageable), StoreResponse::from);
+        return PageResponse.from(sellerRepository.searchActive(Like.contains(search), pageable), StoreResponse::from);
     }
 
-    @GetMapping("/{merchantId}")
+    @GetMapping("/{sellerId}")
     @Transactional(readOnly = true)
     @Operation(summary = "One store's public profile")
-    public StoreResponse get(@PathVariable Long merchantId) {
-        return merchantRepository.findByUserId(merchantId)
+    public StoreResponse get(@PathVariable Long sellerId) {
+        return sellerRepository.findByUserId(sellerId)
                 .filter(profile -> profile.getUser().isEnabled())
                 .map(StoreResponse::from)
                 .orElseThrow(() -> ApiException.notFound("Store not found"));

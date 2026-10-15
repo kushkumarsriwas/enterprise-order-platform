@@ -1,10 +1,22 @@
-name: CI/CD
+# Continuous integration: runs on every push to main, develop and feature/** branches and on every pull request.
+#
+#   Compile -> Unit tests -> Integration tests -> Code quality -> Package JAR -> Build Docker image -> Deploy (cd.yml)
+#
+#   backend      one job per Java service, in parallel: compile, unit tests, integration tests, coverage, package the JAR
+#   web          storefront and Control Center: lint, format check, production build
+#   code-quality CodeQL static analysis of the Java and JavaScript code (public repositories)
+#   kubernetes   render the k8s/ and deploy/aws manifests and validate them against the Kubernetes API schemas
+#   e2e          the packaged JARs against PostgreSQL + Redis, driven through the gateway (scripts/smoke-test.mjs)
+#   docker       an image for every service and both web applications; pushed to GitHub Container Registry from main
+#
+# When this workflow succeeds on main, cd.yml deploys (Render, and AWS EKS when it is configured).
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop, "feature/**"]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:
@@ -13,177 +25,247 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
+
+env:
+  JACOCO: org.jacoco:jacoco-maven-plugin:0.8.13
 
 jobs:
-  # 1) Compile + unit tests + integration tests (H2 / MockMvc) for every service, in parallel
   backend:
-    name: Test ${{ matrix.module }}
+    name: ${{ matrix.service }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        module:
-          - services/auth-service
-          - services/product-inventory-service
-          - services/order-service
-          - services/payment-service
-          - services/notification-service
-          - gateway
+        include:
+          - { service: auth-service, path: services/auth-service }
+          - { service: product-service, path: services/product-inventory-service }
+          - { service: order-service, path: services/order-service }
+          - { service: payment-service, path: services/payment-service }
+          - { service: notification-service, path: services/notification-service }
+          - { service: api-gateway, path: gateway }
+    defaults:
+      run:
+        working-directory: ${{ matrix.path }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
           cache: maven
+          cache-dependency-path: ${{ matrix.path }}/pom.xml
       - name: Download dependencies
-        # Maven Central sometimes drops connections when many jobs download at the same time: retry before failing
+        # Maven Central sometimes drops connections when many jobs download at once: retry before failing
         run: |
           for attempt in 1 2 3; do
-            mvn -B -ntp dependency:go-offline -f ${{ matrix.module }}/pom.xml > deps.log 2>&1 && exit 0
+            mvn -B -ntp dependency:go-offline > deps.log 2>&1 && exit 0
             echo "Dependency download failed (attempt $attempt of 3):"; grep -E "^\[ERROR\]" deps.log | head -5
             sleep 15
           done
           exit 1
-      - name: Build and test
+      - name: Compile
+        run: mvn -B -ntp test-compile
+      - name: Unit tests (JUnit 5, Mockito, MockMvc)
+        run: mvn -B -ntp $JACOCO:prepare-agent test -Dtest='!*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false
+      - name: Integration tests (Spring Boot, H2, Testcontainers PostgreSQL)
+        run: mvn -B -ntp $JACOCO:prepare-agent test -Dtest='*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false
+      - name: Test coverage (JaCoCo)
         run: |
-          set -o pipefail
-          mvn -B -ntp verify -f ${{ matrix.module }}/pom.xml 2>&1 | tee build.log
-      - name: Show build errors as annotations
-        if: failure()
-        run: cat deps.log build.log 2>/dev/null | grep -E "^\[ERROR\] .+" | head -10 | sed -e 's/%/%25/g' -e 's/^/::error title=Maven::/' || true
-      - name: Upload test reports
+          mvn -B -ntp -q $JACOCO:report
+          csv=target/site/jacoco/jacoco.csv
+          if [ -f "$csv" ]; then
+            awk -F, -v name="${{ matrix.service }}" 'NR > 1 { bm += $6; bc += $7; lm += $8; lc += $9 }
+              END {
+                printf "### Test coverage: %s\n\n| Lines | Branches |\n| --- | --- |\n", name
+                printf "| %.1f%% (%d of %d) | %.1f%% |\n", 100 * lc / (lm + lc), lc, lm + lc, (bm + bc) ? 100 * bc / (bm + bc) : 100
+              }' "$csv" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Package JAR
+        run: mvn -B -ntp -q package -DskipTests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar-${{ matrix.service }}
+          path: ${{ matrix.path }}/target/app.jar
+          retention-days: 7
+      - name: Keep the test reports
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-${{ strategy.job-index }}
-          path: ${{ matrix.module }}/target/surefire-reports
+          name: test-reports-${{ matrix.service }}
+          path: ${{ matrix.path }}/target/surefire-reports
 
-  frontend:
-    name: Lint and build frontend
+  web:
+    name: ${{ matrix.app }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [frontend, admin]
     defaults:
       run:
-        working-directory: frontend
+        working-directory: ${{ matrix.app }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
       - run: npm ci --no-audit --no-fund
-      - run: npm run lint
-      - run: npm run build
+      - name: Lint (oxlint)
+        run: npm run lint
+      - name: Format check (Prettier)
+        run: npm run format:check
+      - name: Production build
+        run: npm run build
 
-  # 2) End-to-end: all six services against a real PostgreSQL + Redis, driven through the gateway
+  code-quality:
+    name: Code quality (CodeQL ${{ matrix.language }})
+    # Code scanning is free for public repositories; a private one needs GitHub Advanced Security.
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java-kotlin, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+
+  kubernetes:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Render with kustomize (local cluster and AWS EKS)
+        run: |
+          cp k8s/config/secrets.env.example k8s/config/secrets.env
+          kubectl kustomize k8s > rendered-local.yaml
+          kubectl kustomize deploy/aws > rendered-aws.yaml
+          grep -c "^kind:" rendered-local.yaml rendered-aws.yaml
+      - name: Validate against the Kubernetes API schemas (kubeconform)
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          ./kubeconform -strict -summary -kubernetes-version 1.33.0 rendered-local.yaml rendered-aws.yaml
+
   e2e:
-    name: End-to-end smoke test
+    name: End-to-end test
     needs: backend
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:18
         env:
           POSTGRES_DB: enterprise
           POSTGRES_PASSWORD: postgres
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd="pg_isready -U postgres" --health-interval=5s --health-timeout=5s --health-retries=20
       redis:
         image: redis:7
-        ports: ['6379:6379']
+        ports: ["6379:6379"]
+    env:
+      # a throw-away database that lives for this job only
+      ADMIN_PASSWORD: ci-admin-${{ github.run_id }}
+      INTERNAL_API_KEY: ci-internal-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: jar-*
+          path: jars
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
-          cache: maven
-      - name: Package all services
-        run: |
-          for attempt in 1 2 3; do
-            mvn -B -ntp -q package -DskipTests && exit 0
-            echo "Build failed (attempt $attempt of 3), retrying in 15 seconds..."
-            sleep 15
-          done
-          exit 1
-      - name: Start services
+          java-version: "21"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Start the six services
         run: |
           mkdir -p logs
-          start() { PORT=$2 nohup java -Xmx256m -jar $3 > logs/$1.log 2>&1 & }
-          start auth 8081 services/auth-service/target/app.jar
+          start() { PORT=$2 nohup java -Xmx320m -XX:TieredStopAtLevel=1 -jar jars/jar-$1/app.jar > logs/$1.log 2>&1 & }
+          start auth-service 8081
           sleep 15
-          start inventory 8082 services/product-inventory-service/target/app.jar
-          start order 8083 services/order-service/target/app.jar
-          start payment 8084 services/payment-service/target/app.jar
-          start notification 8085 services/notification-service/target/app.jar
-          start gateway 8080 gateway/target/app.jar
-          for port in 8080 8081 8082 8083 8084 8085; do
-            for i in $(seq 1 60); do curl -fs localhost:$port/actuator/health > /dev/null && break; sleep 3; done
+          start product-service 8082
+          start order-service 8083
+          start payment-service 8084
+          start notification-service 8085
+          start api-gateway 8080
+          for port in 8081 8082 8083 8084 8085 8080; do
+            for i in $(seq 1 90); do curl -fs "localhost:$port/actuator/health" > /dev/null && break; sleep 2; done
+            curl -fs "localhost:$port/actuator/health" > /dev/null || { echo "::error::service on port $port did not start"; exit 1; }
           done
-      - name: Run smoke test
-        run: bash scripts/smoke-test.sh http://localhost:8080
-      - name: Upload service logs
+      - name: Smoke test through the gateway
+        run: node scripts/smoke-test.mjs http://localhost:8080
+      - name: Keep the service logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs
           path: logs
 
-  # 3) Build every Docker image; on main also publish them to GitHub Container Registry
   docker:
     name: Docker image ${{ matrix.image }}
-    needs: [backend, frontend]
+    needs: [backend, web, code-quality, kubernetes, e2e]
+    # runs when everything before passed (code quality is skipped on private repositories)
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
         include:
           - { image: auth-service, context: services/auth-service }
-          - { image: product-inventory-service, context: services/product-inventory-service }
+          - { image: product-service, context: services/product-inventory-service }
           - { image: order-service, context: services/order-service }
           - { image: payment-service, context: services/payment-service }
           - { image: notification-service, context: services/notification-service }
           - { image: api-gateway, context: gateway }
           - { image: frontend, context: frontend }
+          - { image: admin-frontend, context: admin }
+    env:
+      PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
-      - name: Log in to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Log in to GitHub Container Registry
+        if: env.PUBLISH == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build (and push on main)
+      - name: Build (and push from main)
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          push: ${{ env.PUBLISH == 'true' }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/eop-${{ matrix.image }}:latest
             ghcr.io/${{ github.repository_owner }}/eop-${{ matrix.image }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=nexora-${{ matrix.image }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-
-  # 4) Deploy: Render rebuilds the gateway and the frontend only when everything above is green
-  deploy:
-    name: Deploy ${{ matrix.target }} to Render
-    needs: [backend, frontend, e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [gateway, frontend]
-    steps:
-      - name: Trigger Render deploy hook
-        env:
-          GATEWAY_HOOK: ${{ secrets.RENDER_GATEWAY_DEPLOY_HOOK }}
-          FRONTEND_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
-        run: |
-          HOOK=$([ "${{ matrix.target }}" = "gateway" ] && echo "$GATEWAY_HOOK" || echo "$FRONTEND_HOOK")
-          if [ -z "$HOOK" ]; then echo "Deploy hook secret not configured - skipping"; exit 0; fi
-          curl --fail --silent --show-error --request POST "$HOOK"

@@ -1,0 +1,45 @@
+# Checkout, orders per store, invoices, reviews, sales analytics. Database: PostgreSQL. Scales out (see hpa.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: enterprise-platform
+  labels: { app: order-service, tier: backend }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: order-service }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app: order-service, tier: backend }
+    spec:
+      containers:
+        - name: order-service
+          image: enterprise/order-service:3.0.0
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: http, containerPort: 8083 }]
+          # service URLs (AUTH_JWKS_URI, ORDER_SERVICE_URL, ...) from the shared ConfigMap
+          envFrom: [{ configMapRef: { name: platform-config } }]
+          env:
+            - { name: PORT, value: "8083" }
+            - { name: JAVA_OPTS, value: "-XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:ReservedCodeCacheSize=64m -Xss512k" }
+            - { name: INTERNAL_API_KEY, valueFrom: { secretKeyRef: { name: platform-secrets, key: INTERNAL_API_KEY } } }
+            - { name: SPRING_DATASOURCE_URL, valueFrom: { configMapKeyRef: { name: platform-config, key: POSTGRES_URL } } }
+            - { name: SPRING_DATASOURCE_USERNAME, value: "postgres" }
+            - { name: SPRING_DATASOURCE_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: POSTGRES_PASSWORD } } }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { memory: 384Mi, cpu: 100m }
+            limits: { memory: 512Mi }

@@ -1,0 +1,28 @@
+{
+  "name": "nexora-control-center",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Nexora Control Center: the administrator's console, a separate web application from the marketplace",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint src",
+    "preview": "vite preview",
+    "format": "prettier --write src vite.config.js",
+    "format:check": "prettier --check src vite.config.js"
+  },
+  "dependencies": {
+    "@fontsource-variable/instrument-sans": "^5.3.0",
+    "lucide-react": "^1.54.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.87.0",
+    "prettier": "3.9.10",
+    "vite": "^8.3.4"
+  }
+}

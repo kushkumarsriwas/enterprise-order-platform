@@ -11,13 +11,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 
-/** Verified-purchase product review: only customers who received the product can write one. */
+/** Verified-purchase product review: only customers who received the product can write one, once per product. */
 @Entity
 @Table(name = "reviews",
         uniqueConstraints = @UniqueConstraint(name = "uk_reviews_customer_product", columnNames = {"customer_id", "product_id"}),
         indexes = {
                 @Index(name = "idx_reviews_product", columnList = "product_id, created_at"),
-                @Index(name = "idx_reviews_merchant", columnList = "merchant_id, created_at")
+                @Index(name = "idx_reviews_seller", columnList = "seller_id, created_at")
         })
 public class Review {
 
@@ -31,8 +31,11 @@ public class Review {
     @Column(name = "product_name", nullable = false, length = 150)
     private String productName;
 
-    @Column(name = "merchant_id", nullable = false)
-    private Long merchantId;
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
+
+    @Column(name = "seller_name", length = 80)
+    private String sellerName;
 
     @Column(name = "order_id", nullable = false)
     private Long orderId;
@@ -49,17 +52,25 @@ public class Review {
     @Column(length = 1000)
     private String comment;
 
+    /** Public answer of the seller, shown under the review. */
+    @Column(name = "seller_reply", length = 1000)
+    private String sellerReply;
+
+    @Column(name = "seller_replied_at")
+    private Instant sellerRepliedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     protected Review() {
     }
 
-    public Review(Long productId, String productName, Long merchantId, Long orderId, Long customerId,
+    public Review(Long productId, String productName, Long sellerId, String sellerName, Long orderId, Long customerId,
                   String customerName, int rating, String comment) {
         this.productId = productId;
         this.productName = productName;
-        this.merchantId = merchantId;
+        this.sellerId = sellerId;
+        this.sellerName = sellerName;
         this.orderId = orderId;
         this.customerId = customerId;
         this.customerName = customerName;
@@ -70,6 +81,11 @@ public class Review {
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
+    }
+
+    public void reply(String text) {
+        this.sellerReply = text;
+        this.sellerRepliedAt = text == null ? null : Instant.now();
     }
 
     public Long getId() {
@@ -84,8 +100,12 @@ public class Review {
         return productName;
     }
 
-    public Long getMerchantId() {
-        return merchantId;
+    public Long getSellerId() {
+        return sellerId;
+    }
+
+    public String getSellerName() {
+        return sellerName;
     }
 
     public Long getOrderId() {
@@ -106,6 +126,14 @@ public class Review {
 
     public String getComment() {
         return comment;
+    }
+
+    public String getSellerReply() {
+        return sellerReply;
+    }
+
+    public Instant getSellerRepliedAt() {
+        return sellerRepliedAt;
     }
 
     public Instant getCreatedAt() {

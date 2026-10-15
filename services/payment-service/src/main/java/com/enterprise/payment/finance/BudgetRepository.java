@@ -6,10 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
-    List<Budget> findByMerchantIdAndBudgetMonth(Long merchantId, String budgetMonth);
+    List<Budget> findBySellerIdAndBudgetMonth(Long sellerId, String budgetMonth);
 
-    Optional<Budget> findByMerchantIdAndBudgetMonthAndCategory(Long merchantId, String budgetMonth,
+    Optional<Budget> findBySellerIdAndBudgetMonthAndCategory(Long sellerId, String budgetMonth,
                                                                ExpenseCategory category);
 
-    Optional<Budget> findByIdAndMerchantId(Long id, Long merchantId);
+    Optional<Budget> findByIdAndSellerId(Long id, Long sellerId);
 }

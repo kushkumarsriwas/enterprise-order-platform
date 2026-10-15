@@ -1,0 +1,56 @@
+# MySQL 8.4: the auth service's accounts, store profiles and the sign-in audit log.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+  namespace: enterprise-platform
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: enterprise-platform
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: mysql }
+  template:
+    metadata:
+      labels: { app: mysql, tier: database }
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          ports: [{ containerPort: 3306 }]
+          env:
+            - { name: MYSQL_DATABASE, value: auth_db }
+            - { name: MYSQL_USER, value: auth_user }
+            - { name: MYSQL_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: MYSQL_PASSWORD } } }
+            - { name: MYSQL_ROOT_PASSWORD, valueFrom: { secretKeyRef: { name: platform-secrets, key: MYSQL_ROOT_PASSWORD } } }
+          readinessProbe:
+            exec: { command: ["sh", "-c", "mysqladmin ping -uroot -p$MYSQL_ROOT_PASSWORD --silent"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 60
+          resources:
+            requests: { memory: 512Mi, cpu: 100m }
+            limits: { memory: 512Mi }
+          volumeMounts: [{ name: data, mountPath: /var/lib/mysql }]
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: mysql-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: enterprise-platform
+spec:
+  selector: { app: mysql }
+  ports: [{ port: 3306, targetPort: 3306 }]

@@ -1,0 +1,27 @@
+# The marketplace and Seller Central (nginx serves the React app and proxies /api to the gateway).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: enterprise-platform
+  labels: { app: frontend, tier: web }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend, tier: web }
+    spec:
+      containers:
+        - name: frontend
+          image: enterprise/frontend:3.0.0
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: http, containerPort: 80 }]
+          env:
+            - { name: GATEWAY_URL, value: "http://api-gateway:8080" }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+          resources:
+            requests: { memory: 32Mi, cpu: 20m }
+            limits: { memory: 64Mi }

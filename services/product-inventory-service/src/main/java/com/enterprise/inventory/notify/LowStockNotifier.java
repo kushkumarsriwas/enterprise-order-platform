@@ -11,7 +11,10 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.client.RestClient;
 
-/** Sends a LOW_STOCK alert to the owning merchant via the notification service - asynchronously, after commit. */
+/**
+ * Sends a LOW_STOCK alert to the owning seller via the notification service - asynchronously, after commit.
+ * Authenticated with the internal service key, so alerts raised by scheduled jobs are delivered too.
+ */
 @Component
 public class LowStockNotifier {
 
@@ -26,14 +29,15 @@ public class LowStockNotifier {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onLowStock(LowStockEvent event) {
-        if (event.bearerToken() == null) {
-            return;
-        }
         try {
             notificationClient.post().uri("/internal/notifications")
-                    .headers(headers -> headers.setBearerAuth(event.bearerToken()))
+                    .headers(headers -> {
+                        if (event.bearerToken() != null) {
+                            headers.setBearerAuth(event.bearerToken());
+                        }
+                    })
                     .body(Map.of(
-                            "userId", event.merchantId(),
+                            "userId", event.sellerId(),
                             "audience", "USER",
                             "type", "LOW_STOCK",
                             "title", "Low stock: " + event.productName(),

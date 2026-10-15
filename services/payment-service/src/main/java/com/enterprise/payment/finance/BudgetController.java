@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/merchant/budgets")
-@PreAuthorize("hasRole('MERCHANT')")
-@Tag(name = "Merchant - budgets")
+@RequestMapping("/api/seller/budgets")
+@PreAuthorize("hasRole('SELLER')")
+@Tag(name = "Seller - budgets")
 public class BudgetController {
 
     private final BudgetService budgetService;
@@ -36,28 +36,28 @@ public class BudgetController {
     @GetMapping
     @Operation(summary = "Budget vs actual spending per category for a month (default: this month)")
     public BudgetOverview overview(@RequestParam(required = false) String month,
-                                   @AuthenticationPrincipal AuthenticatedUser merchant) {
-        return budgetService.overview(merchant.id(), month == null || month.isBlank()
+                                   @AuthenticationPrincipal AuthenticatedUser seller) {
+        return budgetService.overview(seller.id(), month == null || month.isBlank()
                 ? YearMonth.now(ZoneOffset.UTC) : BudgetService.month(month));
     }
 
     @PutMapping
     @Operation(summary = "Set the budget of a category for a month")
     public BudgetOverview set(@Valid @RequestBody BudgetRequest request,
-                              @AuthenticationPrincipal AuthenticatedUser merchant) {
-        return budgetService.set(merchant.id(), request);
+                              @AuthenticationPrincipal AuthenticatedUser seller) {
+        return budgetService.set(seller.id(), request);
     }
 
     @PostMapping("/copy")
     @Operation(summary = "Copy all budgets of one month to another month")
     public BudgetOverview copy(@Valid @RequestBody CopyBudgetsRequest request,
-                               @AuthenticationPrincipal AuthenticatedUser merchant) {
-        return budgetService.copy(merchant.id(), request);
+                               @AuthenticationPrincipal AuthenticatedUser seller) {
+        return budgetService.copy(seller.id(), request);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Remove a budget")
-    public BudgetOverview delete(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser merchant) {
-        return budgetService.delete(merchant.id(), id);
+    public BudgetOverview delete(@PathVariable Long id, @AuthenticationPrincipal AuthenticatedUser seller) {
+        return budgetService.delete(seller.id(), id);
     }
 }

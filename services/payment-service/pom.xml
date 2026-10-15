@@ -14,7 +14,7 @@
     <artifactId>payment-service</artifactId>
     <version>1.0.0</version>
     <name>payment-service</name>
-    <description>Payments (card, UPI, cash on delivery), platform fees, merchant finance: expenses, budgets, profit and loss; Oracle locally, PostgreSQL on Render</description>
+    <description>Payments (card, UPI, cash on delivery), platform fees, seller finance: expenses, budgets, profit and loss; Oracle locally, PostgreSQL on Render</description>
 
     <properties>
         <java.version>21</java.version>

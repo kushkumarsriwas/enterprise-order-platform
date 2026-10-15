@@ -3,13 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f172a" />
-    <meta name="description" content="Nexora Commerce - a multi-vendor e-commerce marketplace with a complete back office for merchants: inventory, orders, payments, finance and reports." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#0f6b66" />
+    <meta name="description" content="Nexora is a UAE marketplace where independent stores sell to customers across the Emirates, with Seller Central for inventory, orders and finances." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Nexora Commerce - marketplace and merchant back office</title>
+    <title>Nexora - shop independent stores across the UAE</title>
+    <script>
+      // apply the saved theme before the first paint (no light flash in dark mode)
+      try {
+        var saved = localStorage.getItem("nexora_theme");
+        if (saved === "dark" || saved === "light") document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

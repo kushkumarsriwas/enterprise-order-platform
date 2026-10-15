@@ -11,7 +11,7 @@ public final class MessagingDtos {
     }
 
     /** "Contact seller" from a product or order page. */
-    public record StartConversationRequest(@NotNull Long merchantId,
+    public record StartConversationRequest(@NotNull Long sellerId,
                                            @NotBlank @Size(max = 2000) String message,
                                            Long productId,
                                            @Size(max = 150) String productName,
@@ -25,13 +25,13 @@ public final class MessagingDtos {
     }
 
     /** counterpartName: the store for a customer, the customer for a seller. unread: for the caller. */
-    public record ConversationResponse(Long id, Long customerId, String customerName, Long merchantId,
-                                       String merchantName, String counterpartName, String lastMessagePreview,
+    public record ConversationResponse(Long id, Long customerId, String customerName, Long sellerId,
+                                       String sellerName, String counterpartName, String lastMessagePreview,
                                        Instant lastMessageAt, int unread, Instant createdAt) {
 
         static ConversationResponse of(Conversation c, Long viewerId) {
-            return new ConversationResponse(c.getId(), c.getCustomerId(), c.getCustomerName(), c.getMerchantId(),
-                    c.getMerchantName(), c.isCustomer(viewerId) ? c.getMerchantName() : c.getCustomerName(),
+            return new ConversationResponse(c.getId(), c.getCustomerId(), c.getCustomerName(), c.getSellerId(),
+                    c.getSellerName(), c.isCustomer(viewerId) ? c.getSellerName() : c.getCustomerName(),
                     c.getLastMessagePreview(), c.getLastMessageAt(), c.unreadFor(viewerId), c.getCreatedAt());
         }
     }
@@ -48,6 +48,36 @@ public final class MessagingDtos {
     }
 
     public record ConversationStarted(ConversationResponse conversation, MessageResponse message) {
+    }
+
+    public record ReportRequest(@NotBlank @Size(max = 255) String reason) {
+    }
+
+    /** The administrator's view: both parties, unread counters on both sides and the report status. */
+    public record AdminConversationResponse(Long id, Long customerId, String customerName, Long sellerId,
+                                            String sellerName, String lastMessagePreview, Instant lastMessageAt,
+                                            int customerUnread, int sellerUnread, boolean reported,
+                                            String reportReason, String reportedBy, Instant reportedAt,
+                                            Instant createdAt) {
+
+        public static AdminConversationResponse of(Conversation c) {
+            return new AdminConversationResponse(c.getId(), c.getCustomerId(), c.getCustomerName(), c.getSellerId(),
+                    c.getSellerName(), c.getLastMessagePreview(), c.getLastMessageAt(), c.getCustomerUnread(),
+                    c.getSellerUnread(), c.isReported(), c.getReportReason(), c.getReportedBy(), c.getReportedAt(),
+                    c.getCreatedAt());
+        }
+    }
+
+    public record AdminMessageResponse(Long id, Long conversationId, String customerName, String sellerName,
+                                       Long senderId, String senderRole, String senderName, String body,
+                                       Long productId, String productName, String orderNumber, Instant createdAt) {
+
+        public static AdminMessageResponse of(Message m) {
+            Conversation c = m.getConversation();
+            return new AdminMessageResponse(m.getId(), c.getId(), c.getCustomerName(), c.getSellerName(),
+                    m.getSenderId(), m.getSenderRole(), m.getSenderName(), m.getBody(), m.getProductId(),
+                    m.getProductName(), m.getOrderNumber(), m.getCreatedAt());
+        }
     }
 
     public record UnreadMessages(long unread) {

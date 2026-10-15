@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-/** Tells the product and inventory service to hide or show every product of a suspended or reactivated store. */
+/** Tells the product & inventory service to hide (or show again) every listing of a suspended store. */
 @Component
 public class CatalogClient {
 
@@ -17,9 +17,10 @@ public class CatalogClient {
         this.client = factory.create(NAME, url);
     }
 
-    public void setMerchantActive(Long merchantId, boolean active) {
-        RemoteCalls.call(NAME, () -> client.put().uri("/internal/merchants/{merchantId}/status", merchantId)
-                .body(Map.of("active", active))
+    /** Idempotent: calling it twice with the same value changes nothing. */
+    public void setStoreSuspended(Long sellerId, boolean suspended) {
+        RemoteCalls.call(NAME, () -> client.put().uri("/internal/sellers/{sellerId}/suspension", sellerId)
+                .body(Map.of("suspended", suspended))
                 .retrieve()
                 .toBodilessEntity());
     }

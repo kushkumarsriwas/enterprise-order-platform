@@ -31,8 +31,9 @@ public class CategoryService {
         if (categoryRepository.existsByNameIgnoreCase(name)) {
             throw ApiException.conflict("Category '" + name + "' already exists");
         }
-        Category category = categoryRepository.save(new Category(name, request.description()));
-        productCache.evictCategories();
-        return new CategoryResponse(category.getId(), category.getName(), category.getDescription(), 0L);
+        Category category = categoryRepository.save(new Category(name, request.description(), request.icon()));
+        productCache.evictListings();
+        return new CategoryResponse(category.getId(), category.getName(), category.getDescription(),
+                category.getIcon(), 0L);
     }
 }

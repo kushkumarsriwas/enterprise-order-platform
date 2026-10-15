@@ -1,199 +1,163 @@
-// Charts follow one system: thin marks, hairline solid grid, values in text colours (never the series colour),
-// a legend whenever there are 2+ series, a hover tooltip, and a table view for every chart.
-// Series colours come from CSS variables (--series-1..3), validated for colour-vision deficiency in light and dark.
-import { useState } from "react";
-import { BarChart3, Table2 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { compact } from "../format.js";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { compact, formatMoney, formatNumber } from "../format.js";
 
-const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)"];
-const AXIS_TICK = { fill: "var(--muted)", fontSize: 12 };
+/** Validated categorical slots (see styles/tokens.css): fixed order, never cycled. */
+export const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)", "var(--series-6)"];
 
-export function ChartCard({ title, subtitle, table, children, actions, empty, loading }) {
-  const [asTable, setAsTable] = useState(false);
+const axisTick = { fill: "var(--chart-axis)", fontSize: 11 };
+
+function ChartTooltip({ active, payload, label, series, format, labelFormat }) {
+  if (!active || !payload?.length) return null;
   return (
-    <section className={`card chart-card ${loading ? "refetching" : ""}`}>
-      <header className="chart-head">
-        <div>
-          <h3>{title}</h3>
-          {subtitle && <p className="muted small">{subtitle}</p>}
-        </div>
-        <div className="row">
-          {actions}
-          {table && !empty && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setAsTable(!asTable)} aria-pressed={asTable}>
-              {asTable ? <BarChart3 size={14} /> : <Table2 size={14} />} {asTable ? "Chart" : "Table"}
-            </button>
-          )}
-        </div>
-      </header>
-      {empty ? <div className="chart-empty">{empty}</div> : asTable ? <DataTable {...table} /> : children}
-    </section>
-  );
-}
-
-export function DataTable({ columns, rows }) {
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column.key} className={column.numeric ? "num" : ""}>
-                {column.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={index}>
-              {columns.map((column) => (
-                <td key={column.key} className={column.numeric ? "num" : ""}>
-                  {column.format ? column.format(row[column.key], row) : row[column.key]}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="chart-tooltip">
+      <div className="tt-title">{labelFormat ? labelFormat(label, payload[0]?.payload) : label}</div>
+      {series.map((s, index) => {
+        const entry = payload.find((p) => p.dataKey === s.key);
+        if (!entry) return null;
+        return (
+          <div className="tt-row" key={s.key}>
+            <span>
+              <i style={{ background: s.color || SERIES[index] }} />
+              {s.label}
+            </span>
+            <b>{(s.format || format)(entry.value)}</b>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-export function Legend({ series, kind = "line" }) {
+export function Legend({ series }) {
+  if (series.length < 2) return null;
   return (
-    <div className="chart-legend">
+    <div className="legend" style={{ marginBottom: 10 }}>
       {series.map((s, index) => (
         <span key={s.key}>
-          <i className={kind === "line" ? "key-line" : "key-box"} style={{ background: SERIES[index] }} />
-          {s.name}
+          <i className={s.box ? "box" : ""} style={{ background: s.color || SERIES[index] }} />
+          {s.label}
         </span>
       ))}
     </div>
   );
 }
 
-function TooltipBox({ active, payload, label, labelFormat, valueFormat }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="chart-tooltip">
-      <div className="tt-label">{labelFormat ? labelFormat(label) : label}</div>
-      {payload.map((entry) => (
-        <div className="tt-row" key={entry.dataKey}>
-          <i className="key-line" style={{ background: entry.color }} />
-          <strong>{valueFormat(entry.value)}</strong>
-          <span className="muted">{entry.name}</span>
-        </div>
-      ))}
-    </div>
+/**
+ * Change over time. type: area (one series, a wash under the line), line (several series) or bar.
+ * One y-axis only: series in one chart always share a unit.
+ */
+export function TrendChart({ data, xKey = "label", series, type = "area", height = 260, format = (v) => formatMoney(v), axisFormat = compact, labelFormat }) {
+  const tooltip = (
+    <Tooltip
+      content={<ChartTooltip series={series} format={format} labelFormat={labelFormat} />}
+      cursor={type === "bar" ? { fill: "var(--surface-2)" } : { stroke: "var(--line-strong)", strokeWidth: 1 }}
+    />
   );
-}
-
-/** Trend over time: 2px lines, crosshair tooltip, the first series' latest value labelled at the end. */
-export function TrendChart({ data, xKey, series, height = 260, valueFormat = compact, labelFormat }) {
-  const last = data.length - 1;
-  const EndLabel = ({ x, y, index, value }) =>
-    index === last ? (
-      <text x={x + 8} y={y} dy={4} fontSize={12} fill="var(--text)" fontWeight={600}>
-        {compact(value)}
-      </text>
-    ) : null;
+  const common = { data, margin: { top: 8, right: 8, bottom: 0, left: 0 } };
+  const axes = [
+    <CartesianGrid key="grid" vertical={false} stroke="var(--chart-grid)" />,
+    <XAxis key="x" dataKey={xKey} tick={axisTick} tickLine={false} axisLine={{ stroke: "var(--chart-grid)" }} minTickGap={18} />,
+    <YAxis key="y" tick={axisTick} tickLine={false} axisLine={false} width={48} tickFormatter={axisFormat} allowDecimals={false} />,
+  ];
   return (
-    <div className="stack tight">
-      {series.length > 1 && <Legend series={series} kind="line" />}
-      <div style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 44, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke="var(--grid)" />
-            <XAxis dataKey={xKey} tickFormatter={labelFormat} tick={AXIS_TICK} axisLine={{ stroke: "var(--axis)" }} tickLine={false} minTickGap={28} />
-            <YAxis tickFormatter={compact} tick={AXIS_TICK} axisLine={false} tickLine={false} width={46} />
-            <Tooltip cursor={{ stroke: "var(--axis)", strokeWidth: 1 }} content={<TooltipBox labelFormat={labelFormat} valueFormat={valueFormat} />} />
+    <div>
+      <Legend series={series.map((s) => ({ ...s, box: type === "bar" }))} />
+      <ResponsiveContainer width="100%" height={height}>
+        {type === "bar" ? (
+          <BarChart {...common} barGap={2} barCategoryGap="22%">
+            {axes}
+            {tooltip}
+            {series.map((s, index) => (
+              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color || SERIES[index]} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+            ))}
+          </BarChart>
+        ) : type === "line" ? (
+          <LineChart {...common}>
+            {axes}
+            {tooltip}
             {series.map((s, index) => (
               <Line
                 key={s.key}
-                type="monotone"
                 dataKey={s.key}
-                name={s.name}
-                stroke={SERIES[index]}
+                name={s.label}
+                stroke={s.color || SERIES[index]}
                 strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
                 dot={false}
-                activeDot={{ r: 5, stroke: "var(--panel)", strokeWidth: 2 }}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)" }}
                 isAnimationActive={false}
-                label={index === 0 ? <EndLabel /> : undefined}
               />
             ))}
           </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-/** Column with a 4px rounded data end and a square base; negative values hang below the zero line. */
-function RoundedColumn({ x, y, width, height, fill, negative }) {
-  if (!width || !height) return null;
-  const top = Math.min(y, y + height);
-  const h = Math.abs(height);
-  const r = Math.min(4, h, width / 2);
-  const right = x + width;
-  const bottom = top + h;
-  const d = negative
-    ? `M${x},${top} H${right} V${bottom - r} Q${right},${bottom} ${right - r},${bottom} H${x + r} Q${x},${bottom} ${x},${bottom - r} Z`
-    : `M${x},${bottom} V${top + r} Q${x},${top} ${x + r},${top} H${right - r} Q${right},${top} ${right},${top + r} V${bottom} Z`;
-  return <path d={d} fill={fill} />;
-}
-
-/** Grouped columns (e.g. revenue vs net profit per month). Bars are at most 24px wide with a 2px gap. */
-export function ColumnsChart({ data, xKey, series, height = 260, valueFormat = compact, labelFormat }) {
-  return (
-    <div className="stack tight">
-      {series.length > 1 && <Legend series={series} kind="bar" />}
-      <div style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: 0 }} barGap={2} barCategoryGap="22%">
-            <CartesianGrid vertical={false} stroke="var(--grid)" />
-            <XAxis dataKey={xKey} tickFormatter={labelFormat} tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={8} />
-            <YAxis tickFormatter={compact} tick={AXIS_TICK} axisLine={false} tickLine={false} width={46} />
-            <ReferenceLine y={0} stroke="var(--axis)" />
-            <Tooltip cursor={{ fill: "var(--hover)" }} content={<TooltipBox labelFormat={labelFormat} valueFormat={valueFormat} />} />
+        ) : (
+          <AreaChart {...common}>
+            {axes}
+            {tooltip}
             {series.map((s, index) => (
-              <Bar
+              <Area
                 key={s.key}
                 dataKey={s.key}
-                name={s.name}
-                fill={SERIES[index]}
-                maxBarSize={24}
+                name={s.label}
+                stroke={s.color || SERIES[index]}
+                fill={s.color || SERIES[index]}
+                fillOpacity={0.1}
+                strokeWidth={2}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)" }}
                 isAnimationActive={false}
-                shape={(props) => <RoundedColumn {...props} negative={Number(props.payload?.[s.key]) < 0} />}
               />
             ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          </AreaChart>
+        )}
+      </ResponsiveContainer>
     </div>
   );
 }
 
-/** Ranked horizontal bars (one series, one colour) with the value at the bar's tip. */
-export function BarList({ items, valueFormat = compact }) {
-  const max = Math.max(0, ...items.map((item) => Number(item.value) || 0));
+/** Ranked magnitudes (categories, regions, methods) as accessible HTML bars with the value at the tip. */
+export function HBarList({ items, format = formatMoney, color = "var(--series-1)", empty = "No data for this period" }) {
+  const max = Math.max(...items.map((item) => Number(item.value) || 0), 0);
+  if (!items.length || max === 0) return <p className="small muted">{empty}</p>;
   return (
-    <ul className="barlist">
+    <ul className="hbars">
       {items.map((item) => (
-        <li key={item.key} title={`${item.label}: ${valueFormat(item.value)}`}>
-          <div className="barlist-label">
-            <span>{item.label}</span>
-            {item.note && <span className="muted small">{item.note}</span>}
+        <li key={item.key ?? item.label}>
+          <div className="hbar-top">
+            <span className="ellipsis">{item.label}</span>
+            <span className="value">
+              {format(item.value)}
+              {item.hint && (
+                <span className="muted" style={{ fontWeight: 500 }}>
+                  {" "}
+                  {item.hint}
+                </span>
+              )}
+            </span>
           </div>
-          <div>
-            {Number(item.value) > 0 && max > 0 && <div className="barlist-bar" style={{ width: `${Math.max(1, (Number(item.value) / max) * 100)}%` }} />}
+          <div className="hbar-track">
+            <div className="hbar-fill" style={{ width: `${(Number(item.value) / max) * 100}%`, background: item.color || color }} />
           </div>
-          <strong className="barlist-value">{valueFormat(item.value)}</strong>
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Parts of a whole (e.g. stock health) as one bar with 2px gaps and a legend with counts. */
+export function SegmentBar({ segments }) {
+  const total = segments.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
+  return (
+    <div className="stack-sm">
+      <div className="segmented-meter" role="img" aria-label={segments.map((s) => `${s.label}: ${s.value}`).join(", ")}>
+        {total > 0 &&
+          segments.filter((s) => Number(s.value) > 0).map((s) => <span key={s.label} style={{ width: `${(s.value / total) * 100}%`, background: s.color }} />)}
+      </div>
+      <div className="legend">
+        {segments.map((s) => (
+          <span key={s.label}>
+            <i className="box" style={{ background: s.color }} />
+            {s.label} <b className="num">{formatNumber(s.value)}</b>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }

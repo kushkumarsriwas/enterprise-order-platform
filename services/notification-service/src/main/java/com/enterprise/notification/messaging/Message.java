@@ -30,7 +30,7 @@ public class Message {
     @Column(name = "sender_id", nullable = false)
     private Long senderId;
 
-    /** CUSTOMER or MERCHANT. */
+    /** CUSTOMER or SELLER. */
     @Column(name = "sender_role", nullable = false, length = 10)
     private String senderRole;
 

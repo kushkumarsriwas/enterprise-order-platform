@@ -26,3 +26,6 @@ Thumbs.db
 _archive/
 *.bak
 *.backup
+
+# Kubernetes secrets generated from .env (see k8s/config/secrets.env.example)
+k8s/config/secrets.env

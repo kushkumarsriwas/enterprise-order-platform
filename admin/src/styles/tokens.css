@@ -1,0 +1,210 @@
+/*
+ * Nexora Control Center design tokens.
+ * The console shares Nexora's lagoon teal for every primary action, so it reads as part of the same company, but
+ * sits on cool graphite neutrals instead of the storefront's teal-tinted ones. Saffron is the colour of attention:
+ * counts and items that wait for the administrator's decision. Status colours are always shown with a label or icon.
+ */
+:root {
+  color-scheme: light;
+
+  /* brand (shared with the marketplace) */
+  --lagoon-900: #0a3f3c;
+  --lagoon-800: #0c524e;
+  --lagoon-700: #0f6b66;
+  --lagoon-500: #1b968f;
+  --lagoon-200: #b9e0dc;
+  --lagoon-100: #dcefed;
+  --lagoon-50: #eef7f6;
+  --saffron-600: #b35500;
+  --saffron-700: #8a4200;
+  --saffron-400: #f2a531;
+  --saffron-100: #fdf0dc;
+
+  /* surfaces and ink: cool graphite */
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --surface-3: #e3e8ed;
+  --line: #dce2e8;
+  --line-strong: #c5ced8;
+  --ink: #141c26;
+  --ink-2: #3e4a59;
+  --ink-3: #667283;
+  --on-brand: #ffffff;
+  --on-accent: #ffffff;
+
+  /* the command bar is always dark, in both themes */
+  --chrome: #111922;
+  --chrome-2: #1a2430;
+  --chrome-3: #243140;
+  --chrome-line: rgba(255, 255, 255, 0.09);
+  --chrome-ink: #eaf0f6;
+  --chrome-ink-2: #9eabba;
+
+  /* roles */
+  --brand: var(--lagoon-700);
+  --brand-hover: var(--lagoon-800);
+  --brand-soft: var(--lagoon-50);
+  --brand-soft-2: var(--lagoon-100);
+  --brand-ink: var(--lagoon-800);
+  --accent: var(--saffron-600);
+  --accent-ink: var(--saffron-700);
+  --accent-soft: var(--saffron-100);
+  --focus: #1b968f;
+
+  /* status */
+  --good: #1a7f4b;
+  --good-soft: #e1f3e8;
+  --warn: #9a6200;
+  --warn-soft: #fdf0d5;
+  --bad: #b42318;
+  --bad-soft: #fde4e1;
+  --info: #24609e;
+  --info-soft: #e2eefa;
+  --violet: #5b48c9;
+  --violet-soft: #ebe8fb;
+
+  /* chart series: the validated Nexora palette, checked against these surfaces too (fixed order, never cycled) */
+  --series-1: #0a9488;
+  --series-2: #eb6834;
+  --series-3: #2a78d6;
+  --series-4: #d6457c;
+  --series-5: #eda100;
+  --series-6: #6250d6;
+  --chart-grid: #e6eaee;
+  --chart-axis: #667283;
+
+  /* type: one family, the console is a working tool */
+  --font-display: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.4375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+
+  /* shape and depth: tighter than the storefront */
+  --r-xs: 5px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(17, 25, 34, 0.06);
+  --shadow-2: 0 6px 18px rgba(17, 25, 34, 0.08), 0 1px 3px rgba(17, 25, 34, 0.06);
+  --shadow-3: 0 18px 50px rgba(17, 25, 34, 0.2);
+
+  --toast-good-icon: #6fd8a0;
+  --toast-bad-icon: #ff9d92;
+
+  --bar-h: 56px;
+  --nav-w: 236px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Dark: graphite night, stepped from the same hues (chosen, not inverted). */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #0e1319;
+    --surface: #141a21;
+    --surface-2: #1a222b;
+    --surface-3: #212b36;
+    --line: #27313d;
+    --line-strong: #34404e;
+    --ink: #e6ebf1;
+    --ink-2: #b3bdc9;
+    --ink-3: #8692a0;
+    --chrome: #0a0f14;
+    --chrome-2: #121922;
+    --chrome-3: #1b2531;
+    --brand: #23a69d;
+    --brand-hover: #3bbcb2;
+    --brand-soft: #102a29;
+    --brand-soft-2: #153a37;
+    --brand-ink: #7fd6cd;
+    --accent: #f0a23a;
+    --accent-ink: #f5b960;
+    --accent-soft: #33240c;
+    --on-accent: #231500;
+    --focus: #5fd1c6;
+    --on-brand: #04201e;
+    --good: #4cc38a;
+    --good-soft: #10301f;
+    --warn: #f0b542;
+    --warn-soft: #33270b;
+    --bad: #f2776a;
+    --bad-soft: #3a1612;
+    --info: #74aef0;
+    --info-soft: #0f2640;
+    --violet: #a99cf2;
+    --violet-soft: #221d44;
+    --series-1: #17a597;
+    --series-2: #d95926;
+    --series-3: #3987e5;
+    --series-4: #d55181;
+    --series-5: #c98500;
+    --series-6: #9085e9;
+    --chart-grid: #222c37;
+    --chart-axis: #8692a0;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+    --toast-good-icon: #1a7f4b;
+    --toast-bad-icon: #b42318;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1319;
+  --surface: #141a21;
+  --surface-2: #1a222b;
+  --surface-3: #212b36;
+  --line: #27313d;
+  --line-strong: #34404e;
+  --ink: #e6ebf1;
+  --ink-2: #b3bdc9;
+  --ink-3: #8692a0;
+  --chrome: #0a0f14;
+  --chrome-2: #121922;
+  --chrome-3: #1b2531;
+  --brand: #23a69d;
+  --brand-hover: #3bbcb2;
+  --brand-soft: #102a29;
+  --brand-soft-2: #153a37;
+  --brand-ink: #7fd6cd;
+  --accent: #f0a23a;
+  --accent-ink: #f5b960;
+  --accent-soft: #33240c;
+  --on-accent: #231500;
+  --focus: #5fd1c6;
+  --on-brand: #04201e;
+  --good: #4cc38a;
+  --good-soft: #10301f;
+  --warn: #f0b542;
+  --warn-soft: #33270b;
+  --bad: #f2776a;
+  --bad-soft: #3a1612;
+  --info: #74aef0;
+  --info-soft: #0f2640;
+  --violet: #a99cf2;
+  --violet-soft: #221d44;
+  --series-1: #17a597;
+  --series-2: #d95926;
+  --series-3: #3987e5;
+  --series-4: #d55181;
+  --series-5: #c98500;
+  --series-6: #9085e9;
+  --chart-grid: #222c37;
+  --chart-axis: #8692a0;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
+  --toast-good-icon: #1a7f4b;
+  --toast-bad-icon: #b42318;
+}
