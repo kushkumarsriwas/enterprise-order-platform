@@ -1,6 +1,9 @@
-# Full platform on one machine:  docker compose up -d --build --wait
-#   Frontend  http://localhost:3000      API gateway + Swagger  http://localhost:8080/swagger-ui.html
-# Databases: MySQL (auth), PostgreSQL (catalog, orders, notifications), Oracle (payments), Redis (cache)
+# Nexora: the whole platform on one machine.
+#   docker compose up -d --build --wait
+#   Marketplace + Seller Central  http://localhost:3000      Control Center (admin)  http://localhost:3001
+#   API gateway + Swagger         http://localhost:8080/swagger-ui.html
+# Databases: MySQL (auth), PostgreSQL (products and inventory, orders, notifications), Oracle (payments), Redis (cache)
+# Secrets come from .env (git-ignored, see .env.example); scripts\windows\run-local.cmd creates the missing ones.
 name: enterprise-order-platform
 
 x-java-service: &java-service
@@ -8,12 +11,21 @@ x-java-service: &java-service
   mem_limit: 512m
   environment: &java-env
     AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+    # shared secret for service-to-service calls (/internal/**); every service must use the same value
+    INTERNAL_API_KEY: ${INTERNAL_API_KEY:-nexora-compose-internal-key}
     JAVA_OPTS: -XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:ReservedCodeCacheSize=64m -Xss512k
 
 x-postgres-env: &postgres-env
   SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/enterprise
   SPRING_DATASOURCE_USERNAME: postgres
   SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+x-health: &health
+  test: ["CMD-SHELL", "curl -fs http://localhost:$${PORT:-8081}/actuator/health/readiness || exit 1"]
+  interval: 10s
+  timeout: 5s
+  retries: 30
+  start_period: 40s
 
 services:
   # ------------------------------------------------------------------ databases
@@ -78,28 +90,25 @@ services:
   auth-service:
     <<: *java-service
     build: ./services/auth-service
-    image: enterprise/auth-service:2.0.0
+    image: enterprise/auth-service:3.0.0
     environment:
       <<: *java-env
       SPRING_PROFILES_ACTIVE: mysql
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: auth_user
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-auth_pass}
-      PRODUCT_SERVICE_URL: http://product-inventory-service:8082
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      # the one platform administrator (Control Center); no admin account exists while this is empty
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     ports: ["8081:8081"]
     depends_on:
       mysql: { condition: service_healthy }
-    healthcheck: &health
-      test: ["CMD-SHELL", "curl -fs http://localhost:$${PORT:-8081}/actuator/health/readiness || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
+    healthcheck: *health
 
-  product-inventory-service:
+  product-service:
     <<: *java-service
     build: ./services/product-inventory-service
-    image: enterprise/product-inventory-service:2.0.0
+    image: enterprise/product-service:3.0.0
     environment:
       <<: [*java-env, *postgres-env]
       PORT: 8082
@@ -116,13 +125,14 @@ services:
   order-service:
     <<: *java-service
     build: ./services/order-service
-    image: enterprise/order-service:2.0.0
+    image: enterprise/order-service:3.0.0
     environment:
       <<: [*java-env, *postgres-env]
       PORT: 8083
-      PRODUCT_SERVICE_URL: http://product-inventory-service:8082
+      PRODUCT_SERVICE_URL: http://product-service:8082
       PAYMENT_SERVICE_URL: http://payment-service:8084
       NOTIFICATION_SERVICE_URL: http://notification-service:8085
+      AUTH_SERVICE_URL: http://auth-service:8081
     ports: ["8083:8083"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -132,7 +142,7 @@ services:
   payment-service:
     <<: *java-service
     build: ./services/payment-service
-    image: enterprise/payment-service:2.0.0
+    image: enterprise/payment-service:3.0.0
     environment:
       <<: *java-env
       PORT: 8084
@@ -151,7 +161,7 @@ services:
   notification-service:
     <<: *java-service
     build: ./services/notification-service
-    image: enterprise/notification-service:2.0.0
+    image: enterprise/notification-service:3.0.0
     environment:
       <<: [*java-env, *postgres-env]
       PORT: 8085
@@ -165,12 +175,12 @@ services:
   api-gateway:
     <<: *java-service
     build: ./gateway
-    image: enterprise/api-gateway:2.0.0
+    image: enterprise/api-gateway:3.0.0
     environment:
       <<: *java-env
       PORT: 8080
       AUTH_SERVICE_URL: http://auth-service:8081
-      PRODUCT_SERVICE_URL: http://product-inventory-service:8082
+      PRODUCT_SERVICE_URL: http://product-service:8082
       ORDER_SERVICE_URL: http://order-service:8083
       PAYMENT_SERVICE_URL: http://payment-service:8084
       NOTIFICATION_SERVICE_URL: http://notification-service:8085
@@ -179,20 +189,34 @@ services:
       auth-service: { condition: service_healthy }
     healthcheck: *health
 
+  # ------------------------------------------------------------------ web applications (nginx: static files + /api proxy)
   frontend:
     build: ./frontend
-    image: enterprise/frontend:2.0.0
+    image: enterprise/frontend:3.0.0
     restart: unless-stopped
     environment:
       GATEWAY_URL: http://api-gateway:8080
     ports: ["3000:80"]
     depends_on:
       api-gateway: { condition: service_healthy }
-    healthcheck:
+    healthcheck: &web-health
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10
+
+  admin-frontend:
+    build: ./admin
+    image: enterprise/admin-frontend:3.0.0
+    restart: unless-stopped
+    environment:
+      GATEWAY_URL: http://api-gateway:8080
+      # where the console's links to the marketplace point
+      MARKETPLACE_URL: http://localhost:3000
+    ports: ["3001:80"]
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    healthcheck: *web-health
 
 volumes:
   postgres_data:
