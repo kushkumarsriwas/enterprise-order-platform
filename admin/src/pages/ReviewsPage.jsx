@@ -136,7 +136,7 @@ export function ReviewRows({ reviews, showStore = true, onRemove }) {
               <div className="row row-wrap" style={{ gap: 8 }}>
                 <Stars value={r.rating} />
                 <span className="strong small">{r.customerName}</span>
-                {r.verifiedPurchase && <Badge tone="teal">Verified purchase</Badge>}
+                {r.verifiedPurchase && <Badge tone="brand">Verified purchase</Badge>}
                 <span className="tiny muted">{formatDate(r.createdAt)}</span>
               </div>
               <div className="small">

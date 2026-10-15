@@ -128,7 +128,7 @@ export function CustomerReviewsPage() {
                   <a href={`#/product/${r.productId}`} className="strong small">
                     {r.productName}
                   </a>
-                  <Badge tone="teal" icon={PackageCheck}>
+                  <Badge tone="brand" icon={PackageCheck}>
                     Verified purchase
                   </Badge>
                   <span className="tiny muted">{formatDay(r.createdAt)}</span>

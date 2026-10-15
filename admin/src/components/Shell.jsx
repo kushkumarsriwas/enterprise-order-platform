@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Boxes,
+  Contrast,
   CreditCard,
   ExternalLink,
   Gauge,
@@ -9,7 +10,6 @@ import {
   Megaphone,
   Menu as MenuIcon,
   MessageSquareWarning,
-  Moon,
   Package,
   Receipt,
   Search,
@@ -283,7 +283,15 @@ export function Shell({ route, navigate, children }) {
           <a className="cc-market-link" href={MARKETPLACE_URL} target="_blank" rel="noreferrer">
             <ExternalLink /> <span>Marketplace</span>
           </a>
-          <IconButton icon={dark ? Sun : Moon} label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={toggle} />
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+            title={dark ? "Switch to light theme" : "Switch to dark theme"}
+            onClick={toggle}
+          >
+            {dark ? <Sun key="light" className="theme-icon" /> : <Contrast key="dark" className="theme-icon" />}
+          </button>
           <Menu
             trigger={({ open, toggle }) => (
               <button type="button" className="cc-admin-btn" aria-label="Administrator menu" aria-expanded={open} onClick={toggle}>
@@ -335,7 +343,9 @@ export function Shell({ route, navigate, children }) {
         </nav>
         <div className="cc-scrim" onClick={() => setNavOpen(false)} />
         <main className="cc-main" id="main">
-          {children}
+          <div key={route.path} className="page-enter">
+            {children}
+          </div>
         </main>
       </div>
     </>

@@ -3,6 +3,11 @@ import { compact, formatMoney, formatNumber } from "../format.js";
 
 /** Validated categorical slots (see styles/tokens.css): fixed order, never cycled. */
 export const SERIES = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)", "var(--series-6)"];
+// Series grow into place when a chart first draws, unless the visitor asked for less motion.
+const ANIMATION =
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ? { isAnimationActive: false }
+    : { isAnimationActive: true, animationDuration: 800, animationEasing: "ease-out" };
 
 const axisTick = { fill: "var(--chart-axis)", fontSize: 11 };
 
@@ -68,7 +73,7 @@ export function TrendChart({ data, xKey = "label", series, type = "area", height
             {axes}
             {tooltip}
             {series.map((s, index) => (
-              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color || SERIES[index]} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color || SERIES[index]} radius={[4, 4, 0, 0]} maxBarSize={24} {...ANIMATION} />
             ))}
           </BarChart>
         ) : type === "line" ? (
@@ -84,7 +89,7 @@ export function TrendChart({ data, xKey = "label", series, type = "area", height
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)" }}
-                isAnimationActive={false}
+                {...ANIMATION}
               />
             ))}
           </LineChart>
@@ -102,7 +107,7 @@ export function TrendChart({ data, xKey = "label", series, type = "area", height
                 fillOpacity={0.1}
                 strokeWidth={2}
                 activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)" }}
-                isAnimationActive={false}
+                {...ANIMATION}
               />
             ))}
           </AreaChart>

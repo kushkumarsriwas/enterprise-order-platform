@@ -1,47 +1,47 @@
 /*
  * Nexora design tokens.
- * Lagoon teal is the brand and the colour of every primary action; bougainvillea marks deals and things
- * that need attention. Text uses the ink scale, never a series or brand colour.
+ * Cobalt blue is the brand and the colour of every primary action; tangerine marks deals and things that need
+ * attention. Neutrals are cool slate. Text uses the ink scale, never a series or brand colour.
  */
 :root {
   color-scheme: light;
 
   /* brand */
-  --lagoon-900: #0a3f3c;
-  --lagoon-800: #0c524e;
-  --lagoon-700: #0f6b66;
-  --lagoon-600: #12807a;
-  --lagoon-500: #1b968f;
-  --lagoon-200: #b9e0dc;
-  --lagoon-100: #dcefed;
-  --lagoon-50: #eef7f6;
-  --bloom-700: #a3255a;
-  --bloom-600: #c8336e;
-  --bloom-100: #fbe3ec;
-  --sand-100: #f4efe6;
+  --cobalt-900: #0f2557;
+  --cobalt-800: #1e40af;
+  --cobalt-700: #1d4ed8;
+  --cobalt-600: #2563eb;
+  --cobalt-500: #3b82f6;
+  --cobalt-200: #c3d5fb;
+  --cobalt-100: #dce7fd;
+  --cobalt-50: #eff4ff;
+  --tangerine-700: #9a3412;
+  --tangerine-600: #c2410c;
+  --tangerine-100: #ffedd5;
+  --mist-100: #eef3fb;
 
   /* surfaces and ink */
-  --bg: #f6f7f7;
+  --bg: #f5f7fa;
   --surface: #ffffff;
-  --surface-2: #f1f3f3;
-  --surface-3: #e7ebeb;
-  --line: #dde3e2;
-  --line-strong: #c7d0cf;
-  --ink: #142b29;
-  --ink-2: #3f5653;
-  --ink-3: #6a7d7a;
+  --surface-2: #f1f4f8;
+  --surface-3: #e6ebf2;
+  --line: #dde3eb;
+  --line-strong: #c6cfdb;
+  --ink: #0f1b2d;
+  --ink-2: #44536a;
+  --ink-3: #5d6b81;
   --on-brand: #ffffff;
 
   /* roles */
-  --brand: var(--lagoon-700);
-  --brand-hover: var(--lagoon-800);
-  --brand-soft: var(--lagoon-50);
-  --brand-soft-2: var(--lagoon-100);
-  --brand-ink: var(--lagoon-800);
-  --accent: var(--bloom-600);
-  --accent-ink: var(--bloom-700);
-  --accent-soft: var(--bloom-100);
-  --focus: #1b968f;
+  --brand: var(--cobalt-700);
+  --brand-hover: var(--cobalt-800);
+  --brand-soft: var(--cobalt-50);
+  --brand-soft-2: var(--cobalt-100);
+  --brand-ink: var(--cobalt-800);
+  --accent: var(--tangerine-600);
+  --accent-ink: var(--tangerine-700);
+  --accent-soft: var(--tangerine-100);
+  --focus: var(--cobalt-600);
 
   /* status (always shown with a label or an icon) */
   --good: #1a7f4b;
@@ -55,19 +55,19 @@
   --violet: #5b48c9;
   --violet-soft: #ebe8fb;
 
-  /* chart series (validated palette: colour-blind safe adjacent pairs) */
-  --series-1: #0a9488;
+  /* chart series (validated palette, fixed order: colour-blind safe adjacent pairs in both themes) */
+  --series-1: #2a78d6;
   --series-2: #eb6834;
-  --series-3: #2a78d6;
+  --series-3: #6250d6;
   --series-4: #d6457c;
   --series-5: #eda100;
-  --series-6: #6250d6;
-  --chart-grid: #e6ebea;
-  --chart-axis: #6a7d7a;
+  --series-6: #0891b2;
+  --chart-grid: #e6ebf2;
+  --chart-axis: #5d6b81;
 
   /* type */
-  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", "Instrument Sans Variable", system-ui, sans-serif;
-  --font-body: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Sora Variable", "Sora", "Figtree Variable", system-ui, sans-serif;
+  --font-body: "Figtree Variable", "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
   --text-base: 0.9375rem;
@@ -85,15 +85,15 @@
   --r-lg: 16px;
   --r-xl: 22px;
   --r-pill: 999px;
-  --shadow-1: 0 1px 2px rgba(10, 40, 38, 0.06);
-  --shadow-2: 0 6px 20px rgba(10, 40, 38, 0.08), 0 1px 3px rgba(10, 40, 38, 0.06);
-  --shadow-3: 0 18px 50px rgba(10, 40, 38, 0.18);
+  --shadow-1: 0 1px 2px rgba(15, 27, 45, 0.06);
+  --shadow-2: 0 6px 20px rgba(15, 27, 45, 0.08), 0 1px 3px rgba(15, 27, 45, 0.06);
+  --shadow-3: 0 18px 50px rgba(15, 27, 45, 0.18);
 
   /* surfaces with a fixed character (sell band, photos, toasts) */
-  --sand-bg: var(--sand-100);
-  --sand-ink: #4a4030;
-  --sand-ink-soft: #5a4e3a;
-  --sand-heading: #1d1810;
+  --band-bg: var(--mist-100);
+  --band-ink: #2c3b52;
+  --band-ink-soft: #44536a;
+  --band-heading: #0f1b2d;
   --img-blend: multiply;
   --toast-good-icon: #6fd8a0;
   --toast-bad-icon: #ff9d92;
@@ -102,31 +102,32 @@
   --container: 1320px;
   --sidebar-w: 252px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dark: the same hues stepped for a deep-lagoon night surface (chosen, not inverted). */
+/* Dark: the same hues stepped for a deep slate night surface (chosen, not inverted). */
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --bg: #0b1615;
-    --surface: #111f1e;
-    --surface-2: #162826;
-    --surface-3: #1d3330;
-    --line: #23403c;
-    --line-strong: #2f524d;
-    --ink: #e6efed;
-    --ink-2: #b4c6c3;
-    --ink-3: #87a09c;
-    --brand: #23a69d;
-    --brand-hover: #3bbcb2;
-    --brand-soft: #12302d;
-    --brand-soft-2: #184440;
-    --brand-ink: #7fd6cd;
-    --accent: #ec5f95;
-    --accent-ink: #f48db4;
-    --accent-soft: #3a1726;
-    --focus: #5fd1c6;
-    --on-brand: #04201e;
+    --bg: #0e131b;
+    --surface: #141b25;
+    --surface-2: #1a2230;
+    --surface-3: #222c3c;
+    --line: #263244;
+    --line-strong: #334158;
+    --ink: #e8edf5;
+    --ink-2: #b5c0d0;
+    --ink-3: #8a97ab;
+    --brand: #6ea0ff;
+    --brand-hover: #8cb4ff;
+    --brand-soft: #14223d;
+    --brand-soft-2: #1b2d52;
+    --brand-ink: #a8c5ff;
+    --accent: #ff8b3d;
+    --accent-ink: #ffad73;
+    --accent-soft: #3b200d;
+    --focus: #8cb4ff;
+    --on-brand: #071634;
     --good: #4cc38a;
     --good-soft: #10301f;
     --warn: #f0b542;
@@ -137,21 +138,21 @@
     --info-soft: #0f2640;
     --violet: #a99cf2;
     --violet-soft: #221d44;
-    --series-1: #17a597;
+    --series-1: #3987e5;
     --series-2: #d95926;
-    --series-3: #3987e5;
+    --series-3: #9085e9;
     --series-4: #d55181;
     --series-5: #c98500;
-    --series-6: #9085e9;
-    --chart-grid: #1f3633;
-    --chart-axis: #87a09c;
+    --series-6: #1699b5;
+    --chart-grid: #222c3c;
+    --chart-axis: #8a97ab;
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
     --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
-    --sand-bg: #2a2417;
-    --sand-ink: #d8c9ab;
-    --sand-ink-soft: #d8c9ab;
-    --sand-heading: #fff6e4;
+    --band-bg: #15233b;
+    --band-ink: #c9d6ea;
+    --band-ink-soft: #c9d6ea;
+    --band-heading: #f1f5fb;
     --img-blend: normal;
     --toast-good-icon: #1a7f4b;
     --toast-bad-icon: #b42318;
@@ -160,25 +161,25 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b1615;
-  --surface: #111f1e;
-  --surface-2: #162826;
-  --surface-3: #1d3330;
-  --line: #23403c;
-  --line-strong: #2f524d;
-  --ink: #e6efed;
-  --ink-2: #b4c6c3;
-  --ink-3: #87a09c;
-  --brand: #23a69d;
-  --brand-hover: #3bbcb2;
-  --brand-soft: #12302d;
-  --brand-soft-2: #184440;
-  --brand-ink: #7fd6cd;
-  --accent: #ec5f95;
-  --accent-ink: #f48db4;
-  --accent-soft: #3a1726;
-  --focus: #5fd1c6;
-  --on-brand: #04201e;
+  --bg: #0e131b;
+  --surface: #141b25;
+  --surface-2: #1a2230;
+  --surface-3: #222c3c;
+  --line: #263244;
+  --line-strong: #334158;
+  --ink: #e8edf5;
+  --ink-2: #b5c0d0;
+  --ink-3: #8a97ab;
+  --brand: #6ea0ff;
+  --brand-hover: #8cb4ff;
+  --brand-soft: #14223d;
+  --brand-soft-2: #1b2d52;
+  --brand-ink: #a8c5ff;
+  --accent: #ff8b3d;
+  --accent-ink: #ffad73;
+  --accent-soft: #3b200d;
+  --focus: #8cb4ff;
+  --on-brand: #071634;
   --good: #4cc38a;
   --good-soft: #10301f;
   --warn: #f0b542;
@@ -189,21 +190,21 @@
   --info-soft: #0f2640;
   --violet: #a99cf2;
   --violet-soft: #221d44;
-  --series-1: #17a597;
+  --series-1: #3987e5;
   --series-2: #d95926;
-  --series-3: #3987e5;
+  --series-3: #9085e9;
   --series-4: #d55181;
   --series-5: #c98500;
-  --series-6: #9085e9;
-  --chart-grid: #1f3633;
-  --chart-axis: #87a09c;
+  --series-6: #1699b5;
+  --chart-grid: #222c3c;
+  --chart-axis: #8a97ab;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-3: 0 20px 60px rgba(0, 0, 0, 0.55);
-  --sand-bg: #2a2417;
-  --sand-ink: #d8c9ab;
-  --sand-ink-soft: #d8c9ab;
-  --sand-heading: #fff6e4;
+  --band-bg: #15233b;
+  --band-ink: #c9d6ea;
+  --band-ink-soft: #c9d6ea;
+  --band-heading: #f1f5fb;
   --img-blend: normal;
   --toast-good-icon: #1a7f4b;
   --toast-bad-icon: #b42318;

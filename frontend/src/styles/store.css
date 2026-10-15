@@ -470,7 +470,7 @@
   .store-header-main {
     flex-wrap: wrap;
     height: auto;
-    padding: 10px 0;
+    padding-block: 10px;
     gap: 10px;
   }
 
@@ -869,19 +869,44 @@
   align-items: center;
   padding: 52px 52px;
   border-radius: var(--r-xl);
-  background: var(--lagoon-900);
-  color: #eaf6f4;
-}
-
-.hero .lattice {
-  position: absolute;
-  inset: 0;
-  color: rgba(255, 255, 255, 0.075);
-  pointer-events: none;
+  background: var(--cobalt-800);
+  color: #eef3ff;
 }
 
 .hero > * {
   position: relative;
+  z-index: 1;
+}
+
+/* Soft light behind the hero and the sign-in panel (it drifts when motion is allowed, see motion.css). */
+.hero::before,
+.hero::after,
+.auth-side::before,
+.auth-side::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+.hero::before,
+.auth-side::before {
+  top: -200px;
+  left: -140px;
+  width: 460px;
+  height: 460px;
+  background: rgba(96, 165, 250, 0.55);
+}
+
+.hero::after,
+.auth-side::after {
+  right: -120px;
+  bottom: -200px;
+  width: 380px;
+  height: 380px;
+  background: rgba(249, 115, 22, 0.42);
 }
 
 .hero h1 {
@@ -897,7 +922,7 @@
   margin-top: 16px;
   max-width: 46ch;
   font-size: var(--text-md);
-  color: #b9dcd8;
+  color: #d3defa;
 }
 
 .hero-chips {
@@ -915,7 +940,7 @@
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--r-pill);
-  color: #eaf6f4;
+  color: #eef3ff;
   font-size: var(--text-sm);
   font-weight: 550;
   text-decoration: none;
@@ -936,7 +961,7 @@
   gap: 28px;
   margin-top: 30px;
   font-size: var(--text-sm);
-  color: #b9dcd8;
+  color: #d3defa;
 }
 
 .hero-facts b {
@@ -992,14 +1017,14 @@
   align-items: center;
   padding: 12px;
   border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.08);
-  color: #eaf6f4;
+  background: rgba(255, 255, 255, 0.1);
+  color: #eef3ff;
   text-decoration: none;
   min-width: 0;
 }
 
 .hero-mini a:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
   text-decoration: none;
 }
 
@@ -1017,7 +1042,7 @@
 
 .hero-mini .p {
   font-size: var(--text-xs);
-  color: #b9dcd8;
+  color: #d3defa;
 }
 
 @media (max-width: 960px) {
@@ -1056,8 +1081,66 @@
 }
 
 .dept-tile:hover {
-  border-color: var(--brand);
+  border-color: var(--tile, var(--brand));
   text-decoration: none;
+}
+
+/* ---------- what every order comes with (under the hero) */
+.perks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: -20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.perks li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.perks b {
+  display: block;
+  font-size: var(--text-sm);
+}
+
+.perks small {
+  color: var(--ink-3);
+  font-size: var(--text-xs);
+}
+
+.perk-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.perk-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 960px) {
+  .perks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .perks {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .dept-tile .icon {
@@ -1066,8 +1149,8 @@
   width: 42px;
   height: 42px;
   border-radius: var(--r-md);
-  background: var(--brand-soft);
-  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--tile, var(--brand)) 14%, var(--surface));
+  color: color-mix(in srgb, var(--tile, var(--brand)) 80%, var(--ink));
 }
 
 .dept-tile b {
@@ -1087,18 +1170,18 @@
   align-items: center;
   padding: 32px 36px;
   border-radius: var(--r-xl);
-  background: var(--sand-bg);
-  color: var(--sand-ink);
+  background: var(--band-bg);
+  color: var(--band-ink);
 }
 
 .sell-band h2 {
-  color: var(--sand-heading);
+  color: var(--band-heading);
 }
 
 .sell-band p {
   margin-top: 8px;
   max-width: 62ch;
-  color: var(--sand-ink-soft);
+  color: var(--band-ink-soft);
 }
 
 .sell-band ul {
@@ -1109,7 +1192,7 @@
   padding: 0;
   list-style: none;
   font-size: var(--text-sm);
-  color: var(--sand-ink);
+  color: var(--band-ink);
 }
 
 .sell-band li {
@@ -1862,25 +1945,20 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 44px;
-  background: var(--lagoon-900);
-  color: #d4ebe8;
-}
-
-.auth-side .lattice {
-  position: absolute;
-  inset: 0;
-  color: rgba(255, 255, 255, 0.07);
+  background: var(--cobalt-900);
+  color: #d3def5;
 }
 
 .auth-side > * {
   position: relative;
+  z-index: 1;
 }
 
 .auth-side .logo {
   color: #fff;
-  --mark-fill: #3bbcb2;
-  --mark-center: var(--lagoon-900);
-  --mark-dot: #f48db4;
+  --mark-fill: var(--cobalt-500);
+  --mark-ink: #ffffff;
+  --mark-dot: #ff8b3d;
 }
 
 .auth-side h2 {
@@ -1909,7 +1987,7 @@
   flex: none;
   width: 19px;
   height: 19px;
-  color: #7fd6cd;
+  color: #8cb4ff;
   margin-top: 2px;
 }
 

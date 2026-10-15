@@ -295,7 +295,9 @@ export function SellerLayout({ route, navigate, children, settings }) {
         <AnnouncementBanner />
         <main className="sc-main">
           <SellerContext.Provider value={{ reloadCounts: counts.reload, settings: settings.data, setSettings: settings.setData }}>
-            {children}
+            <div key={route.path} className="page-enter">
+              {children}
+            </div>
           </SellerContext.Provider>
         </main>
       </div>

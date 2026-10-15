@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BarChart3, Boxes, CircleAlert, FileSpreadsheet, MessageSquare, PackageCheck, ShieldCheck, Truck, Wallet } from "lucide-react";
 import { qs } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
-import { Logo, StarLattice } from "../../components/brand.jsx";
+import { Logo } from "../../components/brand.jsx";
 import { Button, Field, Input, Notice, Select, Textarea } from "../../components/ui.jsx";
 import { EMIRATES } from "../../format.js";
 import { useTitle } from "../../hooks.jsx";
@@ -126,7 +126,6 @@ export function AuthPage({ seller, mode, route }) {
   return (
     <div className="auth-page">
       <aside className="auth-side">
-        <StarLattice />
         <Logo suffix={seller ? "Seller Central" : null} />
         <div>
           <h2>{side.title}</h2>
