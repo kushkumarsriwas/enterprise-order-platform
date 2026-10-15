@@ -449,7 +449,7 @@ async function main() {
   await api(`/api/orders/${cancelled.orders[0].id}/cancel`, { method: "PUT", token: aisha.token, body: { reason: "I ordered by mistake" } });
   log(`${aisha.fullName}: cancelled ${cancelled.orders[0].orderNumber}; the payment was refunded`);
 
-  step("Order history (spread over the last three months by scripts/demo-backdate.sql)");
+  step("Order history (spread over the last five months by scripts/demo-backdate.sql)");
   // a small deterministic random generator, so every run creates the same history
   let seed = 20261014;
   const random = () => {
