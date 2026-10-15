@@ -9,7 +9,7 @@ final class PublicPaths {
 
     private static final AntPathMatcher MATCHER = new AntPathMatcher();
     private static final List<String> ANY_METHOD = List.of("/", "/.well-known/jwks.json", "/actuator/health/**",
-            "/actuator/health", "/actuator/info", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
+            "/actuator/health", "/actuator/info", "/docs", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
             "/api-docs/**", "/error");
     /** The marketplace can be browsed without an account: products, categories, stores, reviews, announcements. */
     private static final List<String> GET_ONLY = List.of("/api/products", "/api/products/**", "/api/categories",

@@ -6,12 +6,20 @@
 //
 // Usage:  node scripts/demo-data.mjs [gateway-url]          (Node 18+, no npm install needed)
 //         ADMIN_PASSWORD=... node scripts/demo-data.mjs     (also publishes a marketplace announcement)
+//         WAKE_URLS=https://a.onrender.com,... node ...     (free Render: wake these services directly first)
 // Running it again does nothing if the demo stores already exist.
 
 const GATEWAY = (process.argv[2] || process.env.GATEWAY_URL || "http://localhost:8080").replace(/\/$/, "");
 const PASSWORD = process.env.DEMO_PASSWORD || "Demo-2026";
 const GOOD_CARD = { method: "CARD", cardNumber: "4111 1111 1111 1111", expiry: "12/29", cvv: "123" };
 const DECLINED_CARD = { method: "CARD", cardNumber: "4000 0000 0000 0002", expiry: "12/29", cvv: "123" };
+// Free Render services sleep after 15 minutes without visitors, and only a request from outside Render wakes one:
+// when the gateway calls a sleeping service, Render answers 502 and the service stays asleep. render-demo.cmd
+// therefore lists the public address of every service; they are woken directly and kept awake while the demo loads.
+const WAKE_URLS = (process.env.WAKE_URLS || "")
+  .split(",")
+  .map((url) => url.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 let calls = 0;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,25 +61,50 @@ async function api(path, { method = "GET", token, body, expect = [200, 201, 204]
   }
 }
 
+let keepAwake;
+
+/** Repeats a check every 5 seconds until it succeeds; fails after 10 minutes. */
+async function waitFor(what, check) {
+  const started = Date.now();
+  while (!(await check())) {
+    if (Date.now() - started > 10 * 60000) throw new Error(`${what} did not start within 10 minutes`);
+    await sleep(5000);
+  }
+}
+
+/** True when the service at this address answers its health check (Render holds the request while it starts). */
+async function healthy(url) {
+  try {
+    const response = await fetch(`${url}/actuator/health`, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(150000) });
+    return response.ok && (await response.text()).includes('"UP"');
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Free hosting (Render) puts idle services to sleep and a sleeping service needs a few minutes to start. Wake all five
- * at once through the gateway (each answers its API description at /api-docs/<name>) before the first real call.
+ * A sleeping service needs about two minutes to start. On Render every service is woken directly (WAKE_URLS) and
+ * pinged every 4 minutes until the demo is loaded; then each of the five routes of the gateway must answer
+ * (every service serves its API description at /api-docs/<name>) before the first real call.
  */
 async function wakeUp() {
+  if (WAKE_URLS.length > 0) {
+    await Promise.all(WAKE_URLS.map((url) => waitFor(new URL(url).hostname, () => healthy(url))));
+    keepAwake = setInterval(() => WAKE_URLS.forEach((url) => healthy(url)), 4 * 60000);
+    log(`${WAKE_URLS.length} services awake (kept awake until the demo is loaded)`);
+  }
   await Promise.all(
-    ["auth", "inventory", "orders", "payments", "notifications"].map(async (name) => {
-      const started = Date.now();
-      for (;;) {
+    ["auth", "inventory", "orders", "payments", "notifications"].map((name) =>
+      waitFor(`the ${name} service`, async () => {
         try {
-          const response = await fetch(`${GATEWAY}/api-docs/${name}`);
-          if (response.status < 500) return;
+          const response = await fetch(`${GATEWAY}/api-docs/${name}`, { signal: AbortSignal.timeout(150000) });
+          await response.arrayBuffer();
+          return response.status < 500;
         } catch {
-          // not reachable yet
+          return false;
         }
-        if (Date.now() - started > 10 * 60000) throw new Error(`the ${name} service did not start within 10 minutes`);
-        await sleep(5000);
-      }
-    }),
+      }),
+    ),
   );
   log("all five services are up");
 }
@@ -652,6 +685,7 @@ async function main() {
     log("published to everyone");
   }
 
+  clearInterval(keepAwake);
   console.log(`\nDone: ${calls} API calls.`);
   console.log(`Sign in with any of these and the password ${PASSWORD}:`);
   console.log(`  Seller Central  ${STORES.map((s) => s.username).join(", ")}`);

@@ -11,7 +11,7 @@ public class HomeController {
     public Map<String, String> home() {
         return Map.of(
                 "service", "api-gateway",
-                "apiDocs", "/swagger-ui.html",
+                "apiDocs", "/docs",
                 "health", "/actuator/health",
                 "products", "/api/products");
     }

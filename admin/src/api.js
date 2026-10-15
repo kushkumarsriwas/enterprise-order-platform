@@ -1,11 +1,11 @@
 // Thin fetch wrapper around the API gateway (same client as the marketplace, with the admin session).
 // - adds the JWT and turns the uniform error body of the services into an ApiError
 // - never shows raw HTML: proxies (Render, nginx) answer 502/503/504 with an HTML page while a service starts
-// - retries while the free Render instances wake up (~1 minute after a period without traffic)
+// - retries while the free Render instances wake up (up to 2 minutes after a period without visitors; see wake.js)
 const BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 // The administrator's session lives in sessionStorage: it ends when the tab is closed (and the token itself after 2 h).
 const TOKEN_KEY = "nexora_admin_token";
-const WAKE_UP_MS = 100000;
+const WAKE_UP_MS = 180000;
 
 export class ApiError extends Error {
   constructor(status, message, fieldErrors) {
@@ -74,7 +74,7 @@ async function errorFrom(response) {
 }
 
 /**
- * GET requests are retried while the platform wakes up. Other methods are retried only on 502/503 - the
+ * Requests are retried while the platform wakes up. Other methods than GET are retried only on 502/503 - the
  * request never reached a service - never on 504, where it may have been processed (no duplicate orders).
  */
 async function send(path, init, { auth = true, retryWrites = true } = {}) {
@@ -85,7 +85,7 @@ async function send(path, init, { auth = true, retryWrites = true } = {}) {
   const started = Date.now();
   const slowTimer = setTimeout(() => onSlowStart(true), 3500);
   try {
-    for (let attempt = 0; ; attempt++) {
+    for (;;) {
       let response;
       try {
         response = await fetch(`${BASE}${path}`, { ...init, headers });
@@ -97,8 +97,7 @@ async function send(path, init, { auth = true, retryWrites = true } = {}) {
         throw new ApiError(0, "Cannot reach Nexora. Check your internet connection and try again.");
       }
       const waking = response.status === 502 || response.status === 503 || (method === "GET" && response.status === 504);
-      const mayRetry = method === "GET" || (retryWrites && attempt < 3);
-      if (waking && mayRetry && Date.now() - started < WAKE_UP_MS) {
+      if (waking && (method === "GET" || retryWrites) && Date.now() - started < WAKE_UP_MS) {
         await sleep(method === "GET" ? 2500 : 3000);
         continue;
       }

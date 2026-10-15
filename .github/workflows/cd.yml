@@ -1,8 +1,9 @@
 # Continuous deployment: starts when the CI workflow has passed on main (or by hand from the Actions tab).
 #
-#   render  Render rebuilds the API gateway, the storefront and the Control Center through their deploy hooks
-#           (the five backend services use Render's auto-deploy). Repository secrets: RENDER_GATEWAY_DEPLOY_HOOK,
-#           RENDER_FRONTEND_DEPLOY_HOOK, RENDER_ADMIN_DEPLOY_HOOK. A hook that is not set is skipped.
+#   render  Render rebuilds the API gateway and the storefront through their deploy hooks (repository secrets
+#           RENDER_GATEWAY_DEPLOY_HOOK and RENDER_FRONTEND_DEPLOY_HOOK; a hook that is not set is skipped). The five
+#           backend services use Render's auto-deploy, and Render deploys the Control Center by itself once the
+#           CI checks of the commit have passed (auto-deploy "After CI checks pass").
 #   eks     Optional: deploys the images CI pushed to GitHub Container Registry to an AWS EKS cluster with
 #           deploy/aws. Runs only when the AWS secrets exist (see docs/DEPLOY-AWS.md): AWS_ACCESS_KEY_ID,
 #           AWS_SECRET_ACCESS_KEY, AWS_REGION, EKS_CLUSTER_NAME and K8S_SECRETS_ENV (the content of secrets.env).
@@ -32,18 +33,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [gateway, frontend, admin]
+        target: [gateway, frontend]
     steps:
       - name: Trigger the Render deploy hook
         env:
           GATEWAY_HOOK: ${{ secrets.RENDER_GATEWAY_DEPLOY_HOOK }}
           FRONTEND_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
-          ADMIN_HOOK: ${{ secrets.RENDER_ADMIN_DEPLOY_HOOK }}
         run: |
           case "${{ matrix.target }}" in
             gateway) HOOK="$GATEWAY_HOOK" ;;
             frontend) HOOK="$FRONTEND_HOOK" ;;
-            admin) HOOK="$ADMIN_HOOK" ;;
           esac
           if [ -z "$HOOK" ]; then
             echo "::notice::No Render deploy hook for ${{ matrix.target }} (repository secret not set) - skipped"
