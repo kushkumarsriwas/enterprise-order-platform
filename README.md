@@ -11,7 +11,8 @@ console.
 | **Nexora Control Center** | the one platform administrator | marketplace overview, stores and customers (suspend with a reason), every order and payment, catalogue and stock across stores, review moderation, reported conversations, announcements, sign-in security log, e-mail outbox |
 
 The Control Center is a **separate web application** with its own sign-in endpoint: the marketplace sign-in never
-accepts the administrator, and the console never accepts a store or customer account. Every web app has a dark mode.
+accepts the administrator, and the console never accepts a store or customer account. Every web app opens in the
+light theme, with a dark theme one click away.
 
 | | |
 |---|---|
