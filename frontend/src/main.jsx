@@ -10,10 +10,12 @@ import "./styles/store.css";
 import "./styles/motion.css";
 import App from "./App.jsx";
 import { keepServicesAwake } from "./wake.js";
+import { scrollSidewaysWithWheel } from "./wheel.js";
 import { AuthProvider } from "./auth.jsx";
 import { ToastProvider } from "./hooks.jsx";
 
 keepServicesAwake();
+scrollSidewaysWithWheel();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

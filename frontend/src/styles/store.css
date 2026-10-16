@@ -945,7 +945,8 @@
   text-decoration: none;
 }
 
-/* the row scrolls sideways; the padding leaves room for a lifted card and its shadow */
+/* the row scrolls sideways without a scrollbar (swipe, trackpad or mouse wheel, see wheel.js);
+   the padding leaves room for a lifted card and its shadow */
 .shelf-row {
   display: grid;
   grid-auto-flow: column;
@@ -954,12 +955,23 @@
   margin: -14px -14px -22px;
   padding: 14px 14px 30px;
   overflow-x: auto;
+  scrollbar-width: none;
   scroll-padding-inline: 14px;
-  scroll-snap-type: x mandatory;
+}
+
+.shelf-row::-webkit-scrollbar {
+  display: none;
 }
 
 .shelf-row > * {
   scroll-snap-align: start;
+}
+
+/* touch screens snap to whole cards; a mouse or trackpad scrolls freely */
+@media (pointer: coarse) {
+  .shelf-row {
+    scroll-snap-type: x mandatory;
+  }
 }
 
 @media (min-width: 1100px) {
@@ -2293,6 +2305,11 @@
     position: static;
     flex-direction: row;
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .account-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .account-nav a {
