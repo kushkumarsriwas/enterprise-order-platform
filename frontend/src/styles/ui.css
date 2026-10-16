@@ -597,6 +597,10 @@
   border: 1px solid var(--line);
 }
 
+.pill-toggle::-webkit-scrollbar {
+  display: none;
+}
+
 .pill-toggle button {
   flex: none;
   min-height: 30px;
@@ -762,11 +766,17 @@
   }
 }
 
-/* position: relative keeps absolutely positioned bits (screen-reader labels) inside the scroller on small screens */
+/* position: relative keeps absolutely positioned bits (screen-reader labels) inside the scroller on small screens;
+   a wide table scrolls sideways without a scrollbar (swipe, trackpad or mouse wheel, see wheel.js) */
 .table-wrap {
   position: relative;
   overflow-x: auto;
+  scrollbar-width: none;
   border-radius: inherit;
+}
+
+.table-wrap::-webkit-scrollbar {
+  display: none;
 }
 
 .table {

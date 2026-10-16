@@ -11,8 +11,10 @@ import { AdminSessionProvider } from "./auth.jsx";
 import { ToastProvider } from "./hooks.jsx";
 import App from "./App.jsx";
 import { keepServicesAwake } from "./wake.js";
+import { scrollSidewaysWithWheel } from "./wheel.js";
 
 keepServicesAwake();
+scrollSidewaysWithWheel();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
