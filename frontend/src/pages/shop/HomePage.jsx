@@ -27,7 +27,7 @@ const PERKS = [
   [ReceiptText, "Tax invoice", "Every order invoiced with 5% VAT"],
 ];
 
-/** Moving coloured light behind the dark first-look panels (hero, sell band). Purely decorative. */
+/** Moving coloured light behind the first-look panels (hero, sell band, sign-in). Purely decorative. */
 export function Aurora() {
   return (
     <div className="aurora" aria-hidden="true">
@@ -75,10 +75,10 @@ export function HomePage() {
             One cart for every store on Nexora. Each store ships your order and invoices you directly, with 5% VAT included in every price.
           </p>
           <div className="hero-cta">
-            <a className="btn btn-lg btn-light" href={deals.length ? "#/search?deals=true" : "#/search"}>
+            <a className="btn btn-lg btn-shine btn-hero" href={deals.length ? "#/search?deals=true" : "#/search"}>
               <BadgePercent /> {deals.length ? "Shop today's deals" : "Start shopping"}
             </a>
-            <a className="btn btn-lg btn-glass" href="#/seller/register">
+            <a className="btn btn-lg btn-hero-alt" href="#/seller/register">
               <Store /> Open your store
             </a>
           </div>
@@ -238,7 +238,7 @@ export function HomePage() {
             </li>
           </ul>
         </div>
-        <a className="btn btn-lg btn-light" href="#/seller/register">
+        <a className="btn btn-lg btn-shine btn-hero" href="#/seller/register">
           <Store /> Open your store
         </a>
       </section>

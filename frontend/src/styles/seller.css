@@ -1,21 +1,38 @@
 /*
- * Nexora Seller Central: the back office. A deep navy sidebar separates it from the storefront at a glance;
- * the work area uses the same surfaces, controls and status colours as the rest of the product.
+ * Nexora Seller Central: the back office. A bright sidebar with a touch of cobalt light (deep navy in the dark theme)
+ * holds the navigation; the work area uses the same surfaces, controls and status colours as the rest of the product.
  */
 :root {
+  --sc-side-bg: #ffffff;
+  --sc-side-bg-2: #f6f8fd;
+  --sc-side-glow: rgba(47, 107, 255, 0.08);
+  --sc-side-ink: #44536a;
+  --sc-side-strong: #0f1b2d;
+  --sc-side-muted: #6a7790;
+  --sc-side-hover: #f0f4fa;
+  --sc-side-active: #e6eeff;
+  --sc-side-active-ink: #1e40af;
+  --sc-side-marker: #1d4ed8;
+  --sc-side-chip: #eaeff7;
+  --sc-side-line: #e2e8f0;
+  --sc-side-scroll: rgba(15, 27, 45, 0.18);
+  --sc-topbar-h: 62px;
+}
+
+:root[data-theme="dark"] {
   --sc-side-bg: #0b1a3d;
+  --sc-side-bg-2: #050d24;
+  --sc-side-glow: rgba(47, 107, 255, 0.22);
   --sc-side-ink: #c9d5ea;
   --sc-side-strong: #ffffff;
   --sc-side-muted: #8fa2c2;
   --sc-side-hover: rgba(255, 255, 255, 0.07);
   --sc-side-active: rgba(255, 255, 255, 0.13);
-  --sc-side-line: rgba(255, 255, 255, 0.1);
-  --sc-topbar-h: 62px;
-}
-
-:root[data-theme="dark"] {
-  --sc-side-bg: #0a1426;
+  --sc-side-active-ink: #ffffff;
+  --sc-side-marker: #6ea0ff;
+  --sc-side-chip: rgba(255, 255, 255, 0.14);
   --sc-side-line: rgba(255, 255, 255, 0.08);
+  --sc-side-scroll: rgba(255, 255, 255, 0.18);
 }
 
 /* ---------------------------------------------------------------- shell */
@@ -32,12 +49,11 @@
   flex-direction: column;
   height: 100vh;
   overflow-y: auto;
-  background:
-    radial-gradient(120% 60% at 0% 0%, rgba(47, 107, 255, 0.22), transparent 60%),
-    linear-gradient(180deg, var(--sc-side-bg), color-mix(in srgb, var(--sc-side-bg) 70%, #000000));
+  border-right: 1px solid var(--sc-side-line);
+  background: radial-gradient(120% 60% at 0% 0%, var(--sc-side-glow), transparent 60%), linear-gradient(180deg, var(--sc-side-bg), var(--sc-side-bg-2));
   color: var(--sc-side-ink);
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-color: var(--sc-side-scroll) transparent;
 }
 
 .sc-brand {
@@ -50,9 +66,12 @@
 
 .sc-brand .logo {
   color: var(--sc-side-strong);
-  --mark-fill: var(--cobalt-500);
   --mark-ink: #ffffff;
   --mark-dot: #ff8b3d;
+}
+
+:root[data-theme="dark"] .sc-brand .logo {
+  --mark-fill: var(--cobalt-500);
 }
 
 .sc-brand .logo-word {
@@ -61,8 +80,8 @@
 
 .sc-brand .logo-suffix {
   padding: 3px 7px;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--sc-side-strong);
+  background: var(--sc-side-active);
+  color: var(--sc-side-active-ink);
   font-size: 11px;
 }
 
@@ -75,7 +94,7 @@
 }
 
 .sc-store .avatar {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--sc-side-chip);
   color: var(--sc-side-strong);
 }
 
@@ -127,8 +146,8 @@
 
 .sc-nav a.active {
   background: var(--sc-side-active);
-  color: var(--sc-side-strong);
-  box-shadow: inset 3px 0 0 #6ea0ff;
+  color: var(--sc-side-active-ink);
+  box-shadow: inset 3px 0 0 var(--sc-side-marker);
 }
 
 .sc-nav a svg {
@@ -143,7 +162,7 @@
   min-width: 22px;
   padding: 1px 7px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--sc-side-chip);
   color: var(--sc-side-strong);
   font-size: 11px;
   font-weight: 700;
@@ -153,6 +172,7 @@
 
 .sc-nav .sc-count.hot {
   background: var(--tangerine-600);
+  color: #ffffff;
 }
 
 .sc-side-foot {

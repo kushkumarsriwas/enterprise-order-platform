@@ -444,7 +444,7 @@
   --b-fg: var(--brand-ink);
 }
 
-.badge-green {
+.badge-good {
   --b-bg: var(--good-soft);
   --b-fg: var(--good);
 }

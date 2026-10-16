@@ -1,7 +1,8 @@
 /*
  * Nexora Control Center: the administrator's console.
- * A dark command bar (always dark, in both themes) carries the search that finds anything on the marketplace;
- * a light navigation column groups the work; the work area is dense and calm. Saffron marks what waits for a decision.
+ * The command bar carries the search that finds anything on the marketplace (white in the light theme, night blue in
+ * the dark theme); a navigation column groups the work; the work area is dense and calm. Saffron marks what waits
+ * for a decision.
  */
 
 /* ---------------------------------------------------------------- command bar */
@@ -1018,7 +1019,7 @@
   background: var(--bg);
 }
 
-/* the dark panel: moving light, the pitch, and floating previews that follow the pointer */
+/* the first-look panel: moving light, the pitch, and floating previews that follow the pointer */
 .cc-signin-side {
   --px: 0;
   --py: 0;
@@ -1030,18 +1031,19 @@
   justify-content: space-between;
   gap: 36px;
   padding: 40px 52px 44px;
-  background: radial-gradient(130% 120% at 0% 0%, var(--night-800) 0%, var(--night-900) 50%, var(--night-950) 100%);
-  color: var(--night-ink-2);
+  border-right: 1px solid var(--stage-border);
+  background: var(--stage-bg);
+  color: var(--stage-ink-2);
 }
 
 .cc-signin-side .console-logo {
-  color: #fff;
+  color: var(--stage-ink);
   --mark-dot: #ffb547;
 }
 
 .cc-signin-side .console-logo-area {
-  border-left-color: rgba(255, 255, 255, 0.18);
-  color: var(--night-ink-2);
+  border-left-color: var(--stage-line);
+  color: var(--stage-ink-3);
 }
 
 .aurora {
@@ -1065,7 +1067,7 @@
   width: 560px;
   height: 560px;
   background: var(--glow-blue);
-  opacity: 0.7;
+  opacity: var(--aurora-1);
 }
 
 .aurora span:nth-child(2) {
@@ -1074,7 +1076,7 @@
   width: 440px;
   height: 440px;
   background: var(--glow-violet);
-  opacity: 0.5;
+  opacity: var(--aurora-2);
 }
 
 .aurora span:nth-child(3) {
@@ -1083,14 +1085,14 @@
   width: 420px;
   height: 420px;
   background: var(--glow-amber);
-  opacity: 0.4;
+  opacity: var(--aurora-3);
 }
 
 .aurora::after {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.17) 1px, transparent 1.5px);
+  background-image: radial-gradient(var(--stage-dots) 1px, transparent 1.5px);
   background-size: 24px 24px;
   mask-image: radial-gradient(75% 85% at 72% 42%, #000 0%, transparent 72%);
 }
@@ -1102,8 +1104,8 @@
   line-height: 1.04;
   letter-spacing: -0.04em;
   text-wrap: balance;
-  color: #fff;
-  background: linear-gradient(180deg, #ffffff 35%, #c3d3ff 100%);
+  color: var(--stage-ink);
+  background: var(--stage-heading);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1112,7 +1114,7 @@
 .cc-pitch p {
   max-width: 46ch;
   margin-top: 14px;
-  color: var(--night-ink-2);
+  color: var(--stage-ink-2);
   font-size: var(--text-md);
 }
 
@@ -1129,7 +1131,7 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  color: var(--night-ink);
+  color: var(--stage-ink);
   font-size: var(--text-sm);
 }
 
@@ -1139,15 +1141,20 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--stage-glass-line);
   border-radius: 11px;
-  background: var(--glass-2);
+  background: var(--stage-glass-hover);
+  box-shadow: 0 6px 14px -8px rgba(29, 78, 216, 0.35);
 }
 
 .cc-pitch .tick svg {
   width: 17px;
   height: 17px;
-  color: #ffc36b;
+  color: var(--stage-accent);
+}
+
+:root[data-theme="dark"] .cc-pitch .tick {
+  box-shadow: none;
 }
 
 /* previews of the console, floating at different depths */
@@ -1163,12 +1170,12 @@
   justify-items: start;
   gap: 6px;
   padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--stage-glass-line);
   border-radius: 18px;
-  background: rgba(12, 26, 62, 0.58);
-  color: var(--night-ink);
+  background: var(--stage-card);
+  color: var(--stage-ink);
   font-size: var(--text-sm);
-  box-shadow: 0 26px 50px -22px rgba(2, 6, 23, 0.85);
+  box-shadow: var(--stage-card-shadow);
   backdrop-filter: blur(14px);
   transform: translate3d(calc(var(--px) * var(--depth)), calc(var(--py) * var(--depth)), 0);
 }
@@ -1177,7 +1184,7 @@
   font-family: var(--font-display);
   font-size: var(--text-md);
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--stage-ink);
 }
 
 .show-card .show-figure {
@@ -1191,18 +1198,18 @@
   gap: 7px;
   font-size: var(--text-xs);
   font-weight: 650;
-  color: var(--night-ink-2);
+  color: var(--stage-ink-3);
 }
 
 .show-title svg {
   width: 15px;
   height: 15px;
-  color: #8fb4ff;
+  color: var(--stage-icon);
 }
 
 .show-note {
   font-size: var(--text-xs);
-  color: var(--night-ink-2);
+  color: var(--stage-ink-3);
 }
 
 .show-a {
@@ -1227,7 +1234,7 @@
 }
 
 .show-c .show-title svg {
-  color: #ffc36b;
+  color: var(--stage-accent);
 }
 
 .show-dots {
@@ -1240,8 +1247,8 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--glow-sky);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  background: var(--stage-icon);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--stage-icon) 20%, transparent);
 }
 
 .show-bars {
