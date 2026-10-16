@@ -411,8 +411,8 @@
 }
 
 @media (max-width: 760px) {
-  .console-logo-area,
-  .console-logo-word,
+  .cc-bar .console-logo-area,
+  .cc-bar .console-logo-word,
   .cc-market-link,
   .cc-admin-btn .who {
     display: none;
@@ -1267,6 +1267,7 @@
 
 /* the form side: a lit card on a soft background */
 .cc-signin-main {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 40px 24px;
