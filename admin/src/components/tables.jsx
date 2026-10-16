@@ -181,7 +181,7 @@ export const MOVEMENT_NAMES = {
 
 export const movementName = (type) => MOVEMENT_NAMES[type] || label(type);
 
-/** Signed quantity: "+20" in green, "-3" in red. */
+/** Signed quantity: "+20" in blue, "-3" in red. */
 export function Quantity({ value }) {
   const n = Number(value) || 0;
   return <span className={`strong ${n > 0 ? "good" : n < 0 ? "bad" : ""}`}>{`${n > 0 ? "+" : ""}${formatNumber(n)}`}</span>;

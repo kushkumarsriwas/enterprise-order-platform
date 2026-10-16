@@ -119,32 +119,31 @@
   width: 100%;
 }
 
-/* on the dark first-look panels: a bright button and a glass one */
-.btn-light {
-  --btn-bg: #ffffff;
-  --btn-fg: var(--night-900);
-  --btn-border: #ffffff;
-  box-shadow: 0 10px 30px -12px rgba(47, 107, 255, 0.65);
-}
-
-.btn-light:hover {
-  background: #eaf0ff;
-  border-color: #eaf0ff;
-}
-
-.btn-glass {
-  --btn-bg: rgba(255, 255, 255, 0.06);
-  --btn-fg: #ffffff;
-  --btn-border: rgba(255, 255, 255, 0.24);
+/* the quiet call to action on the first-look panels: white with an outline (glass on the night panels of the dark theme) */
+.btn-hero-alt {
+  --btn-bg: rgba(255, 255, 255, 0.82);
+  --btn-fg: var(--ink);
+  --btn-border: var(--line-strong);
   backdrop-filter: blur(8px);
 }
 
-.btn-glass:hover {
+.btn-hero-alt:hover {
+  background: #ffffff;
+  border-color: var(--ink-3);
+}
+
+:root[data-theme="dark"] .btn-hero-alt {
+  --btn-bg: rgba(255, 255, 255, 0.06);
+  --btn-fg: #ffffff;
+  --btn-border: rgba(255, 255, 255, 0.24);
+}
+
+:root[data-theme="dark"] .btn-hero-alt:hover {
   background: rgba(255, 255, 255, 0.13);
   border-color: rgba(255, 255, 255, 0.4);
 }
 
-/* the sign-in button: cobalt into indigo, with a light that sweeps across under the pointer (motion.css) */
+/* the main call to action (sign-in, home page): cobalt into indigo, with a light that sweeps across under the pointer */
 .btn-shine {
   position: relative;
   overflow: hidden;
@@ -168,6 +167,17 @@
   z-index: -1;
   background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
   transform: translateX(-120%);
+}
+
+/* on the night panels of the dark theme the main call to action turns white */
+:root[data-theme="dark"] .btn-hero {
+  background: #ffffff;
+  color: var(--night-900);
+  box-shadow: 0 10px 30px -12px rgba(47, 107, 255, 0.65);
+}
+
+:root[data-theme="dark"] .btn-hero:hover {
+  background: #eaf0ff;
 }
 
 .icon-btn {
@@ -499,7 +509,7 @@
   --b-fg: var(--brand-ink);
 }
 
-.badge-green {
+.badge-good {
   --b-bg: var(--good-soft);
   --b-fg: var(--good);
 }

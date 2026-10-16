@@ -11,10 +11,11 @@
     <!-- deployment settings (the marketplace address); in Docker, nginx writes this file when the container starts -->
     <script src="/config.js"></script>
     <script>
-      // apply the saved theme before the first paint (no light flash in dark mode)
+      // Light unless the visitor picked dark with the theme switch; applied before the first paint.
+      // A choice saved by an older version (key "nexora_theme") is dropped once, so everyone starts in light.
       try {
-        var saved = localStorage.getItem("nexora_theme");
-        if (saved === "dark" || saved === "light") document.documentElement.dataset.theme = saved;
+        localStorage.removeItem("nexora_theme");
+        if (localStorage.getItem("nexora-theme") === "dark") document.documentElement.dataset.theme = "dark";
       } catch (e) {}
     </script>
   </head>

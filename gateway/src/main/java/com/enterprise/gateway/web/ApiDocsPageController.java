@@ -33,14 +33,14 @@ public class ApiDocsPageController {
             <meta name="robots" content="noindex">
             <title>Nexora API</title>
             <style>
-              :root { color-scheme: light dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-              body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: Canvas; color: CanvasText; }
+              :root { color-scheme: light; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+              body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f7fa; color: #0f1b2d; }
               main { width: min(440px, calc(100vw - 32px)); }
               h1 { margin: 0 0 8px; font-size: 1.3rem; }
-              p { margin: 0 0 20px; line-height: 1.55; opacity: 0.75; }
+              p { margin: 0 0 20px; line-height: 1.55; color: #44536a; }
               ul { margin: 0; padding: 0; list-style: none; }
-              li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid GrayText; }
-              .ready { color: #1a7f37; font-weight: 600; }
+              li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid #dde3eb; }
+              .ready { color: #1d4ed8; font-weight: 600; }
             </style>
             </head>
             <body>

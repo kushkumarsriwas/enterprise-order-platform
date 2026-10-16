@@ -1,18 +1,15 @@
 /*
  * Nexora Control Center design tokens.
  * The console shares Nexora's cobalt blue for every primary action, so it reads as part of the same company, and
- * sits on cool graphite neutrals under a night-blue command bar. Saffron is the colour of attention:
+ * sits on cool graphite neutrals. Saffron is the colour of attention:
  * counts and items that wait for the administrator's decision. Status colours are always shown with a label or icon.
  */
 :root {
   color-scheme: light;
 
   /* brand (shared with the marketplace) */
-  --cobalt-900: #0f2557;
   --cobalt-800: #1e40af;
   --cobalt-700: #1d4ed8;
-  --cobalt-500: #3b82f6;
-  --cobalt-200: #c3d5fb;
   --cobalt-100: #dce7fd;
   --cobalt-50: #eff4ff;
   --saffron-600: #b35500;
@@ -20,18 +17,33 @@
   --saffron-400: #f2a531;
   --saffron-100: #fdf0dc;
 
-  /* night: the sign-in panel is dark in both themes, lit by moving coloured light (the marketplace's first look) */
+  /* night: the sign-in panel in the dark theme (see the stage tokens below) */
   --night-950: #040a1a;
   --night-900: #071331;
   --night-800: #0c1d45;
-  --night-ink: #f4f7ff;
   --night-ink-2: #b8c6e6;
-  --glass: rgba(255, 255, 255, 0.07);
-  --glass-2: rgba(255, 255, 255, 0.12);
   --glow-blue: #2f6bff;
-  --glow-sky: #38bdf8;
   --glow-violet: #7c5cff;
   --glow-amber: #ff9f3d;
+
+  /* first-look panels (home hero, sell band, sign-in panels): bright daylight in the light theme, night in the dark */
+  --stage-bg: linear-gradient(135deg, #f7f9ff 0%, #ecf2ff 46%, #fff1e6 100%);
+  --stage-border: #dfe7f6;
+  --stage-heading: linear-gradient(180deg, #0f1b2d 30%, #1d4ed8 130%);
+  --stage-ink: #0f1b2d;
+  --stage-ink-2: #44536a;
+  --stage-ink-3: #5d6b81;
+  --stage-line: rgba(15, 27, 45, 0.1);
+  --stage-glass-hover: rgba(255, 255, 255, 0.96);
+  --stage-glass-line: rgba(15, 27, 45, 0.08);
+  --stage-card: rgba(255, 255, 255, 0.84);
+  --stage-card-shadow: 0 24px 50px -24px rgba(29, 78, 216, 0.38);
+  --stage-icon: #1d4ed8;
+  --stage-accent: #b35500;
+  --stage-dots: rgba(15, 27, 45, 0.1);
+  --aurora-1: 0.34;
+  --aurora-2: 0.28;
+  --aurora-3: 0.32;
 
   /* surfaces and ink: cool graphite */
   --bg: #f3f5f7;
@@ -46,13 +58,13 @@
   --on-brand: #ffffff;
   --on-accent: #ffffff;
 
-  /* the command bar is always dark, in both themes */
-  --chrome: #0a1631;
-  --chrome-2: #12214a;
-  --chrome-3: #1b2d5c;
-  --chrome-line: rgba(255, 255, 255, 0.09);
-  --chrome-ink: #eaf0f6;
-  --chrome-ink-2: #9eabba;
+  /* the command bar: white in the light theme, night blue in the dark theme */
+  --chrome: #ffffff;
+  --chrome-2: #f2f5f9;
+  --chrome-3: #e8edf4;
+  --chrome-line: #dce2e8;
+  --chrome-ink: #141c26;
+  --chrome-ink-2: #5b6778;
 
   /* roles */
   --brand: var(--cobalt-700);
@@ -66,14 +78,14 @@
   --focus: #2563eb;
 
   /* status */
-  --good: #1a7f4b;
-  --good-soft: #e1f3e8;
+  --good: #1d4ed8;
+  --good-soft: #e4ecfd;
   --warn: #9a6200;
   --warn-soft: #fdf0d5;
   --bad: #b42318;
   --bad-soft: #fde4e1;
-  --info: #24609e;
-  --info-soft: #e2eefa;
+  --info: #0b69a3;
+  --info-soft: #e1f1fb;
   --violet: #5b48c9;
   --violet-soft: #ebe8fb;
 
@@ -98,7 +110,6 @@
   --text-lg: 1.1875rem;
   --text-xl: 1.4375rem;
   --text-2xl: 1.75rem;
-  --text-3xl: 2.25rem;
 
   /* shape and depth: tighter than the storefront */
   --r-xs: 5px;
@@ -111,7 +122,7 @@
   --shadow-2: 0 1px 2px rgba(17, 25, 34, 0.04), 0 8px 22px -6px rgba(17, 25, 34, 0.12);
   --shadow-3: 0 2px 6px rgba(17, 25, 34, 0.05), 0 24px 56px -16px rgba(17, 25, 34, 0.3);
 
-  --toast-good-icon: #6fd8a0;
+  --toast-good-icon: #8cb4ff;
   --toast-bad-icon: #ff9d92;
 
   --bar-h: 56px;
@@ -123,9 +134,26 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dark: graphite night, stepped from the same hues (chosen, not inverted). */
+/* Dark: used only when the administrator picks it in the command bar; graphite night from the same hues. */
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --stage-bg: radial-gradient(130% 120% at 0% 0%, var(--night-800) 0%, var(--night-900) 48%, var(--night-950) 100%);
+  --stage-border: rgba(255, 255, 255, 0.06);
+  --stage-heading: linear-gradient(180deg, #ffffff 35%, #c3d3ff 100%);
+  --stage-ink: #ffffff;
+  --stage-ink-2: var(--night-ink-2);
+  --stage-ink-3: var(--night-ink-2);
+  --stage-line: rgba(255, 255, 255, 0.12);
+  --stage-glass-hover: rgba(255, 255, 255, 0.12);
+  --stage-glass-line: rgba(255, 255, 255, 0.12);
+  --stage-card: rgba(12, 26, 62, 0.58);
+  --stage-card-shadow: 0 26px 50px -22px rgba(2, 6, 23, 0.85);
+  --stage-icon: #8fb4ff;
+  --stage-accent: #ffc36b;
+  --stage-dots: rgba(255, 255, 255, 0.17);
+  --aurora-1: 0.7;
+  --aurora-2: 0.5;
+  --aurora-3: 0.42;
   --bg: #0e1319;
   --surface: #141a21;
   --surface-2: #1a222b;
@@ -138,6 +166,9 @@
   --chrome: #060e22;
   --chrome-2: #0d1834;
   --chrome-3: #152346;
+  --chrome-line: rgba(255, 255, 255, 0.09);
+  --chrome-ink: #eaf0f6;
+  --chrome-ink-2: #9eabba;
   --brand: #6ea0ff;
   --brand-hover: #8cb4ff;
   --brand-soft: #14223d;
@@ -149,14 +180,14 @@
   --on-accent: #231500;
   --focus: #8cb4ff;
   --on-brand: #071634;
-  --good: #4cc38a;
-  --good-soft: #10301f;
+  --good: #7aa7ff;
+  --good-soft: #15254a;
   --warn: #f0b542;
   --warn-soft: #33270b;
   --bad: #f2776a;
   --bad-soft: #3a1612;
-  --info: #74aef0;
-  --info-soft: #0f2640;
+  --info: #6cc4f0;
+  --info-soft: #0c2a3c;
   --violet: #a99cf2;
   --violet-soft: #221d44;
   --series-1: #3987e5;
@@ -170,6 +201,6 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
   --shadow-3: 0 2px 6px rgba(0, 0, 0, 0.3), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
-  --toast-good-icon: #1a7f4b;
+  --toast-good-icon: #1d4ed8;
   --toast-bad-icon: #b42318;
 }

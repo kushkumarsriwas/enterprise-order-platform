@@ -78,7 +78,7 @@ export function useClickOutside(ref, onOutside, enabled = true) {
 export function useTheme() {
   const [choice, setChoice] = useState(() => {
     try {
-      return localStorage.getItem("nexora_theme");
+      return localStorage.getItem("nexora-theme");
     } catch {
       return null;
     }
@@ -91,7 +91,7 @@ export function useTheme() {
   const toggle = useCallback(() => {
     const next = dark ? "light" : "dark";
     try {
-      localStorage.setItem("nexora_theme", next);
+      localStorage.setItem("nexora-theme", next);
     } catch {
       /* the choice lasts for this visit */
     }

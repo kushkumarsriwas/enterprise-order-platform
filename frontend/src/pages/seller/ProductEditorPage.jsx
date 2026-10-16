@@ -540,7 +540,7 @@ function ProductForm({ id, detail, navigate }) {
                     <StatusBadge status={product.stockStatus} />
                     {product.listed ? (
                       product.visibleToCustomers ? (
-                        <Badge tone="green" dot>
+                        <Badge tone="good" dot>
                           Visible to customers
                         </Badge>
                       ) : (

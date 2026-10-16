@@ -18,7 +18,7 @@ export function Mark({ size = 26 }) {
   );
 }
 
-/** Moving coloured light behind the dark sign-in panel. Purely decorative. */
+/** Moving coloured light behind the sign-in panel. Purely decorative. */
 export function Aurora() {
   return (
     <div className="aurora" aria-hidden="true">

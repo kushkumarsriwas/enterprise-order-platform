@@ -7,34 +7,47 @@
   color-scheme: light;
 
   /* brand */
-  --cobalt-900: #0f2557;
   --cobalt-800: #1e40af;
   --cobalt-700: #1d4ed8;
   --cobalt-600: #2563eb;
   --cobalt-500: #3b82f6;
-  --cobalt-200: #c3d5fb;
   --cobalt-100: #dce7fd;
   --cobalt-50: #eff4ff;
   --tangerine-700: #9a3412;
   --tangerine-600: #c2410c;
-  --tangerine-500: #f26b1d;
   --tangerine-100: #ffedd5;
   --mist-100: #eef3fb;
 
-  /* night: the first look (hero, sign-in, sell band) is dark in both themes, lit by moving coloured light */
+  /* night: the first-look panels in the dark theme (see the stage tokens below) */
   --night-950: #040a1a;
   --night-900: #071331;
   --night-800: #0c1d45;
-  --night-700: #15306a;
-  --night-ink: #f4f7ff;
   --night-ink-2: #b8c6e6;
-  --night-line: rgba(255, 255, 255, 0.12);
-  --glass: rgba(255, 255, 255, 0.07);
-  --glass-2: rgba(255, 255, 255, 0.12);
   --glow-blue: #2f6bff;
   --glow-sky: #38bdf8;
   --glow-violet: #7c5cff;
   --glow-amber: #ff8a3d;
+
+  /* first-look panels (home hero, sell band, sign-in panels): bright daylight in the light theme, night in the dark */
+  --stage-bg: linear-gradient(135deg, #f7f9ff 0%, #ecf2ff 46%, #fff1e6 100%);
+  --stage-border: #dfe7f6;
+  --stage-shadow: 0 40px 90px -56px rgba(29, 78, 216, 0.55);
+  --stage-heading: linear-gradient(180deg, #0f1b2d 30%, #1d4ed8 130%);
+  --stage-ink: #0f1b2d;
+  --stage-ink-2: #44536a;
+  --stage-ink-3: #5d6b81;
+  --stage-line: rgba(15, 27, 45, 0.1);
+  --stage-glass: rgba(255, 255, 255, 0.72);
+  --stage-glass-hover: rgba(255, 255, 255, 0.96);
+  --stage-glass-line: rgba(15, 27, 45, 0.08);
+  --stage-card: rgba(255, 255, 255, 0.84);
+  --stage-card-shadow: 0 24px 50px -24px rgba(29, 78, 216, 0.38);
+  --stage-icon: #1d4ed8;
+  --stage-accent: #c2410c;
+  --stage-dots: rgba(15, 27, 45, 0.1);
+  --aurora-1: 0.34;
+  --aurora-2: 0.28;
+  --aurora-3: 0.32;
 
   /* surfaces and ink */
   --bg: #f5f7fa;
@@ -60,14 +73,14 @@
   --focus: var(--cobalt-600);
 
   /* status (always shown with a label or an icon) */
-  --good: #1a7f4b;
-  --good-soft: #e1f3e8;
+  --good: #1d4ed8;
+  --good-soft: #e4ecfd;
   --warn: #9a6200;
   --warn-soft: #fdf0d5;
   --bad: #b42318;
   --bad-soft: #fde4e1;
-  --info: #24609e;
-  --info-soft: #e2eefa;
+  --info: #0b69a3;
+  --info-soft: #e1f1fb;
   --violet: #5b48c9;
   --violet-soft: #ebe8fb;
 
@@ -91,8 +104,6 @@
   --text-lg: 1.25rem;
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
-  --text-3xl: 2.75rem;
-  --text-4xl: 3.5rem;
 
   /* shape and depth */
   --r-xs: 6px;
@@ -107,13 +118,9 @@
   /* a card under the pointer: lifted, with a faint cobalt cast */
   --shadow-lift: 0 2px 6px rgba(15, 27, 45, 0.04), 0 16px 32px -12px rgba(15, 27, 45, 0.16), 0 32px 64px -28px rgba(29, 78, 216, 0.34);
 
-  /* surfaces with a fixed character (sell band, photos, toasts) */
-  --band-bg: var(--mist-100);
-  --band-ink: #2c3b52;
-  --band-ink-soft: #44536a;
-  --band-heading: #0f1b2d;
+  /* surfaces with a fixed character (photos, toasts) */
   --img-blend: multiply;
-  --toast-good-icon: #6fd8a0;
+  --toast-good-icon: #8cb4ff;
   --toast-bad-icon: #ff9d92;
 
   --header-h: 68px;
@@ -126,9 +133,28 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dark: the same hues stepped for a deep slate night surface (chosen, not inverted). */
+/* Dark: used only when the visitor picks it with the theme switch; the same hues stepped for a deep night surface. */
 :root[data-theme="dark"] {
   color-scheme: dark;
+  --stage-bg: radial-gradient(130% 120% at 0% 0%, var(--night-800) 0%, var(--night-900) 48%, var(--night-950) 100%);
+  --stage-border: rgba(255, 255, 255, 0.06);
+  --stage-shadow: 0 40px 90px -50px rgba(0, 0, 0, 0.8);
+  --stage-heading: linear-gradient(180deg, #ffffff 35%, #c3d3ff 100%);
+  --stage-ink: #ffffff;
+  --stage-ink-2: var(--night-ink-2);
+  --stage-ink-3: var(--night-ink-2);
+  --stage-line: rgba(255, 255, 255, 0.12);
+  --stage-glass: rgba(255, 255, 255, 0.07);
+  --stage-glass-hover: rgba(255, 255, 255, 0.12);
+  --stage-glass-line: rgba(255, 255, 255, 0.12);
+  --stage-card: rgba(12, 26, 62, 0.58);
+  --stage-card-shadow: 0 26px 50px -22px rgba(2, 6, 23, 0.85);
+  --stage-icon: #8fb4ff;
+  --stage-accent: #ffb27a;
+  --stage-dots: rgba(255, 255, 255, 0.17);
+  --aurora-1: 0.7;
+  --aurora-2: 0.5;
+  --aurora-3: 0.42;
   --bg: #0e131b;
   --surface: #141b25;
   --surface-2: #1a2230;
@@ -148,14 +174,14 @@
   --accent-soft: #3b200d;
   --focus: #8cb4ff;
   --on-brand: #071634;
-  --good: #4cc38a;
-  --good-soft: #10301f;
+  --good: #7aa7ff;
+  --good-soft: #15254a;
   --warn: #f0b542;
   --warn-soft: #33270b;
   --bad: #f2776a;
   --bad-soft: #3a1612;
-  --info: #74aef0;
-  --info-soft: #0f2640;
+  --info: #6cc4f0;
+  --info-soft: #0c2a3c;
   --violet: #a99cf2;
   --violet-soft: #221d44;
   --series-1: #3987e5;
@@ -170,11 +196,7 @@
   --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.5);
   --shadow-3: 0 2px 6px rgba(0, 0, 0, 0.3), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
   --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.3), 0 18px 40px -14px rgba(0, 0, 0, 0.65), 0 30px 64px -28px rgba(47, 107, 255, 0.4);
-  --band-bg: #15233b;
-  --band-ink: #c9d6ea;
-  --band-ink-soft: #c9d6ea;
-  --band-heading: #f1f5fb;
   --img-blend: normal;
-  --toast-good-icon: #1a7f4b;
+  --toast-good-icon: #1d4ed8;
   --toast-bad-icon: #b42318;
 }
